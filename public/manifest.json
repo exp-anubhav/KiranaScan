@@ -1,0 +1,17 @@
+{
+  "name": "KiranaScan — Bahi-Khata",
+  "short_name": "KiranaScan",
+  "description": "Voice-First Offline Accounting for Neighbourhood Kirana Shops",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF6F0",
+  "theme_color": "#1B7A43",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
+
