@@ -3,7 +3,7 @@ import {
   Search, Plus, Camera, User, Phone, MapPin,
   ChevronRight, ChevronDown, Clock, Hash,
   ArrowDownCircle, ArrowUpCircle, MessageCircle,
-  ExternalLink, X, Check, Edit3, Eye
+  ExternalLink, X, Check, Edit3, Eye, Copy
 } from 'lucide-react';
 
 /* ───── scan-line keyframe (injected once) ───── */
@@ -104,7 +104,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
     if (!newName.trim()) return;
     store.addCustomer({
       name: newName.trim(),
-      pehchan: newPehchan.trim() || 'General Customer',
+      pehchan: newPehchan.trim(),
       phone: newPhone.trim(),
       openingBalance: Number(newBalance) || 0,
     });
@@ -154,7 +154,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
   /* ───── Backdrop ───── */
   const Backdrop = ({ children, onClose }) => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#151F28] text-slate-900 dark:text-white rounded-2xl shadow-2xl border border-[#E2D9C8] dark:border-[#2A3644]"
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#16202A] text-slate-900 dark:text-white rounded-2xl shadow-2xl border border-[#E2D9C8] dark:border-[#2A3644]"
            onClick={e => e.stopPropagation()}>
         {children}
       </div>
@@ -179,19 +179,19 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
           />
         </div>
 
-        {/* Buttons */}
-        <div className="flex gap-2">
+        {/* Buttons in clean 2-col grid */}
+        <div className="grid grid-cols-2 gap-2.5">
           <button
             onClick={() => setShowNewCust(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#1B7A43] hover:bg-[#145E33] shadow-sm transition-all active:scale-[0.98]"
+            className="text-xs sm:text-sm font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap text-white bg-[#1B7A43] hover:bg-[#156336] shadow-sm transition-all active:scale-[0.98]"
           >
-            <Plus className="w-4 h-4" /> {L.newCustomer}
+            <Plus className="w-4 h-4 shrink-0" /> {L.newCustomer}
           </button>
           <button
             onClick={() => setShowOCR(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28] text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B] shadow-sm transition-all active:scale-[0.98]"
+            className="text-xs sm:text-sm font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B] shadow-sm transition-all active:scale-[0.98]"
           >
-            <Camera className="w-4 h-4" /> {L.scanOCR}
+            <Camera className="w-4 h-4 shrink-0" /> {L.scanOCR}
           </button>
         </div>
       </div>
@@ -208,9 +208,9 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
         {filtered.map(cust => {
           const isExpanded = expandedId === cust.id;
           return (
-            <div key={cust.id} className="rounded-2xl border overflow-hidden bg-white dark:bg-[#151F28] border-[#E2D9C8] dark:border-[#2A3644] shadow-sm">
+            <div key={cust.id} className="rounded-2xl border overflow-hidden bg-white dark:bg-[#16202A] border-[#E2D9C8] dark:border-[#2A3644] shadow-sm">
 
-              {/* ── Card Header ── */}
+              {/* ── Card Header (2 Clean Stacked Rows) ── */}
               <button
                 className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50/60 dark:hover:bg-[#1E293B]/60 transition-colors"
                 onClick={() => setExpandedId(isExpanded ? null : cust.id)}
@@ -220,34 +220,43 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                   {cust.name.charAt(0)}
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate text-slate-900 dark:text-white">
-                    {cust.name}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs px-2 py-0.5 rounded-full truncate bg-[#F3EFE6] dark:bg-[#1E293B] text-slate-700 dark:text-slate-300">
-                      {cust.pehchan}
+                <div className="flex-1 min-w-0 space-y-1">
+                  {/* Top Row: Customer Name on left, Balance pill on right */}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold text-slate-900 dark:text-white truncate text-sm">
+                      {cust.name}
+                    </p>
+                    <span className={`text-sm font-bold px-2.5 py-0.5 rounded-lg shrink-0 border ${
+                      cust.balance > 0
+                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                        : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                    }`}>
+                      {fmt(cust.balance)}
                     </span>
-                    {cust.phone && (
-                      <span className="text-xs flex items-center gap-0.5 text-slate-500 dark:text-slate-400">
-                        <Phone className="w-3 h-3" /> {cust.phone}
-                      </span>
-                    )}
                   </div>
-                </div>
 
-                {/* Balance badge */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
-                    cust.balance > 0
-                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
-                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                  }`}>
-                    {fmt(cust.balance)}
-                  </span>
-                  {isExpanded
-                    ? <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                    : <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
+                  {/* Bottom Row: Pehchan Tag badge + Phone number */}
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {cust.pehchan ? (
+                        <span className="bg-stone-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs px-2 py-0.5 rounded-md truncate max-w-[170px]">
+                          {cust.pehchan}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs italic">
+                          No pehchan
+                        </span>
+                      )}
+                      {cust.phone && (
+                        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0">
+                          <Phone className="w-3 h-3 text-slate-400" /> {cust.phone}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-slate-400 dark:text-slate-500 shrink-0">
+                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </div>
+                  </div>
                 </div>
               </button>
 
@@ -282,7 +291,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       onClick={() => { setShowWhatsApp(cust); setWhatsappTone('polite'); }}
                       className="flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 bg-green-100 dark:bg-green-950/50 text-[#1B7A43] dark:text-green-300 hover:bg-green-200 transition-colors"
                     >
-                      <MessageCircle className="w-3.5 h-3.5" /> 📲 WhatsApp Reminder
+                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp Reminder
                     </button>
                   </div>
 
@@ -431,8 +440,9 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
         <Backdrop onClose={() => { setShowOCR(false); setOcrStage('idle'); setOcrImageFile(null); }}>
           <div className="p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                📸 Bahi-Khata Photo OCR
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Camera className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                Bahi-Khata Photo OCR
               </h3>
               <button onClick={() => { setShowOCR(false); setOcrStage('idle'); setOcrImageFile(null); }}>
                 <X className="w-5 h-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" />
@@ -469,7 +479,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
               {/* Spiral holes decoration */}
               <div className="absolute top-0 left-1 bottom-0 flex flex-col justify-around py-3">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="w-3 h-3 rounded-full border-2 border-[#B0A080] dark:border-slate-600 bg-[#F5EDD6] dark:bg-[#151F28]" />
+                  <div key={i} className="w-3 h-3 rounded-full border-2 border-[#B0A080] dark:border-slate-600 bg-[#F5EDD6] dark:bg-[#16202A]" />
                 ))}
               </div>
             </div>
@@ -536,7 +546,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                     </thead>
                     <tbody>
                       {ocrData.map((row, idx) => (
-                        <tr key={idx} className="border-t border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28]">
+                        <tr key={idx} className="border-t border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A]">
                           <td className="px-2 py-1.5">
                             <input value={row.name}
                                    onChange={e => {
@@ -619,7 +629,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 <div className="flex gap-2 mt-2 flex-wrap">
                   {[100, 200, 500].map(v => (
                     <button key={v} onClick={() => setWasooliAmt(String(v))}
-                            className="px-3 py-1 rounded-lg text-xs font-semibold border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28] text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-[#1E293B]">
+                            className="px-3 py-1 rounded-lg text-xs font-semibold border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-[#1E293B]">
                       ₹{v}
                     </button>
                   ))}
@@ -664,8 +674,9 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
         <Backdrop onClose={() => setShowWhatsApp(null)}>
           <div className="p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                📲 WhatsApp Udhaar Reminder
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-[#25D366]" />
+                WhatsApp Udhaar Reminder
               </h3>
               <button onClick={() => setShowWhatsApp(null)}>
                 <X className="w-5 h-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" />
@@ -694,7 +705,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         onClick={() => setWhatsappTone(t.key)}
                         className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all border ${whatsappTone === t.key
                           ? 'bg-[#1B7A43] text-white border-[#1B7A43]'
-                          : 'bg-white dark:bg-[#151F28] text-slate-600 dark:text-slate-400 border-[#E2D9C8] dark:border-[#2A3644]'}`}>
+                          : 'bg-white dark:bg-[#16202A] text-slate-600 dark:text-slate-400 border-[#E2D9C8] dark:border-[#2A3644]'}`}>
                   {t.label}
                 </button>
               ))}
@@ -723,8 +734,8 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 <ExternalLink className="w-4 h-4" /> Send on WhatsApp
               </a>
               <button onClick={() => copyToClipboard(getWhatsAppMsg(showWhatsApp, whatsappTone))}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28] text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center justify-center gap-1.5">
-                📋 Copy
+                      className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center justify-center gap-1.5">
+                <Copy className="w-4 h-4" /> Copy Reminder
               </button>
             </div>
           </div>

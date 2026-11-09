@@ -363,22 +363,23 @@ export default function App() {
   const appContent = (
     <div className={`flex flex-col w-full bg-[#FAF6F0] dark:bg-[#0F1419] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isMobileFrame ? 'h-full' : 'min-h-screen'}`}>
       {/* ── 2-ROW CLEAN PROFESSIONAL MERCHANT HEADER ── */}
-      <header className={`bg-[#1B7A43] dark:bg-[#145E33] text-white shadow-md z-30 transition-all ${isMobileFrame ? 'px-4 py-3 pt-9' : 'px-6 py-4'}`}>
-        <div className={isMobileFrame ? 'space-y-2.5' : 'max-w-5xl mx-auto space-y-3'}>
-          {/* Row 1: Store Icon + currentMerchant.shopName + Owner/Area subtitle + Switch Shop / Logout + Reset Data */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0 shadow-xs">
-                <StoreIcon size={22} className="text-white" />
+      <header className={`bg-[#1B7A43] text-white px-3.5 py-2.5 shadow-md z-30 transition-all ${isMobileFrame ? 'pt-8' : ''}`}>
+        <div className={isMobileFrame ? 'space-y-2' : 'max-w-5xl mx-auto space-y-2.5'}>
+          {/* Row 1: Shop Identity + Quick Icon Actions */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: Store Icon + Title + Subtitle */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                <StoreIcon className="w-5 h-5 text-white" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 {editingShopName ? (
                   <div className="flex items-center gap-1.5 py-0.5">
                     <input
                       type="text"
                       value={tempShopName}
                       onChange={e => setTempShopName(e.target.value)}
-                      className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white px-2 py-1 rounded-md bg-white dark:bg-[#182026] border border-green-300 focus:outline-none"
+                      className="text-xs font-bold text-slate-900 dark:text-white px-2 py-0.5 rounded-md bg-white dark:bg-[#16202A] border border-green-300 focus:outline-none"
                       autoFocus
                     />
                     <button
@@ -389,19 +390,19 @@ export default function App() {
                       className="p-1 bg-white text-[#1B7A43] rounded hover:bg-green-50 shadow"
                       title="Save Name"
                     >
-                      <Check size={14} />
+                      <Check size={13} />
                     </button>
                     <button
                       onClick={() => setEditingShopName(false)}
                       className="p-1 text-white/80 hover:text-white"
                       title="Cancel"
                     >
-                      <X size={14} />
+                      <X size={13} />
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 group">
-                    <h1 className="text-sm sm:text-base md:text-lg font-black leading-tight tracking-tight truncate max-w-[230px] sm:max-w-xs md:max-w-md">
+                    <h1 className="font-bold text-base truncate text-white leading-tight">
                       {currentShopName}
                     </h1>
                     <button
@@ -416,107 +417,97 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                <p className="text-[11px] text-green-100/80 truncate">
-                  👤 {currentMerchant.ownerName} · 📍 {currentMerchant.area}
+                <p className="text-xs text-emerald-100 truncate">
+                  {currentMerchant?.ownerName || 'Rajesh Gupta'} · {currentMerchant?.area || 'Jaipur'}
                 </p>
               </div>
             </div>
 
-            {/* Header Right Actions */}
+            {/* Right: Quick Actions */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
-                onClick={() => store.resetToDemo()}
-                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold transition-colors flex items-center gap-1"
-                title="Restore Default Sample Data"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
-                <RotateCcw size={12} />
-                <span className="hidden sm:inline">Reset</span>
+                {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4" />}
+              </button>
+
+              <button
+                onClick={() => store.resetToDemo()}
+                className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+                title="Reset Demo Data"
+              >
+                <RotateCcw className="w-4 h-4" />
               </button>
 
               <button
                 onClick={() => store.logoutMerchant()}
-                className="px-2.5 py-1.5 rounded-lg bg-black/20 hover:bg-black/30 text-white text-[11px] font-semibold transition-colors flex items-center gap-1"
+                className="px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-black/35 text-xs font-semibold text-white flex items-center gap-1 transition-colors"
                 title="Switch Shop / Logout"
               >
-                <LogOut size={12} />
-                <span>Switch Shop</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Switch</span>
               </button>
             </div>
           </div>
 
-          {/* Row 2: Compact Control Pills (Network, Language, Soundbox, Theme, Frame) */}
-          <div className="flex items-center justify-between flex-wrap gap-1.5 pt-1 border-t border-white/15 text-[11px]">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Network Toggle Pill */}
-              <button
-                onClick={() => setIsOnline(!isOnline)}
-                className={`px-2.5 py-1 rounded-full font-semibold transition-all flex items-center gap-1 ${isOnline
-                  ? 'bg-white/20 hover:bg-white/30 text-white'
-                  : 'bg-amber-400 text-amber-950 font-bold'
-                  }`}
-                title="Toggle Online / Offline Mode"
-              >
-                {isOnline ? <Wifi size={11} className="text-green-300" /> : <WifiOff size={11} />}
-                <span>{isOnline ? '🟢 Online' : `🟠 Offline (${store.pendingSyncCount})`}</span>
-              </button>
+          {/* Row 2: Single-Line Control Strip */}
+          <div className="flex items-center justify-between gap-1.5 mt-2 pt-2 border-t border-white/15 text-xs">
+            {/* Online/Offline Pill */}
+            <button
+              onClick={() => setIsOnline(!isOnline)}
+              className="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium flex items-center gap-1 transition-colors"
+              title="Toggle Online / Offline Mode"
+            >
+              {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-300" /> : <WifiOff className="w-3.5 h-3.5 text-amber-300" />}
+              <span>{isOnline ? 'Online' : `Offline (${store.pendingSyncCount})`}</span>
+            </button>
 
-              {/* Language Switcher Pill */}
-              <div className="flex bg-black/20 rounded-full p-0.5">
-                {[
-                  { key: 'hinglish', label: 'Hinglish' },
-                  { key: 'hi', label: 'हिंदी' },
-                  { key: 'en', label: 'Eng' },
-                ].map(l => (
-                  <button
-                    key={l.key}
-                    onClick={() => setLang(l.key)}
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${lang === l.key
-                      ? 'bg-white text-[#1B7A43] shadow-xs'
-                      : 'text-white/80 hover:text-white'
-                      }`}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Soundbox TTS Pill */}
-              <button
-                onClick={() => setSoundboxEnabled(!soundboxEnabled)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 ${soundboxEnabled ? 'bg-white/20 text-white' : 'bg-black/20 text-white/60'
-                  }`}
-                title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
-              >
-                {soundboxEnabled ? <Volume2 size={12} className="text-yellow-300" /> : <VolumeX size={12} />}
-                <span>{soundboxEnabled ? 'Audio On' : 'Mute'}</span>
-              </button>
+            {/* Language Segmented Pill */}
+            <div className="flex bg-black/20 rounded-full p-0.5">
+              {[
+                { key: 'hinglish', label: 'Hinglish' },
+                { key: 'hi', label: 'हिंदी' },
+                { key: 'en', label: 'Eng' },
+              ].map(l => (
+                <button
+                  key={l.key}
+                  onClick={() => setLang(l.key)}
+                  className={`text-xs transition-all ${lang === l.key
+                    ? 'bg-white text-[#1B7A43] font-bold px-2 py-0.5 rounded-full shadow-xs'
+                    : 'text-emerald-100 hover:text-white px-1.5 py-0.5'
+                    }`}
+                >
+                  {l.label}
+                </button>
+              ))}
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {/* Theme Toggle Pill */}
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
-              >
-                {isDarkMode ? <Sun size={12} className="text-yellow-300" /> : <Moon size={12} />}
-              </button>
+            {/* Audio Toggle Pill */}
+            <button
+              onClick={() => setSoundboxEnabled(!soundboxEnabled)}
+              className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 transition-colors"
+              title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
+            >
+              {soundboxEnabled ? <Volume2 className="w-3.5 h-3.5 text-yellow-300" /> : <VolumeX className="w-3.5 h-3.5 text-white/60" />}
+              <span>{soundboxEnabled ? '🔊 Audio' : '🔇 Mute'}</span>
+            </button>
 
-              {/* Desktop Frame Switcher Pill */}
-              <button
-                onClick={() => setIsMobileFrame(!isMobileFrame)}
-                className="px-2.5 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-[11px] font-medium transition-colors flex items-center gap-1"
-                title="Toggle Phone Frame vs Full Screen"
-              >
-                {isMobileFrame ? <Smartphone size={12} /> : <Monitor size={12} />}
-                <span>{isMobileFrame ? '430px' : 'Full'}</span>
-              </button>
-            </div>
+            {/* View Toggle Pill */}
+            <button
+              onClick={() => setIsMobileFrame(!isMobileFrame)}
+              className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 transition-colors"
+              title="Toggle Phone Frame vs Full Screen"
+            >
+              {isMobileFrame ? <Smartphone className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
+              <span>{isMobileFrame ? '📱 430px' : '🖥️ Full'}</span>
+            </button>
           </div>
 
           {/* Desktop Navigation Tabs for Full Screen Mode */}
           {!isMobileFrame && (
-            <nav className="flex items-center gap-1.5 bg-black/15 p-1 rounded-xl pt-1">
+            <nav className="flex items-center gap-1.5 bg-black/15 p-1 rounded-xl mt-2">
               {tabLabels.map((label, i) => {
                 const Icon = TAB_ICONS[i];
                 const isActive = i === activeTab;
@@ -525,7 +516,7 @@ export default function App() {
                     key={i}
                     onClick={() => setActiveTab(i)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${isActive
-                      ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-md'
+                      ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-emerald-400 shadow-md'
                       : 'text-white/80 hover:text-white hover:bg-white/10'
                       }`}
                   >
@@ -546,7 +537,7 @@ export default function App() {
 
       {/* Bottom Navigation for Mobile Frame only */}
       {isMobileFrame && (
-        <nav className="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#182026] border-t border-[#E6DFD3] dark:border-[#2A343D] flex z-40 transition-colors shadow-lg">
+        <nav className="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#16202A] border-t border-[#E2D9C8] dark:border-[#2A3644] flex z-40 transition-colors shadow-lg">
           {tabLabels.map((label, i) => {
             const Icon = TAB_ICONS[i];
             const isActive = i === activeTab;
@@ -555,11 +546,11 @@ export default function App() {
                 key={i}
                 onClick={() => setActiveTab(i)}
                 className={`flex-1 flex flex-col items-center py-2.5 text-[10px] font-medium transition-colors ${isActive
-                  ? 'text-[#1B7A43] dark:text-green-400 border-t-2 border-[#1B7A43] dark:border-green-400 font-bold'
-                  : 'text-[#5A6573] dark:text-[#9CA3AF]'
+                  ? 'text-[#1B7A43] dark:text-emerald-400 border-t-2 border-[#1B7A43] dark:border-emerald-400 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
               >
-                <Icon size={20} className={isActive ? 'text-[#1B7A43] dark:text-green-400' : 'text-[#5A6573] dark:text-[#9CA3AF]'} />
+                <Icon size={20} className={isActive ? 'text-[#1B7A43] dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'} />
                 <span className="mt-0.5 truncate max-w-[80px]">{label}</span>
               </button>
             );

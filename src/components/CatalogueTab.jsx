@@ -264,12 +264,12 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
   return (
     <div className="space-y-6 pb-8">
       {/* ===== SECTION 0: SHOP NAME / DUKAN PROFILE ===== */}
-      <section className="bg-white dark:bg-[#151F28] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 shadow-sm">
+      <section className="bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 shadow-sm">
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2">
             <Tag size={18} className="text-[#1B7A43] dark:text-emerald-400" />
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              🏪 Dukan Profile & Shop Name (दुकान का नाम)
+              Dukan Profile & Shop Name (दुकान का नाम)
             </h2>
           </div>
           {shopNameSaved && (
@@ -343,7 +343,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             return (
               <div
                 key={item.id}
-                className="rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28] overflow-hidden shadow-sm"
+                className="rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] overflow-hidden shadow-sm"
               >
                 {/* Item Header */}
                 <button
@@ -429,7 +429,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                                   type="text"
                                   value={v.brand}
                                   onChange={e => handleUpdateVariantBrand(i, e.target.value)}
-                                  className="w-full text-xs px-2 py-1 bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded focus:outline-none"
+                                  className="w-full text-xs px-2 py-1 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded focus:outline-none"
                                   placeholder="Brand name"
                                 />
                               </div>
@@ -441,7 +441,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                                     type="number"
                                     value={v.price}
                                     onChange={e => handleUpdateVariantPrice(i, e.target.value)}
-                                    className="w-full text-xs px-2 py-1 bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] rounded font-semibold text-emerald-700 dark:text-emerald-400 focus:outline-none"
+                                    className="w-full text-xs px-2 py-1 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded font-semibold text-emerald-700 dark:text-emerald-400 focus:outline-none"
                                   />
                                 </div>
                               </div>
@@ -467,7 +467,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                           value={newBrandName}
                           onChange={e => setNewBrandName(e.target.value)}
                           placeholder="Brand Name (e.g. Lifebuoy, Tata)"
-                          className="flex-1 text-xs px-2.5 py-1.5 bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded-md focus:outline-none"
+                          className="flex-1 text-xs px-2.5 py-1.5 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded-md focus:outline-none"
                         />
                         <div className="flex items-center gap-1 w-24">
                           <span className="text-xs text-slate-500">₹</span>
@@ -476,7 +476,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                             value={newBrandPrice}
                             onChange={e => setNewBrandPrice(e.target.value)}
                             placeholder="Price"
-                            className="w-full text-xs px-2 py-1.5 bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded-md focus:outline-none"
+                            className="w-full text-xs px-2 py-1.5 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded-md focus:outline-none"
                           />
                         </div>
                         <button
@@ -526,10 +526,10 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             onClick={() => setShowAddForm(true)}
             className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-dashed border-[#1B7A43] text-[#1B7A43] dark:text-emerald-400 text-sm font-semibold transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
           >
-            <Plus size={16} /> {lang === 'hi' ? 'नया आइटम जोड़ें' : '+ Add New Item'}
+            <Plus size={16} /> {lang === 'hi' ? 'नया आइटम जोड़ें' : 'Add New Item'}
           </button>
         ) : (
-          <div className="mt-3 rounded-2xl border-2 border-[#1B7A43] p-4 bg-white dark:bg-[#151F28] space-y-3 shadow-sm">
+          <div className="mt-3 rounded-2xl border-2 border-[#1B7A43] p-4 bg-white dark:bg-[#16202A] space-y-3 shadow-sm">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
                 <Package size={16} className="text-[#1B7A43] dark:text-emerald-400" /> New Item (नया सामान)
@@ -605,7 +605,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                         setNewItemVariants(arr);
                       }}
                       placeholder={`Brand ${i + 1} (e.g. Tata, GoodDay)`}
-                      className="flex-1 px-2.5 py-1.5 text-xs border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#151F28] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                      className="flex-1 px-2.5 py-1.5 text-xs border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#16202A] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                     />
                     <div className="flex items-center gap-1 w-24">
                       <span className="text-xs text-slate-500">₹</span>
@@ -618,7 +618,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                           setNewItemVariants(arr);
                         }}
                         placeholder="Rate"
-                        className="w-full px-2 py-1.5 text-xs border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#151F28] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                        className="w-full px-2 py-1.5 text-xs border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#16202A] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                       />
                     </div>
                     {newItemVariants.length > 1 && (
@@ -658,7 +658,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
         <div className="flex items-center gap-2 mb-1">
           <RefreshCw size={18} className="text-[#E68A00] dark:text-amber-400" />
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            🔄 Duplicate-Safe Offline Sync Queue
+            Duplicate-Safe Offline Sync Queue
           </h2>
         </div>
         <p className="text-xs mb-3 text-slate-600 dark:text-slate-400">
@@ -692,7 +692,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
         {/* Sync Queue Table */}
         {syncQueue.length > 0 ? (
-          <div className="overflow-x-auto rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28]">
+          <div className="overflow-x-auto rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A]">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-[#F7F5F0] dark:bg-[#1E293B] border-b border-[#E2D9C8] dark:border-[#2A3644]">
@@ -737,7 +737,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             </table>
           </div>
         ) : (
-          <div className="text-center py-4 text-sm rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28] text-slate-500 dark:text-slate-400">
+          <div className="text-center py-4 text-sm rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-500 dark:text-slate-400">
             <Database size={20} className="mx-auto mb-1 opacity-40" />
             Sync queue is empty.
           </div>
@@ -753,16 +753,16 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
             {syncing
               ? 'Syncing...'
-              : `🔄 Trigger Manual Batch Sync (${queuedCount} queued)`}
+              : `Trigger Manual Batch Sync (${queuedCount} queued)`}
           </button>
         )}
       </section>
 
       {/* ===== SECTION 3: GEMINI AI KEY ===== */}
       <section>
-        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#151F28] shadow-sm">
+        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#16202A] shadow-sm">
           <h2 className="text-base font-bold mb-1 text-slate-900 dark:text-white">
-            🤖 Optional Gemini AI Enhancement
+            Optional Gemini AI Enhancement
           </h2>
           <p className="text-xs mb-3 leading-relaxed text-slate-600 dark:text-slate-400">
             The built-in <strong>Position-Independent Hinglish NLP Engine</strong> works 100% offline with zero API keys.
@@ -797,7 +797,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
           <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
             {geminiSaved && geminiKey ? (
               <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <Check size={14} /> Connected ✅
+                <Check size={14} /> Connected
               </span>
             ) : (
               <span className="flex items-center gap-1">
@@ -814,11 +814,11 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
       {/* ===== SECTION 4: DATA PRIVACY & PORTABILITY ===== */}
       <section>
-        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#151F28] shadow-sm">
+        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#16202A] shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Shield size={18} className="text-[#1B7A43] dark:text-emerald-400" />
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              🛡️ Data Privacy & Portability
+              Data Privacy & Portability
             </h2>
           </div>
 
@@ -829,7 +829,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-left transition-colors bg-white dark:bg-[#11181F] text-slate-900 dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
             >
               <Download size={16} className="text-[#1B7A43] dark:text-emerald-400" />
-              <span>📥 Export Full Shop Ledger (JSON)</span>
+              <span>Export Full Shop Ledger (JSON)</span>
             </button>
 
             {/* Export CSV */}
@@ -838,7 +838,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-left transition-colors bg-white dark:bg-[#11181F] text-slate-900 dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
             >
               <Download size={16} className="text-[#1B7A43] dark:text-emerald-400" />
-              <span>📥 Export as CSV</span>
+              <span>Export as CSV</span>
             </button>
 
             {/* Reset Demo */}
@@ -847,7 +847,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 text-sm font-medium text-left transition-colors bg-amber-50/60 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100"
             >
               <RefreshCw size={16} className="text-[#E68A00] dark:text-amber-400" />
-              <span>🔄 Restore Default Sample Data</span>
+              <span>Restore Default Sample Data</span>
             </button>
 
             {/* Delete All */}
@@ -856,12 +856,12 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-red-200 dark:border-red-900/60 text-sm font-medium text-left transition-colors bg-red-50/60 dark:bg-red-950/30 text-red-600 dark:text-red-300 hover:bg-red-100"
             >
               <Trash2 size={16} className="text-red-600 dark:text-red-400" />
-              <span>🗑️ Delete All Shop Data</span>
+              <span>Delete All Shop Data</span>
             </button>
           </div>
 
           <p className="text-[10px] mt-3 leading-relaxed text-slate-500 dark:text-slate-400">
-            🔒 All data stored locally on your device. Zero data sent to any server without your explicit consent.
+            All data stored locally on your device. Zero data sent to any server without your explicit consent.
           </p>
         </div>
       </section>
@@ -869,7 +869,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       {/* ===== RESET CONFIRMATION MODAL ===== */}
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
-          <div className="bg-white dark:bg-[#151F28] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-5 max-w-sm w-full shadow-2xl">
+          <div className="bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-5 max-w-sm w-full shadow-2xl">
             <h3 className="text-base font-bold mb-2 text-slate-900 dark:text-white">Restore Default Sample Data?</h3>
             <p className="text-sm mb-4 text-slate-600 dark:text-slate-400">
               This will restore default sample customers, catalogue items, and hisab entries. Your current data will be reset.
@@ -895,7 +895,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       {/* ===== DELETE CONFIRMATION MODAL ===== */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
-          <div className="bg-white dark:bg-[#151F28] rounded-2xl border-2 border-red-500 p-5 max-w-sm w-full shadow-2xl">
+          <div className="bg-white dark:bg-[#16202A] rounded-2xl border-2 border-red-500 p-5 max-w-sm w-full shadow-2xl">
             <div className="flex items-center gap-2 mb-2">
               <Trash2 size={20} className="text-red-600" />
               <h3 className="text-base font-bold text-red-600">Delete All Data?</h3>

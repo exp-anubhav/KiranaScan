@@ -171,7 +171,7 @@ export default function DailyHisabTab({ store, lang, labels }) {
           return (
             <div
               key={card.id}
-              className={`relative bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] border-l-4 ${card.borderLeftClass} shadow-sm rounded-2xl p-4 transition-colors`}
+              className={`relative bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] border-l-4 ${card.borderLeftClass} shadow-sm rounded-2xl p-4 transition-colors`}
             >
               {/* Session delta badge */}
               {card.delta > 0 && (
@@ -234,7 +234,7 @@ export default function DailyHisabTab({ store, lang, labels }) {
       </div>
 
       {/* ═══════════ 2. Night-Time Galla Reconciliation ═══════════ */}
-      <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] overflow-hidden bg-white dark:bg-[#151F28] shadow-sm">
+      <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] overflow-hidden bg-white dark:bg-[#16202A] shadow-sm">
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#E2D9C8] dark:border-[#2A3644] bg-[#F9F7F4] dark:bg-[#1E293B]">
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -382,7 +382,7 @@ export default function DailyHisabTab({ store, lang, labels }) {
       </div>
 
       {/* ═══════════ 3. Today's Customer Visits & Sales Breakdown ═══════════ */}
-      <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] overflow-hidden bg-white dark:bg-[#151F28] shadow-sm">
+      <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] overflow-hidden bg-white dark:bg-[#16202A] shadow-sm">
         {/* Dual Tab Switcher */}
         <div className="px-4 py-2.5 border-b border-[#E2D9C8] dark:border-[#2A3644] flex items-center justify-between flex-wrap gap-2 bg-[#F9F7F4] dark:bg-[#1E293B]">
           <div className="flex bg-slate-200/80 dark:bg-[#11181F] p-0.5 rounded-lg">
@@ -390,7 +390,7 @@ export default function DailyHisabTab({ store, lang, labels }) {
               onClick={() => setDetailViewTab('customers')}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 detailViewTab === 'customers'
-                  ? 'bg-white dark:bg-[#151F28] text-[#1B7A43] dark:text-emerald-400 shadow-sm'
+                  ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-emerald-400 shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -400,7 +400,7 @@ export default function DailyHisabTab({ store, lang, labels }) {
               onClick={() => setDetailViewTab('breakdown')}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 detailViewTab === 'breakdown'
-                  ? 'bg-white dark:bg-[#151F28] text-[#1B7A43] dark:text-emerald-400 shadow-sm'
+                  ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-emerald-400 shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >

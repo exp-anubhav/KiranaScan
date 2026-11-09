@@ -4,7 +4,7 @@ import { hindiToHinglish } from '../utils/devanagariTransliterator.js';
 import { DEMO_CHIPS } from '../data/seedData.js';
 import {
   Mic, MicOff, Send, Plus, Minus, Edit3, Check, X,
-  AlertTriangle, ChevronDown, MessageCircle, Copy, Undo2, Volume2
+  AlertTriangle, ChevronDown, MessageCircle, Copy, Undo2, Volume2, User, Phone, Zap
 } from 'lucide-react';
 
 // ─── helpers ────────────────────────────────────────────────────
@@ -345,32 +345,78 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
   const shopName = store?.shopName || labels?.appName || 'Gupta Kirana & General Store';
 
-  // ── payment pills config ──
+  // ── payment pills config in strict order: Cash, UPI, Udhaar, Wasooli ──
   const paymentModes = [
-    { key: 'UDHAAR', label: labels?.udhaar || 'Udhaar', color: 'bg-amber-bg text-amber-text border-amber', activeColor: 'bg-[#E68A00] text-white border-[#E68A00]' },
-    { key: 'CASH', label: labels?.cash || 'Cash', color: 'bg-trust-light text-trust border-trust-light', activeColor: 'bg-trust text-white border-trust' },
-    { key: 'UPI', label: labels?.upi || 'UPI', color: 'bg-upi-bg text-upi border-upi-bg', activeColor: 'bg-upi text-white border-upi' },
-    { key: 'WASOOLI', label: labels?.wasooli || 'Wasooli (Jama)', color: 'bg-trust-light text-trust border-trust-light', activeColor: 'bg-trust text-white border-trust' },
+    { key: 'CASH', label: labels?.cash || 'Cash', activeClass: 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-sm' },
+    { key: 'UPI', label: labels?.upi || 'UPI', activeClass: 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-sm' },
+    { key: 'UDHAAR', label: labels?.udhaar || 'Udhaar', activeClass: 'bg-amber-500 text-white border-amber-500 font-bold shadow-sm' },
+    { key: 'WASOOLI', label: labels?.wasooli || 'Wasooli', activeClass: 'bg-teal-600 text-white border-teal-600 font-bold shadow-sm' },
   ];
+
+  // ── Unified Text/Voice Input bar ──
+  const renderInputBar = (compact = false) => (
+    <div className={`w-full bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-sm p-2 flex items-center gap-2 ${compact ? 'mb-1' : 'mt-4'}`}>
+      <button
+        onClick={isListening ? stopListening : startListening}
+        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+          isListening
+            ? 'bg-red-600 text-white animate-pulse'
+            : 'bg-emerald-100 dark:bg-emerald-950/60 text-[#1B7A43] dark:text-emerald-400 hover:bg-[#1B7A43] hover:text-white'
+        }`}
+        title={isListening ? 'Stop Mic' : 'Start Mic'}
+      >
+        <Mic size={20} />
+      </button>
+
+      <input
+        type="text"
+        className="flex-1 px-2.5 py-2 text-sm bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+        value={transcript}
+        onChange={e => setTranscript(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') doParse(transcript);
+        }}
+        placeholder={isListening ? 'Listening… (speak in Hindi or Hinglish)' : 'Type or speak: e.g. Ramesh ko 2kg aata udhaar...'}
+      />
+
+      {transcript && (
+        <button
+          onClick={() => setTranscript('')}
+          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 shrink-0"
+        >
+          <X size={16} />
+        </button>
+      )}
+
+      <button
+        onClick={() => doParse(transcript)}
+        disabled={!transcript.trim()}
+        className="bg-[#1B7A43] hover:bg-[#156336] text-white p-2 rounded-xl shrink-0 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 flex items-center justify-center w-10 h-10"
+        title="Parse / Process"
+      >
+        <Send size={18} />
+      </button>
+    </div>
+  );
 
   // ─────────────────────────────── RENDER ───────────────────────────
   return (
-    <div className="flex flex-col min-h-full justify-between pb-24">
-
-      {/* ── TOP SECTION: SAMPLE VOICE CHIPS (COLLAPSIBLE) ── */}
-      <div className="pt-1">
+    <div className="space-y-3 pb-6">
+      {/* ── TOP SECTION: SAMPLE VOICE CHIPS (COLLAPSIBLE ACCORDION) ── */}
+      <div>
         <button
           onClick={() => setShowChips(prev => !prev)}
-          className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg bg-stone-100/80 dark:bg-[#182026] text-xs font-semibold text-stone-700 dark:text-gray-300 hover:bg-stone-200/80 dark:hover:bg-[#222C35] transition-colors mb-1.5"
+          className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-stone-200 dark:hover:bg-[#1E293B] transition-colors"
         >
           <span className="flex items-center gap-1.5">
-            ⚡ {labels?.demoChips || 'Sample Voice Commands (Tap to Test)'}
+            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+            {labels?.demoChips || 'Sample Voice Commands (Tap to Test)'}
           </span>
           <ChevronDown size={14} className={`transform transition-transform duration-200 ${showChips ? 'rotate-180' : ''}`} />
         </button>
 
         {showChips && (
-          <div className="flex gap-2 overflow-x-auto pb-2 pt-0.5 scrollbar-hide animate-fade-in">
+          <div className="flex gap-2 overflow-x-auto pb-2 pt-2 scrollbar-hide animate-fade-in">
             {DEMO_CHIPS.map((chip, i) => (
               <button
                 key={i}
@@ -378,7 +424,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                   onChipClick(chip);
                   setShowChips(false);
                 }}
-                className="flex-shrink-0 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1E252D] border border-stone-200 dark:border-[#2F3844] text-xs font-medium text-stone-800 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-500 transition-all shadow-sm whitespace-nowrap active:scale-95"
+                className="shrink-0 px-3 py-1.5 rounded-full bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-[#1B7A43] transition-all shadow-xs whitespace-nowrap active:scale-95"
               >
                 {chip.emoji} {chip.label}
               </button>
@@ -387,80 +433,87 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
         )}
       </div>
 
-      {/* ── MIDDLE SECTION: HERO SPEAK OR CONFIRMATION CARD ── */}
-      <div className="flex-1 flex flex-col justify-center my-4">
-        {!draft || confirmedTxn ? (
-          /* Centered Big Voice Counter (Hero Middle State) */
-          <div className="flex flex-col items-center justify-center py-6 px-4 text-center fade-in">
-            {/* Ripple rings around mic */}
-            <div className="relative flex items-center justify-center mb-5">
-              {isListening && (
-                <>
-                  <div className="absolute w-36 h-36 rounded-full bg-red-500/20 animate-ping" />
-                  <div className="absolute w-44 h-44 rounded-full bg-red-500/10 animate-pulse" />
-                </>
-              )}
-              {!isListening && (
-                <div className="absolute w-32 h-32 rounded-full bg-trust/10 dark:bg-trust/20 animate-pulse" />
-              )}
-
-              <button
-                onClick={isListening ? stopListening : startListening}
-                className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
-                  isListening
-                    ? 'bg-danger text-white mic-pulse ring-4 ring-red-300 dark:ring-red-900'
-                    : 'bg-[#1B7A43] text-white hover:bg-[#145E33] hover:scale-105 active:scale-95 ring-4 ring-green-100 dark:ring-green-950/40'
-                }`}
-                aria-label={isListening ? 'Stop recording' : 'Start recording'}
-              >
-                {isListening ? (
-                  /* Animated waveform bars */
-                  <div className="flex items-center gap-1 h-10">
-                    {[0, 1, 2, 3, 4, 5].map(i => (
-                      <span
-                        key={i}
-                        className="wave-bar w-1.5 rounded-full bg-white inline-block"
-                        style={{ animationDelay: `${i * 0.12}s` }}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <Mic size={44} />
-                )}
-              </button>
-            </div>
-
-            <h3 className="text-base font-bold text-text dark:text-white mb-1">
-              {isListening ? '🔴 Listening… Bolna Shuru Karein' : 'Bol Kar Likhein (Tap to Speak)'}
-            </h3>
-
-            <p className="text-xs text-text-secondary dark:text-gray-400 max-w-xs leading-relaxed">
-              {isListening
-                ? 'Hindi ya Hinglish mein bolein, jaise: "Ramesh ko 2 kilo aata aur 1 soap udhaar"'
-                : 'Hinglish ya Hindi mein bolein — bill turant draft ho jayega'}
-            </p>
-
-            {speechNotice && (
-              <div className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-800 animate-fade-in max-w-xs">
-                ℹ️ {speechNotice}
-              </div>
+      {/* ── STATE 1: NO DRAFT OPEN -> HERO CENTER MIC + INPUT BAR ── */}
+      {(!draft || confirmedTxn) && (
+        <div className="flex flex-col items-center justify-center py-6 px-4 text-center bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-2xl shadow-xs fade-in">
+          {/* Ripple rings around mic */}
+          <div className="relative flex items-center justify-center mb-5">
+            {isListening && (
+              <>
+                <div className="absolute w-36 h-36 rounded-full bg-red-500/20 animate-ping" />
+                <div className="absolute w-44 h-44 rounded-full bg-red-500/10 animate-pulse" />
+              </>
+            )}
+            {!isListening && (
+              <div className="absolute w-32 h-32 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 animate-pulse" />
             )}
 
-            {parseTimeMs !== null && (
-              <div className="mt-3">
-                <span className="text-[11px] bg-trust-light dark:bg-trust/20 text-trust dark:text-green-400 font-semibold px-2.5 py-1 rounded-full border border-trust/20">
-                  ⚡ Parsed in {parseTimeMs}ms
-                </span>
-              </div>
-            )}
+            <button
+              onClick={isListening ? stopListening : startListening}
+              className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
+                isListening
+                  ? 'bg-red-600 text-white mic-pulse ring-4 ring-red-300 dark:ring-red-900'
+                  : 'bg-[#1B7A43] text-white hover:bg-[#156336] hover:scale-105 active:scale-95 ring-4 ring-emerald-100 dark:ring-emerald-950/40'
+              }`}
+              aria-label={isListening ? 'Stop recording' : 'Start recording'}
+            >
+              {isListening ? (
+                <div className="flex items-center gap-1 h-10">
+                  {[0, 1, 2, 3, 4, 5].map(i => (
+                    <span
+                      key={i}
+                      className="wave-bar w-1.5 rounded-full bg-white inline-block"
+                      style={{ animationDelay: `${i * 0.12}s` }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Mic size={44} />
+              )}
+            </button>
           </div>
-        ) : (
-          /* Confirmation Card when draft is active */
-          <div className="bg-white dark:bg-[#151F28] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-md overflow-hidden fade-in">
+
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+            {isListening ? '🔴 Listening… Bolna Shuru Karein' : 'Bol Kar Likhein (Tap to Speak)'}
+          </h3>
+
+          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs leading-relaxed">
+            {isListening
+              ? 'Hindi ya Hinglish mein bolein, jaise: "Ramesh ko 2 kilo aata aur 1 soap udhaar"'
+              : 'Hinglish ya Hindi mein bolein — bill turant draft ho jayega'}
+          </p>
+
+          {speechNotice && (
+            <div className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-800 animate-fade-in max-w-xs">
+              ℹ️ {speechNotice}
+            </div>
+          )}
+
+          {parseTimeMs !== null && (
+            <div className="mt-3">
+              <span className="text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                ⚡ Parsed in {parseTimeMs}ms
+              </span>
+            </div>
+          )}
+
+          {/* Unified Input bar directly below the mic card */}
+          {renderInputBar(false)}
+        </div>
+      )}
+
+      {/* ── STATE 2: DRAFT IS OPEN -> COMPACT TOP INPUT BAR + APPROVAL CARD ── */}
+      {draft && !confirmedTxn && (
+        <div className="space-y-3">
+          {/* Compact Input bar at top */}
+          {renderInputBar(true)}
+
+          {/* Confirmation Card when draft is active */}
+          <div className="bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-md overflow-hidden fade-in">
             {/* Card header */}
             <div className="bg-emerald-50 dark:bg-[#1E293B] px-4 py-2.5 flex items-center justify-between border-b border-[#E2D9C8] dark:border-[#2A3644]">
               <span className="text-xs font-bold text-[#1B7A43] dark:text-emerald-400 tracking-wide uppercase">
-                {labels?.approvalRequired || 'APPROVAL REQUIRED'}
+                {labels?.approvalRequired || 'APPROVAL ZARURI HAI'}
               </span>
               <button
                 onClick={resetAll}
@@ -472,42 +525,65 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
             </div>
 
             <div className="p-4 flex flex-col gap-4">
-              {/* ── a. Customer badge ──────────── */}
+              {/* ── a. Customer header card ──────────── */}
               {customer && !draft.isNewCustomer && (
-                <div>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                    customer.id
-                      ? 'bg-trust-light dark:bg-trust/20 text-trust dark:text-green-300'
-                      : 'bg-amber-bg dark:bg-amber-950/40 text-amber-text dark:text-amber-300'
-                  }`}>
-                    <span>👤 {customer.name}</span>
-                    {customer.pehchan && (
-                      <span className="text-[11px] opacity-80 font-normal">· {customer.pehchan}</span>
+                <div className="bg-[#F4EFE6] dark:bg-[#1E293B] border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl p-3 space-y-1.5">
+                  {/* Line 1: Customer Name + Balance badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-base text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-[#1B7A43] shrink-0" />
+                      {customer.name}
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md border shrink-0 ${
+                      customer.balance > 0
+                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                        : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                    }`}>
+                      Baaki: {fmt(customer.balance || 0)}
+                    </span>
+                  </div>
+
+                  {/* Line 2: Pehchan Tag + Phone */}
+                  <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
+                    {customer.pehchan ? (
+                      <span className="bg-stone-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md truncate max-w-[200px]">
+                        {customer.pehchan}
+                      </span>
+                    ) : (
+                      <span className="italic text-slate-400">No pehchan</span>
                     )}
                     {customer.phone && (
-                      <span className="text-[11px] opacity-70 font-normal">📞 {customer.phone}</span>
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        {customer.phone}
+                      </span>
                     )}
                   </div>
 
                   {/* Ambiguous customer switcher */}
                   {draft.customerAmbiguous && draft.customerCandidates?.length > 1 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span className="text-[11px] text-amber-text dark:text-amber-400 font-medium w-full">
+                    <div className="mt-2.5 pt-2 border-t border-stone-300 dark:border-slate-700 space-y-1.5">
+                      <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold block">
                         ⚠️ Multiple matches — tap to select:
                       </span>
-                      {draft.customerCandidates.map(c => (
-                        <button
-                          key={c.id}
-                          onClick={() => setSelectedCustomer(c)}
-                          className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                            customer.id === c.id
-                              ? 'bg-trust text-white border-trust'
-                              : 'bg-white dark:bg-[#242C35] text-text dark:text-gray-200 border-border dark:border-[#2F3844] hover:border-trust'
-                          }`}
-                        >
-                          {c.name} <span className="opacity-70">({c.pehchan} · {fmt(c.balance)})</span>
-                        </button>
-                      ))}
+                      <div className="flex flex-wrap gap-1.5">
+                        {draft.customerCandidates.map(c => {
+                          const isSelected = customer.id === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              onClick={() => setSelectedCustomer(c)}
+                              className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                                isSelected
+                                  ? 'bg-[#1B7A43] text-white border-[#1B7A43] font-semibold shadow-sm'
+                                  : 'bg-stone-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-stone-300 dark:border-slate-600 hover:border-[#1B7A43]'
+                              }`}
+                            >
+                              {c.name} {c.pehchan ? `(${c.pehchan})` : ''} · {fmt(c.balance || 0)}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -515,54 +591,54 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
               {/* ── b. New customer inline form ── */}
               {draft.isNewCustomer && (
-                <div className="bg-amber-bg/50 dark:bg-amber-950/30 rounded-xl p-3 border border-[#E68A00]/20 dark:border-amber-800/40">
-                  <p className="text-xs font-bold text-amber-text dark:text-amber-400 mb-2">🆕 New Customer — Fill Details</p>
+                <div className="bg-amber-500/10 dark:bg-amber-950/30 rounded-xl p-3 border border-amber-500/30">
+                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-2">🆕 New Customer — Fill Details</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="col-span-2">
-                      <label className="text-[11px] text-text-secondary dark:text-gray-400">Name (नाम) *</label>
+                      <label className="text-xs text-slate-600 dark:text-slate-400">Name (नाम) *</label>
                       <input
                         value={ncName}
                         onChange={e => setNcName(e.target.value)}
-                        className="w-full border border-border dark:border-[#2F3844] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#151B22] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-trust/40"
+                        className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className="text-[11px] text-text-secondary dark:text-gray-400">Pehchan / Landmark Tag (Optional)</label>
+                      <label className="text-xs text-slate-600 dark:text-slate-400">Pehchan / Landmark Tag (Optional)</label>
                       <input
                         value={ncPehchan}
                         onChange={e => setNcPehchan(e.target.value)}
                         placeholder="e.g. Chai wala, Gali No. 4 (optional)"
-                        className="w-full border border-border dark:border-[#2F3844] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#151B22] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-trust/40"
+                        className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-text-secondary dark:text-gray-400">WhatsApp Phone (optional)</label>
+                      <label className="text-xs text-slate-600 dark:text-slate-400">WhatsApp Phone (optional)</label>
                       <input
                         value={ncPhone}
                         onChange={e => setNcPhone(e.target.value)}
                         placeholder="98765…"
-                        className="w-full border border-border dark:border-[#2F3844] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#151B22] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-trust/40"
+                        className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-text-secondary dark:text-gray-400">Opening Balance ₹ (optional)</label>
+                      <label className="text-xs text-slate-600 dark:text-slate-400">Opening Balance ₹ (optional)</label>
                       <input
                         type="number"
                         value={ncOpenBal}
                         onChange={e => setNcOpenBal(e.target.value)}
                         placeholder="0"
-                        className="w-full border border-border dark:border-[#2F3844] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#151B22] text-text dark:text-white focus:outline-none focus:ring-2 focus:ring-trust/40"
+                        className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
                       />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* ── c. Payment mode selector ──── */}
+              {/* ── c. Payment mode selector in strict order ──── */}
               <div>
-                <p className="text-[11px] text-text-secondary dark:text-gray-400 font-medium mb-1.5">Payment Mode</p>
-                <div className={`flex gap-2 flex-wrap rounded-xl p-1 ${
-                  draft.needsModeConfirmation ? 'ring-2 ring-[#E68A00] ring-offset-1 animate-pulse' : ''
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Payment Mode</p>
+                <div className={`grid grid-cols-4 gap-1.5 ${
+                  draft.needsModeConfirmation ? 'p-1 rounded-xl ring-2 ring-amber-500 ring-offset-1 animate-pulse' : ''
                 }`}>
                   {paymentModes.map(pm => {
                     const isActive = (draft.type === 'WASOOLI' && pm.key === 'WASOOLI') ||
@@ -571,8 +647,10 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                       <button
                         key={pm.key}
                         onClick={() => setPaymentMode(pm.key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                          isActive ? pm.activeColor : pm.color
+                        className={`py-2 px-1 rounded-lg text-xs transition-all text-center border ${
+                          isActive
+                            ? pm.activeClass
+                            : 'bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-stone-300 dark:border-slate-700 hover:bg-stone-200 dark:hover:bg-slate-700 font-medium'
                         }`}
                       >
                         {pm.label}
@@ -584,8 +662,8 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
               {/* ── d. Clarification banner ───── */}
               {needsClarification && (
-                <div className="flex items-center gap-2 bg-warn-bg dark:bg-amber-950/50 border border-warn-border dark:border-amber-700 rounded-xl px-3 py-2 text-xs text-[#92400E] dark:text-amber-200">
-                  <AlertTriangle size={14} className="text-warn-border flex-shrink-0" />
+                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 rounded-xl px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                  <AlertTriangle size={14} className="text-amber-600 shrink-0" />
                   <span>⚠️ Please resolve highlighted items before confirming</span>
                 </div>
               )}
@@ -593,28 +671,28 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               {/* ── e. Editable line items ────── */}
               {draft.type === 'WASOOLI' ? (
                 /* Wasooli amount */
-                <div className="bg-trust-light/50 dark:bg-trust/10 rounded-xl p-3 border border-trust/10 dark:border-trust/30">
-                  <p className="text-xs font-medium text-trust dark:text-green-400 mb-1">Wasooli (Jama) Amount</p>
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-xl p-3 border border-emerald-200 dark:border-emerald-800">
+                  <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300 mb-1">Wasooli (Jama) Amount</p>
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-trust dark:text-green-400">₹</span>
+                    <span className="text-lg font-bold text-emerald-800 dark:text-emerald-300">₹</span>
                     <input
                       type="number"
                       value={draft.total || ''}
                       onChange={e => updateWasooliAmount(parseFloat(e.target.value) || 0)}
-                      className="w-28 border border-trust/20 rounded-lg px-2.5 py-1.5 text-lg font-bold text-trust dark:text-green-400 bg-white dark:bg-[#151B22] focus:outline-none focus:ring-2 focus:ring-trust/40"
+                      className="w-28 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2.5 py-1.5 text-lg font-bold text-emerald-800 dark:text-emerald-300 bg-white dark:bg-[#11181F] focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
                     />
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <p className="text-[11px] text-text-secondary dark:text-gray-400 font-medium">Line Items</p>
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Line Items</p>
                   {draft.items.map((item, idx) => (
                     <div
                       key={idx}
                       className={`rounded-xl border p-3 transition-colors ${
                         item.needsPriceSelection
-                          ? 'border-[#E68A00] bg-amber-bg/30 dark:bg-amber-950/20'
-                          : 'border-border dark:border-[#2F3844] bg-[#FAFAF7] dark:bg-[#151B22]'
+                          ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/20'
+                          : 'border-[#E2D9C8] dark:border-[#2A3644] bg-stone-50 dark:bg-[#11181F]'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -623,14 +701,14 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                             value={item.name}
                             onChange={e => updateManualItemName(idx, e.target.value)}
                             placeholder="Item name"
-                            className="text-sm font-semibold text-text dark:text-white bg-transparent border-b border-dashed border-text-secondary focus:outline-none focus:border-trust w-32"
+                            className="text-sm font-semibold text-slate-900 dark:text-white bg-transparent border-b border-dashed border-stone-400 focus:outline-none focus:border-[#1B7A43] w-36"
                           />
                         ) : (
-                          <span className="text-sm font-semibold text-text dark:text-white">{item.name}</span>
+                          <span className="text-sm font-semibold text-slate-900 dark:text-white">{item.name}</span>
                         )}
                         <button
                           onClick={() => removeItem(idx)}
-                          className="text-text-secondary dark:text-gray-400 hover:text-danger dark:hover:text-red-400 transition-colors p-0.5"
+                          className="text-slate-400 hover:text-red-500 transition-colors p-0.5"
                         >
                           <X size={14} />
                         </button>
@@ -638,26 +716,26 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
                       {/* Qty controls */}
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="flex items-center gap-1 bg-white dark:bg-[#242C35] rounded-lg border border-border dark:border-[#2F3844]">
+                        <div className="flex items-center gap-1 bg-white dark:bg-[#16202A] rounded-lg border border-[#E2D9C8] dark:border-[#2A3644]">
                           <button
                             onClick={() => updateItemQty(idx, -1)}
-                            className="p-1.5 text-text-secondary dark:text-gray-400 hover:text-danger transition-colors"
+                            className="p-1.5 text-slate-500 hover:text-red-500 transition-colors"
                           >
                             <Minus size={14} />
                           </button>
-                          <span className="text-sm font-bold min-w-[32px] text-center text-text dark:text-white">
+                          <span className="text-sm font-bold min-w-[32px] text-center text-slate-900 dark:text-white">
                             {item.qty}
                           </span>
                           <button
                             onClick={() => updateItemQty(idx, 1)}
-                            className="p-1.5 text-text-secondary dark:text-gray-400 hover:text-trust transition-colors"
+                            className="p-1.5 text-slate-500 hover:text-[#1B7A43] transition-colors"
                           >
                             <Plus size={14} />
                           </button>
                         </div>
-                        <span className="text-[11px] text-text-secondary dark:text-gray-400">{item.unit}</span>
-                        <span className="text-xs text-text-secondary dark:text-gray-400 ml-auto">× {fmt(item.unitPrice)}</span>
-                        <span className="text-sm font-bold text-text dark:text-white">= {fmt(item.total)}</span>
+                        <span className="text-xs text-slate-600 dark:text-slate-400">{item.unit}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto">× {fmt(item.unitPrice)}</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">= {fmt(item.total)}</span>
                       </div>
 
                       {/* Price selection for multi-brand */}
@@ -667,10 +745,10 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                             <button
                               key={vi}
                               onClick={() => updateItemPrice(idx, v.price)}
-                              className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                              className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
                                 vi === item.suggestedVariantIndex
-                                  ? 'bg-trust-light dark:bg-trust/30 border-trust text-trust dark:text-green-300 font-semibold'
-                                  : 'bg-white dark:bg-[#242C35] border-border dark:border-[#2F3844] text-text dark:text-gray-200 hover:border-trust'
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 border-[#1B7A43] text-[#1B7A43] dark:text-emerald-300 font-bold'
+                                  : 'bg-white dark:bg-[#16202A] border-[#E2D9C8] dark:border-[#2A3644] text-slate-800 dark:text-slate-200 hover:border-[#1B7A43]'
                               }`}
                             >
                               {v.label}
@@ -680,7 +758,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                           {!showCustomPrice[idx] ? (
                             <button
                               onClick={() => setShowCustomPrice(p => ({ ...p, [idx]: true }))}
-                              className="text-[11px] px-2.5 py-1 rounded-full border border-dashed border-text-secondary text-text-secondary hover:border-trust hover:text-trust transition-colors"
+                              className="text-xs px-2.5 py-1 rounded-full border border-dashed border-stone-400 text-slate-600 dark:text-slate-400 hover:border-[#1B7A43] hover:text-[#1B7A43] transition-colors"
                             >
                               Custom ₹
                             </button>
@@ -692,14 +770,14 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                                 value={customPrices[idx] || ''}
                                 onChange={e => setCustomPrices(p => ({ ...p, [idx]: e.target.value }))}
                                 placeholder="₹"
-                                className="w-16 text-[11px] border border-trust rounded-lg px-2 py-1 bg-white dark:bg-[#151B22] text-text dark:text-white focus:outline-none"
+                                className="w-16 text-xs border border-[#1B7A43] rounded-lg px-2 py-1 bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none"
                               />
                               <button
                                 onClick={() => {
                                   updateItemPrice(idx, parseFloat(customPrices[idx]) || 0);
                                   setShowCustomPrice(p => ({ ...p, [idx]: false }));
                                 }}
-                                className="text-trust hover:text-trust-hover"
+                                className="text-[#1B7A43] hover:text-[#156336]"
                               >
                                 <Check size={14} />
                               </button>
@@ -711,13 +789,13 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                       {/* Editable price for non multi-brand */}
                       {!item.isMultiBrand && !item.isManual && (
                         <div className="flex items-center gap-1 mt-1">
-                          <Edit3 size={11} className="text-text-secondary dark:text-gray-400" />
-                          <span className="text-[11px] text-text-secondary dark:text-gray-400">Price: ₹</span>
+                          <Edit3 size={11} className="text-slate-500 dark:text-slate-400" />
+                          <span className="text-xs text-slate-600 dark:text-slate-400">Price: ₹</span>
                           <input
                             type="number"
                             value={item.unitPrice}
                             onChange={e => updateItemPrice(idx, parseFloat(e.target.value) || 0)}
-                            className="w-16 text-[11px] border border-border dark:border-[#2F3844] bg-white dark:bg-[#151B22] text-text dark:text-white rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-trust/40"
+                            className="w-16 text-xs border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                           />
                         </div>
                       )}
@@ -725,12 +803,12 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                       {/* Manual item price input */}
                       {item.isManual && (
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[11px] text-text-secondary dark:text-gray-400">Price: ₹</span>
+                          <span className="text-xs text-slate-600 dark:text-slate-400">Price: ₹</span>
                           <input
                             type="number"
                             value={item.unitPrice || ''}
                             onChange={e => updateItemPrice(idx, parseFloat(e.target.value) || 0)}
-                            className="w-20 text-[11px] border border-border dark:border-[#2F3844] bg-white dark:bg-[#151B22] text-text dark:text-white rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-trust/40"
+                            className="w-20 text-xs border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                           />
                         </div>
                       )}
@@ -740,7 +818,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                   {/* Add manual item */}
                   <button
                     onClick={addManualItem}
-                    className="flex items-center justify-center gap-1.5 text-xs font-medium text-trust dark:text-green-400 border border-dashed border-trust/40 rounded-xl py-2 hover:bg-trust-light dark:hover:bg-trust/10 transition-colors"
+                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#1B7A43] dark:text-emerald-400 border border-dashed border-[#1B7A43]/40 rounded-xl py-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
                   >
                     <Plus size={14} /> Add Manual Item
                   </button>
@@ -750,23 +828,23 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               {/* ── f. Balance impact preview ── */}
               {customer && (
                 <div
-                  className={`rounded-xl px-3 py-2.5 text-xs font-medium balance-flash ${
+                  className={`rounded-xl px-3.5 py-2.5 text-xs font-medium balance-flash border ${
                     draft.type === 'WASOOLI'
-                      ? 'bg-trust-light dark:bg-trust/20 text-trust dark:text-green-300'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                       : (draft.mode === 'UDHAAR'
-                          ? 'bg-amber-bg dark:bg-amber-950/40 text-amber-text dark:text-amber-300'
-                          : 'bg-[#F3F4F6] dark:bg-[#242C35] text-text-secondary dark:text-gray-300')
+                          ? 'bg-amber-500/10 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-500/30'
+                          : 'bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-stone-200 dark:border-slate-700')
                   }`}
                 >
                   {draft.type === 'WASOOLI' || draft.mode === 'WASOOLI' ? (
                     <span>
                       Customer Balance: {fmt(oldBal)} → <strong>{fmt(newBal)}</strong>{' '}
-                      <span className="text-trust dark:text-green-400">(-{fmt(draft.total)} Jama)</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">(-{fmt(draft.total)} Jama)</span>
                     </span>
                   ) : draft.mode === 'UDHAAR' ? (
                     <span>
                       Customer Balance: {fmt(oldBal)} → <strong>{fmt(newBal)}</strong>{' '}
-                      <span className="text-[#B36B00] dark:text-amber-400">(+{fmt(draft.total)} Udhaar)</span>
+                      <span className="text-amber-600 dark:text-amber-400 font-bold">(+{fmt(draft.total)} Udhaar)</span>
                     </span>
                   ) : (
                     <span>{fmt(draft.total)} {draft.mode} Sale — No credit impact</span>
@@ -778,64 +856,20 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               <button
                 onClick={handleConfirm}
                 disabled={!canConfirm}
-                className={`w-full py-3 rounded-xl text-sm font-bold transition-all shadow-sm ${
+                className={
                   canConfirm
-                    ? 'bg-trust text-white hover:bg-trust-hover active:scale-[0.98]'
-                    : 'bg-amber-bg dark:bg-amber-950/40 text-amber-text dark:text-amber-300 cursor-not-allowed'
-                }`}
+                    ? 'w-full py-3.5 px-4 rounded-xl bg-[#1B7A43] hover:bg-[#156336] text-white font-bold text-base shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer'
+                    : 'w-full py-3.5 px-4 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-800 dark:text-amber-300 font-semibold text-sm flex items-center justify-center gap-2 cursor-not-allowed'
+                }
               >
                 {canConfirm
-                  ? (labels?.confirm || '✓ Confirm Transaction (Save to Ledger)')
+                  ? (labels?.confirm || '✓ Confirm Karein (Ledger Mein Save)')
                   : (labels?.pendingConfirm || '⚠️ Select Missing Price Above to Confirm')}
               </button>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* ── BOTTOM PINNED SECTION: CHAT-STYLE TEXT INPUT BAR ── */}
-      <div className="pt-2 sticky bottom-0 bg-[#FAF6F0] dark:bg-[#0B1116] pb-1 z-30">
-        <div className="flex items-center gap-2 bg-white dark:bg-[#151F28] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-md p-2">
-          <button
-            onClick={isListening ? stopListening : startListening}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-              isListening ? 'bg-red-600 text-white animate-pulse' : 'bg-emerald-100 dark:bg-emerald-950/60 text-[#1B7A43] dark:text-emerald-400 hover:bg-[#1B7A43] hover:text-white'
-            }`}
-            title={isListening ? 'Stop Mic' : 'Start Mic'}
-          >
-            <Mic size={20} />
-          </button>
-
-          <input
-            type="text"
-            className="flex-1 px-3 py-2 text-sm bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
-            value={transcript}
-            onChange={e => setTranscript(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') doParse(transcript);
-            }}
-            placeholder={isListening ? 'Listening… (speak in Hindi or Hinglish)' : 'Type or speak: e.g. Ramesh ko 2kg aata udhaar...'}
-          />
-
-          {transcript && (
-            <button
-              onClick={() => setTranscript('')}
-              className="text-text-secondary dark:text-gray-400 hover:text-danger p-1"
-            >
-              <X size={16} />
-            </button>
-          )}
-
-          <button
-            onClick={() => doParse(transcript)}
-            disabled={!transcript.trim()}
-            className="w-10 h-10 rounded-xl bg-trust hover:bg-trust-hover text-white flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 shrink-0"
-            title="Parse / Process"
-          >
-            <Send size={18} />
-          </button>
         </div>
-      </div>
+      )}
 
       {/* ── 4. POST-CONFIRM: UNDO BANNER ─────────────── */}
       {confirmedTxn && undoSecs > 0 && (
@@ -845,87 +879,104 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
             className="w-full flex items-center justify-between bg-slate-900 dark:bg-slate-800 text-white rounded-xl px-4 py-3 shadow-xl border border-slate-700/50"
           >
             <span className="flex items-center gap-2 text-sm font-medium">
-              <Undo2 size={16} /> {labels?.undoToast || '↩️ Undo Last Entry'}
+              <Undo2 size={16} /> {labels?.undoToast || 'Undo Last Entry'}
             </span>
-            <span className="text-xs bg-white/20 rounded-full px-2 py-0.5">{undoSecs}s</span>
+            <span className="text-xs bg-white/20 rounded-full px-2 py-0.5 font-bold">{undoSecs}s</span>
           </button>
         </div>
       )}
 
       {/* ── 5. WHATSAPP RECEIPT MODAL ─────────────────── */}
       {showReceipt && confirmedTxn && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => { setShowReceipt(false); resetAll(); }}>
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden fade-in" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs" onClick={() => { setShowReceipt(false); resetAll(); }}>
+          <div className="bg-white dark:bg-[#16202A] text-slate-900 dark:text-slate-100 border border-stone-200 dark:border-slate-700 rounded-2xl p-5 shadow-2xl w-full max-w-sm overflow-hidden fade-in space-y-3" onClick={e => e.stopPropagation()}>
             {/* Receipt header */}
-            <div className="bg-trust px-4 py-3 flex items-center justify-between">
-              <span className="text-white text-sm font-bold">🧾 Receipt / Raseed</span>
-              <button onClick={() => { setShowReceipt(false); resetAll(); }} className="text-white/80 hover:text-white"><X size={18} /></button>
+            <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-slate-700">
+              <span className="text-sm font-bold text-[#1B7A43] dark:text-emerald-400 flex items-center gap-1.5">
+                🧾 Receipt / Raseed
+              </span>
+              <button onClick={() => { setShowReceipt(false); resetAll(); }} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white p-1">
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="p-4 text-sm space-y-2">
-              <p className="font-bold text-trust text-center">{shopName}</p>
-              <p className="text-[11px] text-text-secondary text-center">
-                {new Date(confirmedTxn.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-                <span className="ml-2 opacity-70">{confirmedTxn.txnId}</span>
+            <div className="text-center space-y-0.5">
+              <p className="text-lg font-extrabold text-slate-900 dark:text-white">{shopName}</p>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                {new Date(confirmedTxn.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })} · {confirmedTxn.txnId}
               </p>
+            </div>
 
-              <div className="border-t border-dashed border-border my-2" />
+            <div className="border-t border-dashed border-stone-200 dark:border-slate-700" />
 
-              <p className="text-xs font-semibold">👤 {confirmedTxn.draft.customer?.name || 'Walk-in'}</p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-500 dark:text-slate-400">Grahak:</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                {confirmedTxn.draft.customer?.name || 'Walk-in Customer'}
+              </span>
+            </div>
 
-              {/* Items */}
-              {confirmedTxn.draft.items.length > 0 ? (
-                <div className="space-y-1">
-                  {confirmedTxn.draft.items.map((it, i) => (
-                    <div key={i} className="flex justify-between text-xs">
-                      <span>{it.name} ({it.qty} {it.unit} × {fmt(it.unitPrice)})</span>
-                      <span className="font-semibold">{fmt(it.total)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-trust font-medium">Wasooli (Jama) — {fmt(confirmedTxn.draft.total)}</p>
-              )}
-
-              <div className="border-t border-dashed border-border my-2" />
-
-              <div className="flex justify-between text-sm font-bold">
-                <span>Total ({confirmedTxn.draft.mode})</span>
-                <span>{fmt(confirmedTxn.draft.total)}</span>
+            {/* Items */}
+            {confirmedTxn.draft.items.length > 0 ? (
+              <div className="space-y-1 py-1">
+                {confirmedTxn.draft.items.map((it, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm text-slate-700 dark:text-slate-200">
+                    <span>{it.name} ({it.qty} {it.unit} × {fmt(it.unitPrice)})</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">{fmt(it.total)}</span>
+                  </div>
+                ))}
               </div>
+            ) : (
+              <p className="text-sm font-semibold text-teal-600 dark:text-teal-400 py-1">
+                Wasooli (Jama) — {fmt(confirmedTxn.draft.total)}
+              </p>
+            )}
 
-              {confirmedTxn.oldBal !== undefined && (
-                <div className="bg-[#F9FAFB] rounded-lg p-2 space-y-0.5 text-xs">
-                  <div className="flex justify-between"><span>Old Balance</span><span>{fmt(confirmedTxn.oldBal)}</span></div>
-                  <div className="flex justify-between font-bold"><span>New Balance</span><span>{fmt(confirmedTxn.newBal)}</span></div>
+            <div className="border-t border-dashed border-stone-200 dark:border-slate-700" />
+
+            <div className="flex justify-between text-base font-extrabold text-slate-900 dark:text-white">
+              <span>Total ({confirmedTxn.draft.mode})</span>
+              <span>{fmt(confirmedTxn.draft.total)}</span>
+            </div>
+
+            {confirmedTxn.oldBal !== undefined && (
+              <div className="bg-stone-100 dark:bg-slate-800/90 border border-stone-200 dark:border-slate-700 rounded-xl p-3 text-slate-800 dark:text-slate-200 space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Old Balance</span>
+                  <span className="font-medium">{fmt(confirmedTxn.oldBal)}</span>
                 </div>
-              )}
+                <div className="flex justify-between font-bold text-sm text-slate-900 dark:text-white border-t border-stone-200 dark:border-slate-700 pt-1">
+                  <span>New Balance</span>
+                  <span className="text-[#1B7A43] dark:text-emerald-400">{fmt(confirmedTxn.newBal)}</span>
+                </div>
+              </div>
+            )}
 
-              {/* Buttons */}
-              <div className="flex gap-2 pt-2">
-                <a
-                  href={`https://wa.me/91${confirmedTxn.draft.customer?.phone || ''}?text=${encodeURIComponent(
+            {/* Buttons */}
+            <div className="flex gap-2 pt-2">
+              <a
+                href={`https://wa.me/91${confirmedTxn.draft.customer?.phone || ''}?text=${encodeURIComponent(
+                  buildReceiptText(shopName, confirmedTxn.txnId, confirmedTxn.timestamp, confirmedTxn.draft.items, confirmedTxn.draft.total, confirmedTxn.oldBal, confirmedTxn.newBal, confirmedTxn.draft.customer, confirmedTxn.draft.mode)
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#1EBE5B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors"
+              >
+                <MessageCircle size={15} />
+                <span>{labels?.sendWhatsApp || 'WhatsApp Par Bhejein'}</span>
+              </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(
                     buildReceiptText(shopName, confirmedTxn.txnId, confirmedTxn.timestamp, confirmedTxn.draft.items, confirmedTxn.draft.total, confirmedTxn.oldBal, confirmedTxn.newBal, confirmedTxn.draft.customer, confirmedTxn.draft.mode)
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366] text-white font-semibold text-xs rounded-xl py-2.5 hover:bg-[#1EBE5D] transition-colors"
-                >
-                  <MessageCircle size={14} /> {labels?.sendWhatsApp || '📲 Send on WhatsApp'}
-                </a>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      buildReceiptText(shopName, confirmedTxn.txnId, confirmedTxn.timestamp, confirmedTxn.draft.items, confirmedTxn.draft.total, confirmedTxn.oldBal, confirmedTxn.newBal, confirmedTxn.draft.customer, confirmedTxn.draft.mode)
-                    );
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-[#F3F4F6] text-text font-semibold text-xs rounded-xl py-2.5 hover:bg-border transition-colors"
-                >
-                  {copied ? <><Check size={14} className="text-trust" /> Copied!</> : <><Copy size={14} /> {labels?.copyReceipt || '📋 Copy Receipt'}</>}
-                </button>
-              </div>
+                  );
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="py-2.5 px-4 rounded-xl bg-stone-200 dark:bg-slate-700 hover:bg-stone-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-semibold text-sm flex items-center justify-center gap-1.5 transition-colors"
+              >
+                {copied ? <><Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Copied!</> : <><Copy size={14} /> {labels?.copyReceipt || 'Copy Receipt'}</>}
+              </button>
             </div>
           </div>
         </div>
