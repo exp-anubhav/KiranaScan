@@ -865,7 +865,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               style={{ borderColor: COLORS.amberBg, color: COLORS.amberText }}
             >
               <RefreshCw size={16} style={{ color: COLORS.amber }} />
-              <span>🔄 Reset Demo to Initial Slide 1 State</span>
+              <span>🔄 Restore Default Sample Data</span>
             </button>
 
             {/* Delete All */}
@@ -889,9 +889,9 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-xl" style={{ borderColor: COLORS.cardBorder }}>
-            <h3 className="text-base font-bold mb-2" style={{ color: COLORS.text }}>Reset to Demo State?</h3>
+            <h3 className="text-base font-bold mb-2" style={{ color: COLORS.text }}>Restore Default Sample Data?</h3>
             <p className="text-sm mb-4" style={{ color: COLORS.secondary }}>
-              This will reset all data to the initial demo state. Your current data will be lost.
+              This will restore default sample customers, catalogue items, and hisab entries. Your current data will be reset.
             </p>
             <div className="flex gap-2 justify-end">
               <button

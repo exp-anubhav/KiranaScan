@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Search, Plus, Camera, User, Phone, MapPin,
   ChevronRight, ChevronDown, Clock, Hash,
@@ -74,7 +74,20 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
     day: 'numeric', month: 'long', year: 'numeric',
   });
 
-  const filtered = (store.customers || [])
+  const uniqueCustomers = useMemo(() => {
+    const seenIds = new Set();
+    const seenNames = new Set();
+    return (store.customers || []).filter(c => {
+      const idKey = (c.id || '').trim();
+      const nameKey = (c.name || '').trim().toLowerCase();
+      if ((idKey && seenIds.has(idKey)) || (nameKey && seenNames.has(nameKey))) return false;
+      if (idKey) seenIds.add(idKey);
+      if (nameKey) seenNames.add(nameKey);
+      return true;
+    });
+  }, [store.customers]);
+
+  const filtered = uniqueCustomers
     .filter(c => {
       if (!search.trim()) return true;
       const s = search.toLowerCase();

@@ -45,6 +45,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   const [parseTimeMs, setParseTimeMs] = useState(null);
   const [wasEdited, setWasEdited] = useState(false);
   const [entryStartMs, setEntryStartMs] = useState(null);
+  const [showChips, setShowChips] = useState(false);
 
   // new-customer form
   const [ncName, setNcName] = useState('');
@@ -356,22 +357,34 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   return (
     <div className="flex flex-col min-h-full justify-between pb-24">
 
-      {/* ── TOP SECTION: DEMO CHIPS ─────────────────── */}
+      {/* ── TOP SECTION: SAMPLE VOICE CHIPS (COLLAPSIBLE) ── */}
       <div className="pt-1">
-        <p className="text-xs font-semibold text-text-secondary dark:text-gray-400 mb-2 px-1">
-          {labels?.demoChips || '🎯 Quick Demo Scenarios'}
-        </p>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          {DEMO_CHIPS.map((chip, i) => (
-            <button
-              key={i}
-              onClick={() => onChipClick(chip)}
-              className="flex-shrink-0 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1E252D] border border-border dark:border-[#2F3844] text-xs font-medium text-text dark:text-gray-200 hover:bg-trust-light dark:hover:bg-trust/20 hover:border-trust transition-all shadow-sm whitespace-nowrap active:scale-95"
-            >
-              {chip.emoji} {chip.label}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={() => setShowChips(prev => !prev)}
+          className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg bg-stone-100/80 dark:bg-[#182026] text-xs font-semibold text-stone-700 dark:text-gray-300 hover:bg-stone-200/80 dark:hover:bg-[#222C35] transition-colors mb-1.5"
+        >
+          <span className="flex items-center gap-1.5">
+            ⚡ {labels?.demoChips || 'Sample Voice Commands (Tap to Test)'}
+          </span>
+          <ChevronDown size={14} className={`transform transition-transform duration-200 ${showChips ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showChips && (
+          <div className="flex gap-2 overflow-x-auto pb-2 pt-0.5 scrollbar-hide animate-fade-in">
+            {DEMO_CHIPS.map((chip, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  onChipClick(chip);
+                  setShowChips(false);
+                }}
+                className="flex-shrink-0 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1E252D] border border-stone-200 dark:border-[#2F3844] text-xs font-medium text-stone-800 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-500 transition-all shadow-sm whitespace-nowrap active:scale-95"
+              >
+                {chip.emoji} {chip.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── MIDDLE SECTION: HERO SPEAK OR CONFIRMATION CARD ── */}

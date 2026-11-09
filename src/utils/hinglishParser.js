@@ -268,8 +268,8 @@ function parseItemClause(clauseTokens, catalogue) {
 
   // Find matching catalogue item
   if (!matchedItem) {
-    for (const catItem of catalogue) {
-      for (const alias of catItem.aliases) {
+    for (const catItem of (catalogue || [])) {
+      for (const alias of (catItem.aliases || [])) {
         if (clauseText.includes(alias)) {
           if (!matchedItem || alias.length > (matchedItem._matchLen || 0)) {
             matchedItem = { ...catItem, _matchLen: alias.length };
@@ -288,7 +288,7 @@ function parseItemClause(clauseTokens, catalogue) {
       const compound = wordsToNumber([clauseTokens[i], clauseTokens[i + 1]]);
       if (compound !== null) {
         const afterCompound = clauseTokens[i + 2] || '';
-        if (UNIT_ALIASES[afterCompound] || matchedItem.aliases.includes(afterCompound) || !PRICE_MARKERS.includes(clauseTokens[i + 2] || '')) {
+        if (UNIT_ALIASES[afterCompound] || (matchedItem.aliases || []).includes(afterCompound) || !PRICE_MARKERS.includes(clauseTokens[i + 2] || '')) {
           if (!isPriceOverride || UNIT_ALIASES[afterCompound]) {
             qty = compound;
             if (UNIT_ALIASES[afterCompound]) unit = UNIT_ALIASES[afterCompound];

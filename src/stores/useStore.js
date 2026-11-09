@@ -1,7 +1,17 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { SEED_CUSTOMERS, SEED_CATALOGUE, SEED_DAILY_HISAB } from '../data/seedData.js';
 
-const STORAGE_KEY = 'kiranascan_state';
+const MERCHANTS_STORAGE_KEY = 'kiranascan_merchants_v1';
+const ACTIVE_MERCHANT_KEY = 'kiranascan_active_merchant_id';
+
+export const DEFAULT_GUPTA_MERCHANT = {
+  shopId: 'shop_gupta',
+  shopName: 'Gupta Kirana & General Store',
+  ownerName: 'Rajesh Gupta',
+  phone: '9876543210',
+  pin: '1234',
+  area: 'Jaipur'
+};
 
 function generateTxnId() {
   const n = Math.floor(1000 + Math.random() * 9000);
@@ -15,25 +25,30 @@ function generateUUID() {
   });
 }
 
-function getInitialState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.customers && parsed.customers.length > 0) {
-        return {
-          ...parsed,
-          shopName: parsed.shopName || 'Gupta Kirana & General Store'
-        };
-      }
-    }
-  } catch (e) { /* ignore */ }
-  return buildSeedState();
+function getShopStorageKey(shopId) {
+  return `kiranascan_shop_${shopId}`;
 }
 
-function buildSeedState() {
+function getRegisteredMerchants() {
+  try {
+    const raw = localStorage.getItem(MERCHANTS_STORAGE_KEY);
+    if (raw) {
+      const list = JSON.parse(raw);
+      if (Array.isArray(list) && list.length > 0) return list;
+    }
+  } catch (e) { /* ignore */ }
+  const defaults = [DEFAULT_GUPTA_MERCHANT];
+  localStorage.setItem(MERCHANTS_STORAGE_KEY, JSON.stringify(defaults));
+  return defaults;
+}
+
+function saveRegisteredMerchants(list) {
+  localStorage.setItem(MERCHANTS_STORAGE_KEY, JSON.stringify(list));
+}
+
+function buildGuptaSeedState() {
   return {
-    shopName: 'Gupta Kirana & General Store',
+    shopName: DEFAULT_GUPTA_MERCHANT.shopName,
     customers: SEED_CUSTOMERS.map(c => ({ ...c, history: [...c.history] })),
     catalogue: SEED_CATALOGUE.map(c => ({ ...c })),
     dailyHisab: { ...SEED_DAILY_HISAB },
@@ -52,24 +67,205 @@ function buildSeedState() {
   };
 }
 
+function buildNewMerchantSeedState(merchant) {
+  const openingCash = Number(merchant?.openingCash) || 0;
+  return {
+    shopName: merchant?.shopName || 'My Kirana Store',
+    customers: [],
+    catalogue: SEED_CATALOGUE.map(c => ({ ...c })),
+    dailyHisab: {
+      cashSales: 0,
+      upiSales: 0,
+      creditIssued: 0,
+      collectionsReceived: 0,
+      baseMarketCredit: 0,
+      openingGalla: openingCash,
+    },
+    syncQueue: [],
+    sessionStats: {
+      totalParsed: 0,
+      firstTryAccurate: 0,
+      totalEntryTimeMs: 0,
+      draftsEdited: 0,
+      sessionCash: 0,
+      sessionUpi: 0,
+      sessionCredit: 0,
+      sessionWasooli: 0,
+    },
+    gallaActual: null,
+  };
+}
+
+function loadShopState(shopId, merchants) {
+  const merchant = merchants.find(m => m.shopId === shopId);
+  try {
+    const raw = localStorage.getItem(getShopStorageKey(shopId));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed) return parsed;
+    }
+  } catch (e) { /* ignore */ }
+
+  // If not stored yet, create initial seed
+  if (shopId === 'shop_gupta') {
+    const seed = buildGuptaSeedState();
+    localStorage.setItem(getShopStorageKey(shopId), JSON.stringify(seed));
+    return seed;
+  }
+
+  const newSeed = buildNewMerchantSeedState(merchant);
+  localStorage.setItem(getShopStorageKey(shopId), JSON.stringify(newSeed));
+  return newSeed;
+}
+
 export function useStore() {
-  const [state, setState] = useState(getInitialState);
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const [merchants, setMerchants] = useState(getRegisteredMerchants);
 
-  // Persist to localStorage
+  // Active merchant state
+  const [currentMerchant, setCurrentMerchant] = useState(() => {
+    const activeId = localStorage.getItem(ACTIVE_MERCHANT_KEY);
+    if (activeId === '__LOGGED_OUT__') return null;
+    const list = getRegisteredMerchants();
+    if (activeId) {
+      const found = list.find(m => m.shopId === activeId);
+      if (found) return found;
+    }
+    // Default to Gupta Kirana on first run
+    localStorage.setItem(ACTIVE_MERCHANT_KEY, DEFAULT_GUPTA_MERCHANT.shopId);
+    return DEFAULT_GUPTA_MERCHANT;
+  });
+
+  // Shop state for active merchant
+  const [shopState, setShopState] = useState(() => {
+    const activeId = currentMerchant?.shopId || DEFAULT_GUPTA_MERCHANT.shopId;
+    return loadShopState(activeId, getRegisteredMerchants());
+  });
+
+  const currentMerchantRef = useRef(currentMerchant);
+  currentMerchantRef.current = currentMerchant;
+
+  // Persist current shop state whenever it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    if (currentMerchant?.shopId) {
+      localStorage.setItem(getShopStorageKey(currentMerchant.shopId), JSON.stringify(shopState));
+    }
+  }, [shopState, currentMerchant]);
 
-  const resetToDemo = useCallback(() => {
-    const seed = buildSeedState();
-    setState(seed);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+  // Auth: Login
+  const loginMerchant = useCallback((phone, pin) => {
+    const cleanPhone = String(phone || '').trim().replace(/\D/g, '');
+    const cleanPin = String(pin || '').trim();
+    const list = getRegisteredMerchants();
+    const found = list.find(m => String(m.phone).replace(/\D/g, '') === cleanPhone && String(m.pin).trim() === cleanPin);
+
+    if (!found) {
+      return { success: false, error: 'Galat Mobile Number ya PIN! Kripya dobara jaanchein.' };
+    }
+
+    localStorage.setItem(ACTIVE_MERCHANT_KEY, found.shopId);
+    setCurrentMerchant(found);
+    const loaded = loadShopState(found.shopId, list);
+    setShopState(loaded);
+    return { success: true, merchant: found };
   }, []);
 
+  // Auth: Instant Demo Login
+  const loginDemoMerchant = useCallback(() => {
+    const list = getRegisteredMerchants();
+    let gupta = list.find(m => m.shopId === DEFAULT_GUPTA_MERCHANT.shopId);
+    if (!gupta) {
+      gupta = DEFAULT_GUPTA_MERCHANT;
+      const updated = [DEFAULT_GUPTA_MERCHANT, ...list];
+      saveRegisteredMerchants(updated);
+      setMerchants(updated);
+    }
+    localStorage.setItem(ACTIVE_MERCHANT_KEY, gupta.shopId);
+    setCurrentMerchant(gupta);
+    const loaded = loadShopState(gupta.shopId, list);
+    setShopState(loaded);
+    return { success: true, merchant: gupta };
+  }, []);
+
+  // Auth: Register New Merchant
+  const registerMerchant = useCallback(({ shopName, ownerName, phone, pin, area, openingCash }) => {
+    const cleanPhone = String(phone || '').trim().replace(/\D/g, '');
+    const cleanPin = String(pin || '').trim();
+    const cleanShopName = String(shopName || '').trim();
+    const cleanOwnerName = String(ownerName || '').trim();
+    const cleanArea = String(area || '').trim() || 'Local Market';
+    const cleanOpeningCash = Number(openingCash) || 0;
+
+    if (!cleanShopName) return { success: false, error: 'Dukan ka naam likhna zaroori hai!' };
+    if (!cleanOwnerName) return { success: false, error: 'Dukandar ka naam likhna zaroori hai!' };
+    if (cleanPhone.length !== 10) return { success: false, error: 'Kripya 10-digit mobile number dalein!' };
+    if (cleanPin.length !== 4) return { success: false, error: 'Kripya 4-digit security PIN banayein!' };
+
+    const list = getRegisteredMerchants();
+    const exists = list.find(m => String(m.phone).replace(/\D/g, '') === cleanPhone);
+    if (exists) {
+      return { success: false, error: 'Yeh mobile number pehle se registered hai! Kripya Login karein.' };
+    }
+
+    const shopId = `shop_${Date.now()}`;
+    const newMerchant = {
+      shopId,
+      shopName: cleanShopName,
+      ownerName: cleanOwnerName,
+      phone: cleanPhone,
+      pin: cleanPin,
+      area: cleanArea,
+      openingCash: cleanOpeningCash,
+      registeredAt: new Date().toISOString()
+    };
+
+    const updatedList = [...list, newMerchant];
+    saveRegisteredMerchants(updatedList);
+    setMerchants(updatedList);
+
+    // Initialize isolated shop state
+    const newShopState = buildNewMerchantSeedState(newMerchant);
+    localStorage.setItem(getShopStorageKey(shopId), JSON.stringify(newShopState));
+
+    // Activate merchant
+    localStorage.setItem(ACTIVE_MERCHANT_KEY, shopId);
+    setCurrentMerchant(newMerchant);
+    setShopState(newShopState);
+
+    return { success: true, merchant: newMerchant };
+  }, []);
+
+  // Auth: Logout
+  const logoutMerchant = useCallback(() => {
+    localStorage.setItem(ACTIVE_MERCHANT_KEY, '__LOGGED_OUT__');
+    setCurrentMerchant(null);
+  }, []);
+
+  // Auth: Switch Merchant
+  const switchMerchant = useCallback((shopId) => {
+    const list = getRegisteredMerchants();
+    const found = list.find(m => m.shopId === shopId);
+    if (found) {
+      localStorage.setItem(ACTIVE_MERCHANT_KEY, found.shopId);
+      setCurrentMerchant(found);
+      const loaded = loadShopState(found.shopId, list);
+      setShopState(loaded);
+    }
+  }, []);
+
+  // Reset current shop to demo
+  const resetToDemo = useCallback(() => {
+    if (!currentMerchant?.shopId) return;
+    const isGupta = currentMerchant.shopId === DEFAULT_GUPTA_MERCHANT.shopId;
+    const fresh = isGupta ? buildGuptaSeedState() : buildNewMerchantSeedState(currentMerchant);
+    setShopState(fresh);
+    localStorage.setItem(getShopStorageKey(currentMerchant.shopId), JSON.stringify(fresh));
+  }, [currentMerchant]);
+
+  // Delete all data for current shop
   const deleteAllData = useCallback(() => {
+    if (!currentMerchant?.shopId) return;
     const empty = {
+      shopName: currentMerchant.shopName,
       customers: [],
       catalogue: SEED_CATALOGUE.map(c => ({ ...c })),
       dailyHisab: { cashSales: 0, upiSales: 0, creditIssued: 0, collectionsReceived: 0, baseMarketCredit: 0, openingGalla: 0 },
@@ -77,16 +273,30 @@ export function useStore() {
       sessionStats: { totalParsed: 0, firstTryAccurate: 0, totalEntryTimeMs: 0, draftsEdited: 0, sessionCash: 0, sessionUpi: 0, sessionCredit: 0, sessionWasooli: 0 },
       gallaActual: null,
     };
-    setState(empty);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(empty));
-  }, []);
+    setShopState(empty);
+    localStorage.setItem(getShopStorageKey(currentMerchant.shopId), JSON.stringify(empty));
+  }, [currentMerchant]);
 
+  // Update shop name
   const updateShopName = useCallback((newName) => {
-    setState(prev => ({ ...prev, shopName: newName.trim() || 'Gupta Kirana & General Store' }));
-  }, []);
+    const trimmed = (newName || '').trim();
+    if (!trimmed || !currentMerchant?.shopId) return;
 
+    setShopState(prev => ({ ...prev, shopName: trimmed }));
+
+    // Also update in registeredMerchants
+    setMerchants(prev => {
+      const updated = prev.map(m => m.shopId === currentMerchant.shopId ? { ...m, shopName: trimmed } : m);
+      saveRegisteredMerchants(updated);
+      return updated;
+    });
+
+    setCurrentMerchant(prev => prev ? { ...prev, shopName: trimmed } : prev);
+  }, [currentMerchant]);
+
+  // Add Customer
   const addCustomer = useCallback((customer) => {
-    setState(prev => {
+    setShopState(prev => {
       const trimmedName = (customer.name || '').trim();
       if (!trimmedName) return prev;
       const existing = prev.customers.find(c => c.name.toLowerCase() === trimmedName.toLowerCase());
@@ -112,12 +322,13 @@ export function useStore() {
     });
   }, []);
 
+  // Confirm Transaction
   const confirmTransaction = useCallback((parsed, isOnline) => {
     const txnId = generateTxnId();
     const idempotencyKey = generateUUID();
     const timestamp = new Date().toISOString();
 
-    setState(prev => {
+    setShopState(prev => {
       const newState = { ...prev };
       const customers = [...prev.customers];
 
@@ -146,7 +357,7 @@ export function useStore() {
         idempotencyKey,
         date: timestamp,
         type: parsed.type === 'WASOOLI' ? 'WASOOLI' : 'UDHAAR',
-        items: parsed.items.map(it => ({ name: it.name, qty: it.qty, unit: it.unit, price: it.unitPrice, total: it.total })),
+        items: (parsed.items || []).map(it => ({ name: it.name, qty: it.qty, unit: it.unit, price: it.unitPrice, total: it.total })),
         total: parsed.total,
         mode: parsed.mode,
         transcript: parsed.transcript,
@@ -205,8 +416,9 @@ export function useStore() {
     return { txnId, timestamp };
   }, []);
 
+  // Undo Last Transaction
   const undoLastTransaction = useCallback(() => {
-    setState(prev => {
+    setShopState(prev => {
       if (prev.syncQueue.length === 0) return prev;
       const lastTxn = prev.syncQueue[prev.syncQueue.length - 1];
       const newState = { ...prev };
@@ -254,11 +466,12 @@ export function useStore() {
     });
   }, []);
 
+  // Record Wasooli (Repayment)
   const recordWasooli = useCallback((custId, amount, mode, isOnline) => {
     const txnId = generateTxnId();
     const timestamp = new Date().toISOString();
 
-    setState(prev => {
+    setShopState(prev => {
       const customers = [...prev.customers];
       const idx = customers.findIndex(c => c.id === custId);
       if (idx < 0) return prev;
@@ -286,8 +499,9 @@ export function useStore() {
     return txnId;
   }, []);
 
+  // Sync Offline Queue
   const syncOfflineQueue = useCallback(() => {
-    setState(prev => ({
+    setShopState(prev => ({
       ...prev,
       syncQueue: prev.syncQueue.map(q => ({ ...q, syncStatus: 'SYNCED', synced: true })),
       customers: prev.customers.map(c => ({
@@ -297,75 +511,90 @@ export function useStore() {
     }));
   }, []);
 
+  // Catalogue Item Update
   const updateCatalogueItem = useCallback((itemId, updates) => {
-    setState(prev => ({
+    setShopState(prev => ({
       ...prev,
       catalogue: prev.catalogue.map(c => c.id === itemId ? { ...c, ...updates } : c)
     }));
   }, []);
 
   const addCatalogueItem = useCallback((item) => {
-    setState(prev => ({
+    setShopState(prev => ({
       ...prev,
       catalogue: [...prev.catalogue, { id: 'item_' + Date.now(), ...item }]
     }));
   }, []);
 
   const deleteCatalogueItem = useCallback((itemId) => {
-    setState(prev => ({
+    setShopState(prev => ({
       ...prev,
       catalogue: prev.catalogue.filter(c => c.id !== itemId)
     }));
   }, []);
 
   const setGallaActual = useCallback((amount) => {
-    setState(prev => ({ ...prev, gallaActual: amount }));
+    setShopState(prev => ({ ...prev, gallaActual: amount }));
   }, []);
 
   const updateSessionStats = useCallback((updates) => {
-    setState(prev => ({
+    setShopState(prev => ({
       ...prev,
       sessionStats: { ...prev.sessionStats, ...updates }
     }));
   }, []);
 
   const importOCRCustomers = useCallback((ocrCustomers) => {
-    setState(prev => {
-      const newCustomers = ocrCustomers.map(oc => ({
-        id: 'cust_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        name: oc.name,
-        pehchan: oc.pehchan || '',
-        phone: oc.phone || '',
-        balance: oc.balance || 0,
-        history: []
-      }));
-      return { ...prev, customers: [...prev.customers, ...newCustomers] };
+    setShopState(prev => {
+      const updated = [...prev.customers];
+      ocrCustomers.forEach(oc => {
+        const trimmed = (oc.name || '').trim();
+        if (!trimmed) return;
+        const idx = updated.findIndex(c => c.name.toLowerCase() === trimmed.toLowerCase());
+        if (idx >= 0) {
+          updated[idx] = {
+            ...updated[idx],
+            pehchan: oc.pehchan || updated[idx].pehchan,
+            balance: (Number(oc.balance) || 0) + (updated[idx].balance || 0),
+          };
+        } else {
+          updated.push({
+            id: 'cust_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            name: trimmed,
+            pehchan: oc.pehchan || '',
+            phone: oc.phone || '',
+            balance: Number(oc.balance) || 0,
+            history: []
+          });
+        }
+      });
+      return { ...prev, customers: updated };
     });
   }, []);
 
   // Computed values
-  const totalCustomerBalance = state.customers.reduce((s, c) => s + c.balance, 0);
-  const totalOutstandingCredit = state.dailyHisab.baseMarketCredit + totalCustomerBalance;
-  const pendingSyncCount = state.syncQueue.filter(q => q.syncStatus === 'QUEUED_OFFLINE').length;
+  const totalCustomerBalance = (shopState.customers || []).reduce((s, c) => s + (c.balance || 0), 0);
+  const totalOutstandingCredit = (shopState.dailyHisab?.baseMarketCredit || 0) + totalCustomerBalance;
+  const pendingSyncCount = (shopState.syncQueue || []).filter(q => q.syncStatus === 'QUEUED_OFFLINE').length;
 
-  const expectedGalla = state.dailyHisab.openingGalla + state.dailyHisab.cashSales +
-    state.syncQueue.filter(q => q.type === 'WASOOLI' && q.mode === 'CASH').reduce((s, q) => s + q.total, 0);
+  const expectedGalla = (shopState.dailyHisab?.openingGalla || 0) + (shopState.dailyHisab?.cashSales || 0) +
+    (shopState.syncQueue || []).filter(q => q.type === 'WASOOLI' && q.mode === 'CASH').reduce((s, q) => s + q.total, 0);
 
-  const avgEntrySpeed = state.sessionStats.totalParsed > 0
-    ? (state.sessionStats.totalEntryTimeMs / state.sessionStats.totalParsed / 1000).toFixed(1)
+  const avgEntrySpeed = shopState.sessionStats?.totalParsed > 0
+    ? (shopState.sessionStats.totalEntryTimeMs / shopState.sessionStats.totalParsed / 1000).toFixed(1)
     : '0.0';
 
-  const parserAccuracy = state.sessionStats.totalParsed > 0
-    ? Math.round((state.sessionStats.firstTryAccurate / state.sessionStats.totalParsed) * 100)
+  const parserAccuracy = shopState.sessionStats?.totalParsed > 0
+    ? Math.round((shopState.sessionStats.firstTryAccurate / shopState.sessionStats.totalParsed) * 100)
     : 100;
 
-  const editPercentage = state.sessionStats.totalParsed > 0
-    ? Math.round((state.sessionStats.draftsEdited / state.sessionStats.totalParsed) * 100)
+  const editPercentage = shopState.sessionStats?.totalParsed > 0
+    ? Math.round((shopState.sessionStats.draftsEdited / shopState.sessionStats.totalParsed) * 100)
     : 0;
 
   // Transactions recorded today with customer information
-  const todayTransactions = state.syncQueue.map(q => {
-    const cust = state.customers.find(c => c.history.some(h => h.id === q.id));
+  const todayTransactions = (shopState.syncQueue || []).map(q => {
+    const cust = (shopState.customers || []).find(c => (c.history || []).some(h => h.id === q.id));
     return {
       ...q,
       customerName: cust?.name || 'Walk-in',
@@ -376,7 +605,14 @@ export function useStore() {
   }).reverse();
 
   return {
-    ...state,
+    ...shopState,
+    currentMerchant,
+    registeredMerchants: merchants,
+    loginMerchant,
+    loginDemoMerchant,
+    registerMerchant,
+    logoutMerchant,
+    switchMerchant,
     totalOutstandingCredit,
     pendingSyncCount,
     expectedGalla,
@@ -400,4 +636,3 @@ export function useStore() {
     importOCRCustomers,
   };
 }
-
