@@ -1,16 +1,20 @@
 {
-  "name": "KiranaScan — Bahi-Khata",
+  "name": "KiranaScan — Voice & Camera POS for Bharat Retailers",
   "short_name": "KiranaScan",
-  "description": "Voice-First Offline Accounting for Neighbourhood Kirana Shops",
+  "description": "Voice-First Offline Accounting & Bahi-Khata Ledger for Neighbourhood Kirana Stores",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#FAF6F0",
   "theme_color": "#1B7A43",
+  "categories": ["finance", "business", "utilities"],
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "192x192 512x512",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

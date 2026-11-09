@@ -64,32 +64,18 @@ body {
 }
 .fade-in { animation: fade-in 0.3s ease-out; }
 
-.phone-frame {
-  width: 430px;
-  height: 932px;
-  border-radius: 40px;
-  border: 8px solid #1E242B;
-  overflow: hidden;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+.mobile-app-column {
+  width: 100%;
+  max-width: 440px;
+  min-height: 100vh;
+  margin: 0 auto;
   position: relative;
-}
-.phone-frame::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 120px; height: 28px;
-  background: #1E242B;
-  border-radius: 0 0 16px 16px;
-  z-index: 50;
+  background-color: var(--bg-app);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.06);
 }
 
-.dark .phone-frame {
-  border-color: #2F3844;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.7);
-}
-.dark .phone-frame::before {
-  background: #2F3844;
+.dark .mobile-app-column {
+  box-shadow: 0 4px 35px rgba(0, 0, 0, 0.4);
 }
 
 ::-webkit-scrollbar { width: 4px; }

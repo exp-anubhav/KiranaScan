@@ -116,19 +116,19 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════
   if (!currentMerchant) {
     return (
-      <div className={`min-h-screen flex flex-col justify-center items-center p-4 bg-[#FAF6F0] dark:bg-[#0F1419] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
+      <div className={`min-h-screen flex flex-col justify-center items-center p-4 bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
         {/* Top Floating Controls */}
         <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 rounded-xl bg-white dark:bg-[#182026] border border-[#E6DFD3] dark:border-[#2A343D] text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1B7A43] shadow-sm transition-all"
+            className="p-2 rounded-xl bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1B7A43] shadow-sm transition-all"
             title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
             {isDarkMode ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
           </button>
         </div>
 
-        <div className="w-full max-w-md bg-white dark:bg-[#182026] rounded-3xl border border-[#E6DFD3] dark:border-[#2A343D] shadow-xl p-6 sm:p-8 space-y-6">
+        <div className="w-full max-w-md bg-white dark:bg-[#16202A] rounded-3xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-xl p-6 sm:p-8 space-y-6">
           {/* Logo & Branding */}
           <div className="text-center space-y-2">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-[#1B7A43] text-white flex items-center justify-center shadow-lg shadow-green-900/20">
@@ -162,11 +162,11 @@ export default function App() {
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex bg-[#FAF6F0] dark:bg-[#0F1419] p-1 rounded-2xl border border-[#E6DFD3] dark:border-[#2A343D]">
+          <div className="flex bg-[#FAF6F0] dark:bg-[#11181F] p-1 rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644]">
             <button
               onClick={() => { setAuthTab('login'); setAuthError(''); }}
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${authTab === 'login'
-                ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-sm'
+                ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-green-400 shadow-sm'
                 : 'text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1E242B]'
                 }`}
             >
@@ -175,7 +175,7 @@ export default function App() {
             <button
               onClick={() => { setAuthTab('signup'); setAuthError(''); }}
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${authTab === 'signup'
-                ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-sm'
+                ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-green-400 shadow-sm'
                 : 'text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1E242B]'
                 }`}
             >
@@ -361,9 +361,9 @@ export default function App() {
   };
 
   const appContent = (
-    <div className={`flex flex-col w-full bg-[#FAF6F0] dark:bg-[#0F1419] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isMobileFrame ? 'h-full' : 'min-h-screen'}`}>
+    <div className="flex flex-col w-full min-h-screen bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors relative">
       {/* ── 2-ROW CLEAN PROFESSIONAL MERCHANT HEADER ── */}
-      <header className={`bg-[#1B7A43] text-white px-3.5 py-2.5 shadow-md z-30 transition-all ${isMobileFrame ? 'pt-8' : ''}`}>
+      <header className="bg-[#1B7A43] text-white px-3.5 py-2.5 shadow-md sticky top-0 z-30 transition-all">
         <div className={isMobileFrame ? 'space-y-2' : 'max-w-5xl mx-auto space-y-2.5'}>
           {/* Row 1: Shop Identity + Quick Icon Actions */}
           <div className="flex items-center justify-between gap-2">
@@ -531,40 +531,47 @@ export default function App() {
       </header>
 
       {/* Tab Content */}
-      <main className={`flex-1 overflow-y-auto ${isMobileFrame ? 'pb-20 p-3' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
+      <main className={`flex-1 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-3.5 pb-24' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
         {renderTabContent()}
       </main>
 
-      {/* Bottom Navigation for Mobile Frame only */}
+      {/* Bottom Navigation for Mobile View (Clean, always visible & accessible at bottom of screen) */}
       {isMobileFrame && (
-        <nav className="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#16202A] border-t border-[#E2D9C8] dark:border-[#2A3644] flex z-40 transition-colors shadow-lg">
-          {tabLabels.map((label, i) => {
-            const Icon = TAB_ICONS[i];
-            const isActive = i === activeTab;
-            return (
-              <button
-                key={i}
-                onClick={() => setActiveTab(i)}
-                className={`flex-1 flex flex-col items-center py-2.5 text-[10px] font-medium transition-colors ${isActive
-                  ? 'text-[#1B7A43] dark:text-emerald-400 border-t-2 border-[#1B7A43] dark:border-emerald-400 font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-              >
-                <Icon size={20} className={isActive ? 'text-[#1B7A43] dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'} />
-                <span className="mt-0.5 truncate max-w-[80px]">{label}</span>
-              </button>
-            );
-          })}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#16202A]/95 backdrop-blur-md border-t border-[#E2D9C8] dark:border-[#2A3644] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+          <div className="max-w-[440px] mx-auto flex items-center justify-around">
+            {tabLabels.map((label, i) => {
+              const Icon = TAB_ICONS[i];
+              const isActive = i === activeTab;
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setActiveTab(i);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`flex-1 flex flex-col items-center py-2 px-1 text-[11px] font-medium transition-all ${isActive
+                    ? 'text-[#1B7A43] dark:text-emerald-400 font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                >
+                  <div className={`p-1 rounded-xl transition-all ${isActive ? 'bg-emerald-50 dark:bg-emerald-950/60' : ''}`}>
+                    <Icon size={20} className={isActive ? 'text-[#1B7A43] dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'} />
+                  </div>
+                  <span className="mt-0.5 truncate max-w-[80px]">{label}</span>
+                </button>
+              );
+            })}
+          </div>
         </nav>
       )}
     </div>
   );
 
   return (
-    <div className={`min-h-screen bg-[#F0ECE6] dark:bg-[#0F1419] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`min-h-screen bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
       {isMobileFrame ? (
-        <div className="flex justify-center items-center py-4 px-2 min-h-screen">
-          <div className="phone-frame bg-[#FAF6F0] dark:bg-[#0F1419] flex flex-col shadow-2xl">
+        <div className="w-full min-h-screen flex justify-center bg-[#F2EDE4] dark:bg-[#070B0E]">
+          <div className="w-full max-w-[440px] min-h-screen bg-[#FAF6F0] dark:bg-[#0B1116] border-x border-[#E2D9C8] dark:border-[#2A3644] shadow-2xl flex flex-col relative">
             {appContent}
           </div>
         </div>

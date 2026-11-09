@@ -121,18 +121,13 @@ function loadShopState(shopId, merchants) {
 export function useStore() {
   const [merchants, setMerchants] = useState(getRegisteredMerchants);
 
-  // Active merchant state
+  // Active merchant state (Always starts at Login page for new visits/sessions)
   const [currentMerchant, setCurrentMerchant] = useState(() => {
-    const activeId = localStorage.getItem(ACTIVE_MERCHANT_KEY);
-    if (activeId === '__LOGGED_OUT__') return null;
+    const activeId = sessionStorage.getItem(ACTIVE_MERCHANT_KEY);
+    if (!activeId || activeId === '__LOGGED_OUT__') return null;
     const list = getRegisteredMerchants();
-    if (activeId) {
-      const found = list.find(m => m.shopId === activeId);
-      if (found) return found;
-    }
-    // Default to Gupta Kirana on first run
-    localStorage.setItem(ACTIVE_MERCHANT_KEY, DEFAULT_GUPTA_MERCHANT.shopId);
-    return DEFAULT_GUPTA_MERCHANT;
+    const found = list.find(m => m.shopId === activeId);
+    return found || null;
   });
 
   // Shop state for active merchant
@@ -162,6 +157,7 @@ export function useStore() {
       return { success: false, error: 'Galat Mobile Number ya PIN! Kripya dobara jaanchein.' };
     }
 
+    sessionStorage.setItem(ACTIVE_MERCHANT_KEY, found.shopId);
     localStorage.setItem(ACTIVE_MERCHANT_KEY, found.shopId);
     setCurrentMerchant(found);
     const loaded = loadShopState(found.shopId, list);
@@ -179,6 +175,7 @@ export function useStore() {
       saveRegisteredMerchants(updated);
       setMerchants(updated);
     }
+    sessionStorage.setItem(ACTIVE_MERCHANT_KEY, gupta.shopId);
     localStorage.setItem(ACTIVE_MERCHANT_KEY, gupta.shopId);
     setCurrentMerchant(gupta);
     const loaded = loadShopState(gupta.shopId, list);
@@ -227,6 +224,7 @@ export function useStore() {
     localStorage.setItem(getShopStorageKey(shopId), JSON.stringify(newShopState));
 
     // Activate merchant
+    sessionStorage.setItem(ACTIVE_MERCHANT_KEY, shopId);
     localStorage.setItem(ACTIVE_MERCHANT_KEY, shopId);
     setCurrentMerchant(newMerchant);
     setShopState(newShopState);
@@ -236,6 +234,7 @@ export function useStore() {
 
   // Auth: Logout
   const logoutMerchant = useCallback(() => {
+    sessionStorage.removeItem(ACTIVE_MERCHANT_KEY);
     localStorage.setItem(ACTIVE_MERCHANT_KEY, '__LOGGED_OUT__');
     setCurrentMerchant(null);
   }, []);
@@ -245,6 +244,7 @@ export function useStore() {
     const list = getRegisteredMerchants();
     const found = list.find(m => m.shopId === shopId);
     if (found) {
+      sessionStorage.setItem(ACTIVE_MERCHANT_KEY, found.shopId);
       localStorage.setItem(ACTIVE_MERCHANT_KEY, found.shopId);
       setCurrentMerchant(found);
       const loaded = loadShopState(found.shopId, list);
