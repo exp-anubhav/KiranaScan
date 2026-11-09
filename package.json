@@ -1,8 +1,25 @@
 {
   "name": "kiranascan",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Voice & Camera POS for Bharat Retailers — Offline-First Accounting & Bahi-Khata Ledger",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/exp-anubhav/KiranaScan.git"
+  },
+  "keywords": [
+    "pos",
+    "kirana",
+    "bahi-khata",
+    "accounting",
+    "voice-recognition",
+    "offline-first",
+    "bharat",
+    "pwa"
+  ],
+  "author": "KiranaScan Team",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

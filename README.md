@@ -1,114 +1,177 @@
-# 🏪 KiranaScan (Team Knockout — CodeQuest 2026)
-### *Voice-first, offline-first accounting & bahi-khata for neighbourhood Indian kirana shopkeepers*
+# 🏪 KiranaScan — Voice & Camera POS for Bharat Retailers
 
-> **Mantra:** *"Speak it. Confirm it. Trust it. Move from handwritten credit records to verified digital hisab, one confirmed transaction at a time."*  
-> **Golden Trust Rule:** NEVER write anything directly to the ledger from voice alone. Voice creates a structured draft; human confirms before writing.
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-19.3-blue.svg)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4.svg)](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-8.3-646CFF.svg)](https://vitejs.dev/)
+[![PWA](https://img.shields.io/badge/PWA-Offline--First-1B7A43.svg)](https://web.dev/progressive-web-apps/)
+
+> **"Speak it. Confirm it. Trust it."**  
+> *Move from handwritten paper credit to verified digital bahi-khata, one confirmed transaction at a time.*
 
 ---
 
-## 🚀 Quick Start
+## 📖 Overview
 
+**KiranaScan** is an offline-first, voice-powered point-of-sale (POS) and ledger Progressive Web Application (PWA) designed specifically for neighbourhood Indian kirana stores, general merchants, and small retail businesses.
+
+Millions of local shopkeepers across India run credit (*udhaar*) using physical paper notebooks (*bahi-khata*). Paper registers lead to lost credits, arithmetic disputes, and hours spent calculating balances late at night. Traditional POS apps fail because typing item names and prices on a smartphone keyboard while attending to customers on a crowded shop counter is too slow.
+
+KiranaScan solves this with a **voice-first interface**, a **built-in Position-Independent Hinglish NLP Parser**, **camera notebook scanning**, and **audio soundbox verification**.
+
+---
+
+## 🛡️ The Golden Trust Rule
+
+> **Never write directly to the financial ledger from voice alone.**  
+> Voice input creates a structured, editable **Approval Draft**. Ambiguous names, multi-brand prices, or unknown items trigger clear clarification prompts. Data commits to the permanent ledger **only after the shopkeeper reviews and taps "Confirm"**.
+
+---
+
+## ⚡ Key Features
+
+### 1. 🎙️ Voice Counter & Hinglish NLP Engine
+- **Natural Spoken Input:** Understands natural mixed Hindi-English sentences in any word order (e.g., *"Ramesh ko do kilo aata aur ek soap udhaar mein diya"* or *"40 ka sabun h, Ramesh ne kharida"*).
+- **Desi Fractions & Units:** Native parsing for traditional Indian quantity terms like *paav* (0.25 kg), *aadha* (0.5), *paun* (0.75), *sawa* (1.25), and *dhai* (2.5 kg/L).
+- **Multi-Brand Disambiguation:** Automatically detects items with brand variations (e.g., *Soap: Lifebuoy ₹36, Dettol ₹45, Standard ₹40*) and prompts for one-tap price selection.
+- **Duplicate Name Resolution:** Instantly flags common names (e.g., *Ramesh Kumar* vs *Ramesh Sharma*) and provides clear pehchan/landmark tags for selection.
+
+### 2. 🔊 Voice Soundbox Audio Feedback
+- Replicates hardware payment soundboxes using the browser's native `SpeechSynthesis` (`hi-IN`).
+- Automatically announces transaction confirmations in spoken Hindi:
+  - **Udhaar:** *"Ramesh ji ke khate mein ₹130 udhaar darj hue. Kul baaki ₹550."*
+  - **Cash:** *"Ramesh ji ne ₹130 cash diye."*
+  - **UPI:** *"Ramesh ji ne ₹130 UPI se diye."*
+  - **Wasooli:** *"Ramesh ji ne ₹200 jama kiye. Ab baaki bache ₹350."*
+
+### 3. 📒 Bahi-Khata Ledger & Immutable Audit Trail
+- **Customer Directory:** Complete customer profiles with phone numbers, landmark/pehchan tags, current credit balances, and chronological transaction histories.
+- **One-Tap Wasooli (Repayment):** Quick collection logging via Cash or UPI with instant balance recalculation.
+- **WhatsApp Slips & Reminders:** Generate formatted WhatsApp receipts and balance reminders with 3 customizable tones: *Polite (Vinamra)*, *Standard (Hisab Slip)*, and *Month-End Urgent*.
+- **Camera Notebook Scanner (OCR Import):** Digitize existing paper bahi-khata pages with structured pre-import validation.
+
+### 4. 📊 Aaj Ka Hisab & Night-Time Galla Check
+- **Real-Time Turnover Dashboard:** Live tracking of Cash Sales, UPI Sales, Credit Issued (Udhaar), Collections Received (Wasooli), and Total Outstanding Credit.
+- **Night-Time Cash Drawer Reconciliation:** Automatically computes `Expected Physical Cash = Opening Galla + Cash Sales + Cash Wasooli`, and flags loose expense shortages or unrecorded cash discrepancies.
+- **Customer Flow Breakdown:** View today's customer visits side-by-side with overall turnover mathematics.
+
+### 5. 🏪 Multi-Merchant Isolation & Catalogue Management
+- **Per-Store Data Isolation:** Multi-shop login allows running separate data stores on a single device without data bleed.
+- **Dukan Catalogue:** Add, edit, and organize catalogue items, base rates, spoken aliases, and multi-brand variant prices.
+- **Offline Sync Inspector:** Idempotent, duplicate-safe sync queue with unique `TXN_UUID` and client-side idempotency keys.
+- **Full Data Ownership:** 100% client-side persistence with one-click full shop backup exports in JSON and CSV formats.
+
+---
+
+## 🎨 Visual Identity & Theming
+
+KiranaScan features a purpose-built design system crafted for high readability in harsh retail lighting:
+- **Warm Paper Cream Light Mode (`#FAF6F0`):** Inspired by traditional physical ledger paper to reduce eye strain.
+- **Merchant OLED Dark Mode (`#0B1116` / `#16202A`):** Pure high-contrast dark surfaces designed for nighttime accounting and battery conservation.
+- **Primary Trust Green (`#1B7A43`):** High-visibility action cues for confirmation and primary actions.
+- **Udhaar Amber (`#E68A00`):** Instant visual identification for outstanding credit and risk indicators.
+- **Payment Badges:** Dedicated color coding for Cash (Emerald), UPI (Indigo), Udhaar (Amber), and Wasooli (Teal).
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Framework** | React 19 + Vite 8 | Ultra-fast reactive UI and lightweight bundle footprint |
+| **Styling** | Tailwind CSS v4 | Class-based dark/light theme switching with CSS variables |
+| **Icons** | Lucide React | Clean, scalable interface icons |
+| **Local Storage** | IndexedDB (`idb`) + LocalStorage | Offline-first persistence with zero cloud lock-in |
+| **Speech Input** | Web Speech API (`webkitSpeechRecognition`) | Real-time bilingual Hindi & English voice recognition |
+| **Audio Feedback**| SpeechSynthesis API (`hi-IN`) | Integrated voice soundbox confirmation audio |
+| **NLP Engine** | Custom Regex & Token Parser (`hinglishParser.js`) | Position-independent Hinglish parsing (offline, zero API costs) |
+| **AI Fallback** | Optional Google Gemini Flash API | Optional LLM enhancement for complex multi-item sentences |
+
+---
+
+## 🚀 Quick Start & Installation
+
+### Prerequisites
+- Node.js (v18.0.0 or higher)
+- npm or yarn
+
+### 1. Clone the Repository
 ```bash
-# 1. Install dependencies
+git clone https://github.com/exp-anubhav/KiranaScan.git
+cd KiranaScan
+```
+
+### 2. Install Dependencies
+```bash
 npm install
+```
 
-# 2. Run local dev server
+### 3. Start the Development Server
+```bash
 npm run dev
+```
+Open `http://localhost:5173` in your browser.
 
-# 3. Test the built-in Hinglish NLP Parser against all 6 Judge Demo Scenarios
+### 4. Run Parser Test Suite
+```bash
 npm test
+```
+Executes the built-in position-independent Hinglish test scenarios:
+- Multi-item credit bills
+- Inverted/reversed sentence orders
+- Desi fractional quantities and liquid measurements
+- Multi-brand variant matching
+- New customer onboarding drafts
+- Wasooli repayments
 
-# 4. Build for production
+### 5. Build for Production
+```bash
 npm run build
 ```
 
 ---
 
-## 🎨 Visual Palette & Identity (Matches Pitch Deck)
-- **App Background:** Warm Paper Cream (`#FAF6F0`)
-- **Card Surface:** Crisp White (`#FFFFFF`) with border (`#E6DFD3`)
-- **Primary Trust Green:** `#1B7A43` (Hover: `#145E33`)
-- **Udhaar / Credit Amber Badge:** `#E68A00` (Background `#FFF4E0`, Text `#B36B00`)
-- **Clarification / Warning Banner:** `#FEF3C7` with `#D97706` border
-- **Danger Red:** `#DC2626`
-- **UPI Purple:** `#5B21B6` (Background `#EDE9FE`)
-- **Text:** Deep Charcoal (`#1E242B`)
+## 📂 Repository File Structure
+
+```
+KiranaScan/
+├── index.html                   # Entry HTML with PWA meta & font definitions
+├── package.json                 # Project configuration and script commands
+├── vite.config.js               # Vite bundler and Tailwind CSS plugin setup
+├── public/
+│   ├── favicon.svg              # Application icon
+│   └── manifest.json            # PWA manifest configuration
+├── src/
+│   ├── main.jsx                 # React root DOM initialization
+│   ├── App.jsx                  # Main application container, auth & navigation
+│   ├── App.css                  # Frame layout overrides
+│   ├── index.css                # Global theme variables & responsive styles
+│   ├── components/
+│   │   ├── VoiceTab.jsx         # Tab 1: Voice counter & approval card
+│   │   ├── LedgerTab.jsx        # Tab 2: Customer bahi-khata & OCR modal
+│   │   ├── DailyHisabTab.jsx    # Tab 3: Sales summary & Galla check
+│   │   └── CatalogueTab.jsx     # Tab 4: Catalogue rates & sync queue
+│   ├── stores/
+│   │   └── useStore.js          # Persistent local state & multi-shop manager
+│   ├── utils/
+│   │   ├── hinglishParser.js    # Position-independent Hinglish NLP parser
+│   │   └── devanagariTransliterator.js # Hindi Devanagari to Hinglish transliterator
+│   └── data/
+│       └── seedData.js          # Default catalogue, customers, and translations
+└── test-parser.mjs              # Standalone Node.js parser verification suite
+```
 
 ---
 
-## 📱 Feature Overview & Tab Architecture
+## 🔒 Privacy & Offline Guarantee
 
-### 🏆 Top Judge & Demo Utility Bar
-- **View Switcher:** Toggle between `📱 Mobile Frame View` (430px smartphone frame for hackathon judging) and `🖥️ Full Screen View`.
-- **Network Simulation Toggle:** Clickable pill toggling `🟢 Online (Server Synced)` and `🟠 Offline Mode (Local Queue)`. When Offline, transactions save locally with UUID (`TXN-xxxx`) and increment `Pending Sync Queue (N)`. Switching back to Online auto-syncs queued items.
-- **Language Switcher:** `Hinglish` | `हिंदी` | `English` (live updates UI labels).
-- **Soundbox TTS Toggle:** `🔊 Bolkar Sunayein` (`hi-IN`) announces confirmed bills aloud like a payment soundbox.
-- **1-Click "Reset Demo State":** Instantly restores initial seed data.
+KiranaScan runs entirely in your browser using local storage and IndexedDB. 
+- **Zero Required Cloud Dependencies:** All speech recognition and parsing happen on the client.
+- **Offline By Default:** Works without internet access. When reconnected, changes queue safely and idempotently.
+- **Export Anytime:** Merchant data is always accessible and exportable as standard CSV or JSON files.
 
 ---
 
-### Tab 1: 🎙️ Speak (Bol Kar) — Voice Counter & Draft Approval
-1. **Web Speech API & Text Input:**
-   - Large pulsing Forest Green mic button with 5-bar animated waveform.
-   - Textarea to speak live or type Hinglish sentences.
-2. **6 One-Tap Judge Test Chips:**
-   - `🎯 Slide 1 Hero Case`: *"Ramesh ko do kilo aata aur ek soap udhaar mein diya"* → Aata 2kg ₹90 + Soap 1pc ₹40 = ₹130 total. Ramesh balance ₹420 → ₹550.
-   - `🔄 Natural Reversed Order`: *"40 ka sabun h, Ramesh ne kharida"* → Unit price ₹40 override.
-   - `📐 Desi Fractions + UPI`: *"Sunita ji ko dhai kilo chini aur aadha liter sarson tel UPI se diya"* → Dhai (2.5kg) & Aadha (0.5L) parsed accurately.
-   - `❓ Unknown Item Clarification`: *"Mohan ko ek packet Haldiram bhujia aur 1 bread udhaar likho"* → Brand alias recognition.
-   - `🆕 New Customer Onboarding`: *"Vikram ko 1 kilo toor dal aur 2 Maggi udhaar mein diya"* → Inline customer creation with Pehchan tag.
-   - `💰 Udhaar Wasooli / Settlement`: *"Ramesh ne 200 rupaye cash jama kiye"* → Wasooli reduction from udhaar balance.
-3. **Human-in-the-Loop Confirmation Card:**
-   - Duplicate name disambiguation (Ramesh Kumar ₹420 vs Ramesh Sharma ₹150).
-   - Multi-brand price selection chips (`[₹10 Mini] [Lifebuoy ₹36] [Standard ₹40] [Dettol ₹45] [Custom ₹]`).
-   - Live Balance Impact Preview (`Ramesh Balance: ₹420 → ₹550 (+₹130 Udhaar)`).
-   - 5-second **Undo Toast** banner.
-   - One-Tap **WhatsApp Receipt Modal** with `wa.me` link and copy button.
+## 📄 License
 
----
-
-### Tab 2: 📒 Ledger (Bahi-Khata) — Customers & Paper OCR
-1. **Customer Search & Filters:** Filter by Name, Phone, or Pehchan tag.
-2. **Bahi-Khata Photo OCR Modal (Slide 7 & 8):**
-   - Realistic ruled notebook mockup with Hindi handwriting.
-   - 1.2s scanning animation line (`scan-line`).
-   - Review & Edit table with pre-extracted entries (*Suresh, Anita, Raju*) before importing.
-3. **Immutable Audit Trail:**
-   - TXN-UUID, timestamp, synced status, original voice transcript, and "Edited before confirm" tag.
-4. **Quick Wasooli & WhatsApp Reminder:**
-   - 3 Tone options: *Polite (Vinamra)*, *Standard (Hisab Slip)*, *Month-End Urgent*.
-
----
-
-### Tab 3: 📊 Daily Hisab — Slide 9 Summary & Night-Time Galla Check
-1. **5 Live Metric Cards:**
-   - Cash Sales Today (`₹4,200` baseline + session delta)
-   - UPI Sales Today (`₹2,850` baseline + session delta)
-   - Credit Issued Today (`₹1,900` baseline + session delta)
-   - Collections Received (`₹1,350` baseline + session delta)
-   - Total Outstanding Credit (`₹18,600` baseline + live net change)
-2. **Night-Time Galla Reconciliation Tool:**
-   - Calculates `Expected Physical Cash = Opening Galla (₹1,000) + Cash Sales + Cash Wasooli`.
-   - Test presets: `Match Exact` vs `Simulate ₹250 Shortage`.
-   - Flags cash drawer discrepancies with alerts.
-3. **Slide 9 Target Metrics Validation Panel:**
-   - Voice Parser Accuracy (>85% Target)
-   - Avg Time to Log Transaction (<5s Target)
-   - Drafts Needing Manual Edit (<15% Target)
-
----
-
-### Tab 4: 🏪 Catalogue & Sync — Rates, Sync Queue & Privacy
-1. **Shop Catalogue Manager:** Manage loose rates, multi-brand items, and aliases.
-2. **Duplicate-Safe Sync Queue Inspector:** Visual flow diagram and sync state table (`SYNCED` vs `QUEUED_OFFLINE`).
-3. **Optional Gemini AI Key:** Secure input for `gemini-1.5-flash` fallback while highlighting 100% offline local parser.
-4. **Data Privacy & Portability:** Export full shop ledger as JSON or CSV, Reset to Demo state, or Wipe Data.
-
----
-
-## 🧠 Position-Independent Hinglish NLP Engine
-The engine in `src/utils/hinglishParser.js` deterministically handles:
-- **Hindi Numbers & Desi Fractions:** *ek, do, teen...*, *paav (0.25)*, *aadha (0.5)*, *paune (0.75)*, *sawa (1.25)*, *dedh (1.5)*, *dhai (2.5)*, *sadhe teen (3.5)*.
-- **Relational Markers:** `<Name> ko`, `<Name> ne`, `<Name> ke khate`, `<Name> ka`, `for <Name>`.
-- **Price vs Quantity Disambiguation:** Differentiates `"40 ka sabun"` (unit price ₹40, qty 1) from `"do kilo aata"` (qty 2, auto-priced at ₹45/kg).
-- **Proximity Brand Linking:** Automatically links `"Dettol"` or `"Lifebuoy"` to parent soap items.
+This project is licensed under the [MIT License](LICENSE).

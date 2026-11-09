@@ -140,12 +140,12 @@ export const LABELS = {
     offline: '🟠 Offline Mode (Local IndexedDB Queue)',
     soundboxOn: '🔊 Bolkar Sunayein (On)',
     soundboxOff: '🔇 Bolkar Sunayein (Off)',
-    resetDemo: '🔄 Restore Default Sample Data',
+    resetDemo: 'Restore Default Sample Data',
     mobileView: '📱 Mobile Frame',
     fullView: '🖥️ Full Screen',
     gallaCheck: 'Night-Time Galla (Cash Drawer) Check',
-    exportLedger: '📥 Export Full Shop Ledger',
-    deleteAll: '🗑️ Delete All Shop Data',
+    exportLedger: 'Export Full Shop Ledger',
+    deleteAll: 'Delete All Shop Data',
     scanOCR: 'Scan Bahi-Khata'
   },
   hi: {
@@ -182,12 +182,12 @@ export const LABELS = {
     offline: '🟠 ऑफलाइन मोड',
     soundboxOn: '🔊 बोलकर सुनाएं (चालू)',
     soundboxOff: '🔇 बोलकर सुनाएं (बंद)',
-    resetDemo: '🔄 डिफ़ॉल्ट डेटा पुनर्स्थापित करें',
+    resetDemo: 'डिफ़ॉल्ट डेटा पुनर्स्थापित करें',
     mobileView: '📱 मोबाइल व्यू',
     fullView: '🖥️ पूर्ण स्क्रीन',
     gallaCheck: 'रात का गल्ला (कैश ड्रॉअर) चेक',
-    exportLedger: '📥 पूरा खाता निर्यात करें',
-    deleteAll: '🗑️ सारा डेटा मिटाएं',
+    exportLedger: 'पूरा खाता निर्यात करें',
+    deleteAll: 'सारा डेटा मिटाएं',
     scanOCR: 'बही-खाता स्कैन करें'
   },
   hinglish: {
@@ -224,12 +224,12 @@ export const LABELS = {
     offline: '🟠 Offline Mode (Local Queue)',
     soundboxOn: '🔊 Bolkar Sunayein (On)',
     soundboxOff: '🔇 Bolkar Sunayein (Off)',
-    resetDemo: '🔄 Restore Default Sample Data',
+    resetDemo: 'Restore Default Sample Data',
     mobileView: '📱 Mobile Frame',
     fullView: '🖥️ Full Screen',
     gallaCheck: 'Raat Ka Galla Check',
-    exportLedger: '📥 Poora Khata Export',
-    deleteAll: '🗑️ Saara Data Mitayein',
+    exportLedger: 'Poora Khata Export',
+    deleteAll: 'Saara Data Mitayein',
     scanOCR: 'Scan Bahi-Khata'
   }
 };
