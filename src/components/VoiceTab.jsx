@@ -456,15 +456,15 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
           </div>
         ) : (
           /* Confirmation Card when draft is active */
-          <div className="bg-white dark:bg-[#1E252D] rounded-2xl border border-border dark:border-[#2F3844] shadow-md overflow-hidden fade-in">
+          <div className="bg-white dark:bg-[#151F28] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-md overflow-hidden fade-in">
             {/* Card header */}
-            <div className="bg-trust-light dark:bg-trust/20 px-4 py-2.5 flex items-center justify-between border-b border-border dark:border-[#2F3844]">
-              <span className="text-xs font-bold text-trust dark:text-green-400 tracking-wide uppercase">
+            <div className="bg-emerald-50 dark:bg-[#1E293B] px-4 py-2.5 flex items-center justify-between border-b border-[#E2D9C8] dark:border-[#2A3644]">
+              <span className="text-xs font-bold text-[#1B7A43] dark:text-emerald-400 tracking-wide uppercase">
                 {labels?.approvalRequired || 'APPROVAL REQUIRED'}
               </span>
               <button
                 onClick={resetAll}
-                className="text-text-secondary dark:text-gray-400 hover:text-danger dark:hover:text-red-400 transition-colors p-1"
+                className="text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors p-1"
                 title="Discard draft"
               >
                 <X size={16} />
@@ -794,12 +794,12 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
       </div>
 
       {/* ── BOTTOM PINNED SECTION: CHAT-STYLE TEXT INPUT BAR ── */}
-      <div className="pt-2 sticky bottom-0 bg-[#FAF6F0] dark:bg-[#12161A] pb-1 z-30">
-        <div className="flex items-center gap-2 bg-white dark:bg-[#1E252D] rounded-2xl border border-border dark:border-[#2F3844] shadow-md p-2">
+      <div className="pt-2 sticky bottom-0 bg-[#FAF6F0] dark:bg-[#0B1116] pb-1 z-30">
+        <div className="flex items-center gap-2 bg-white dark:bg-[#151F28] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-md p-2">
           <button
             onClick={isListening ? stopListening : startListening}
             className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-              isListening ? 'bg-danger text-white animate-pulse' : 'bg-trust-light dark:bg-trust/20 text-trust dark:text-green-400 hover:bg-trust hover:text-white'
+              isListening ? 'bg-red-600 text-white animate-pulse' : 'bg-emerald-100 dark:bg-emerald-950/60 text-[#1B7A43] dark:text-emerald-400 hover:bg-[#1B7A43] hover:text-white'
             }`}
             title={isListening ? 'Stop Mic' : 'Start Mic'}
           >
@@ -808,7 +808,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
           <input
             type="text"
-            className="flex-1 px-3 py-2 text-sm bg-transparent border-0 focus:outline-none text-text dark:text-white placeholder:text-text-secondary/60 dark:placeholder:text-gray-500"
+            className="flex-1 px-3 py-2 text-sm bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
             value={transcript}
             onChange={e => setTranscript(e.target.value)}
             onKeyDown={e => {
@@ -842,7 +842,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-md slide-up">
           <button
             onClick={handleUndo}
-            className="w-full flex items-center justify-between bg-[#1E242B] text-white rounded-xl px-4 py-3 shadow-xl"
+            className="w-full flex items-center justify-between bg-slate-900 dark:bg-slate-800 text-white rounded-xl px-4 py-3 shadow-xl border border-slate-700/50"
           >
             <span className="flex items-center gap-2 text-sm font-medium">
               <Undo2 size={16} /> {labels?.undoToast || '↩️ Undo Last Entry'}

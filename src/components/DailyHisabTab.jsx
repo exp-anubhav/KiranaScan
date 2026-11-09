@@ -83,9 +83,10 @@ export default function DailyHisabTab({ store, lang, labels }) {
       label: lang === 'hi' ? 'आज की नकद बिक्री' : 'Cash Sales Today',
       value: cashSales,
       icon: Wallet,
-      bgColor: '#E8F5EE',
-      iconColor: '#1B7A43',
-      borderColor: '#1B7A43',
+      borderLeftClass: 'border-l-emerald-600',
+      iconBoxClass: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400',
+      valueClass: 'text-slate-900 dark:text-white',
+      badgeBg: 'bg-emerald-600',
       delta: sessionCashDelta,
     },
     {
@@ -93,9 +94,10 @@ export default function DailyHisabTab({ store, lang, labels }) {
       label: lang === 'hi' ? 'आज की UPI बिक्री' : 'UPI Sales Today',
       value: upiSales,
       icon: CreditCard,
-      bgColor: '#EDE9FE',
-      iconColor: '#5B21B6',
-      borderColor: '#5B21B6',
+      borderLeftClass: 'border-l-indigo-600',
+      iconBoxClass: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400',
+      valueClass: 'text-slate-900 dark:text-white',
+      badgeBg: 'bg-indigo-600',
       delta: sessionUpiDelta,
     },
     {
@@ -103,9 +105,10 @@ export default function DailyHisabTab({ store, lang, labels }) {
       label: lang === 'hi' ? 'आज का उधार दिया' : 'Credit Issued (Udhaar)',
       value: creditIssued,
       icon: TrendingUp,
-      bgColor: '#FFF4E0',
-      iconColor: '#E68A00',
-      borderColor: '#E68A00',
+      borderLeftClass: 'border-l-amber-500',
+      iconBoxClass: 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400',
+      valueClass: 'text-amber-700 dark:text-amber-400',
+      badgeBg: 'bg-amber-500',
       delta: sessionCreditDelta,
     },
     {
@@ -113,9 +116,10 @@ export default function DailyHisabTab({ store, lang, labels }) {
       label: lang === 'hi' ? 'वसूली आई' : 'Collections (Wasooli)',
       value: collectionsReceived,
       icon: ArrowRight,
-      bgColor: '#E8F5EE',
-      iconColor: '#1B7A43',
-      borderColor: '#1B7A43',
+      borderLeftClass: 'border-l-teal-600',
+      iconBoxClass: 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-400',
+      valueClass: 'text-teal-700 dark:text-teal-400',
+      badgeBg: 'bg-teal-600',
       delta: sessionCollectionDelta,
     },
   ];
@@ -154,8 +158,8 @@ export default function DailyHisabTab({ store, lang, labels }) {
     <div className="space-y-5 pb-6">
       {/* ─── Section Title ─── */}
       <div className="flex items-center gap-2 px-1">
-        <BarChart3 size={20} className="text-[#1B7A43] dark:text-green-400" />
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+        <BarChart3 size={20} className="text-[#1B7A43] dark:text-emerald-400" />
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
           {lang === 'hi' ? 'आज का हिसाब' : 'Aaj Ka Hisab'}
         </h2>
       </div>
@@ -164,43 +168,30 @@ export default function DailyHisabTab({ store, lang, labels }) {
       <div className="grid grid-cols-2 gap-3">
         {metricCards.map((card) => {
           const Icon = card.icon;
-          const darkClass =
-            card.id === 'cash' || card.id === 'collection'
-              ? 'dark:bg-emerald-950/30 dark:border-emerald-800/60'
-              : card.id === 'upi'
-              ? 'dark:bg-purple-950/30 dark:border-purple-800/60'
-              : 'dark:bg-amber-950/30 dark:border-amber-800/60';
-
           return (
             <div
               key={card.id}
-              className={`relative rounded-xl p-3 border transition-colors ${darkClass}`}
-              style={{
-                backgroundColor: card.bgColor,
-                borderColor: card.borderColor + '33',
-              }}
+              className={`relative bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] border-l-4 ${card.borderLeftClass} shadow-sm rounded-2xl p-4 transition-colors`}
             >
               {/* Session delta badge */}
               {card.delta > 0 && (
                 <span
-                  className="absolute -top-2 -right-2 text-xs font-semibold px-1.5 py-0.5 rounded-full text-white shadow-sm"
-                  style={{ backgroundColor: card.iconColor }}
+                  className={`absolute -top-2 -right-2 text-xs font-semibold px-2 py-0.5 rounded-full text-white shadow-sm ${card.badgeBg}`}
                 >
                   +₹{formatIndian(card.delta)}
                 </span>
               )}
               <div className="flex items-center gap-2 mb-2">
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: card.iconColor + '1A' }}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.iconBoxClass}`}
                 >
-                  <Icon size={16} style={{ color: card.iconColor }} />
+                  <Icon size={18} />
                 </div>
               </div>
-              <p className="text-xs font-medium mb-0.5 text-[#5A6573] dark:text-gray-300">
+              <p className="text-xs font-medium mb-1 text-slate-600 dark:text-slate-400">
                 {card.label}
               </p>
-              <p className="text-xl font-bold text-[#1E242B] dark:text-white">
+              <p className={`text-2xl font-bold ${card.valueClass}`}>
                 ₹{formatIndian(card.value)}
               </p>
             </div>
@@ -210,22 +201,11 @@ export default function DailyHisabTab({ store, lang, labels }) {
 
       {/* ─── Total Outstanding Credit (full-width) ─── */}
       <div
-        className={`relative rounded-xl p-4 border transition-colors ${
-          totalOutstandingCredit > 15000
-            ? 'dark:bg-red-950/30 dark:border-red-900/60'
-            : 'dark:bg-amber-950/30 dark:border-amber-900/60'
-        }`}
-        style={{
-          backgroundColor: totalOutstandingCredit > 15000 ? '#FEF2F2' : '#FFF4E0',
-          borderColor: totalOutstandingCredit > 15000 ? '#DC262633' : '#E68A0033',
-        }}
+        className="relative rounded-2xl p-4 bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 border-l-4 border-l-rose-600 shadow-sm transition-colors"
       >
         {sessionOutstandingDelta !== 0 && (
           <span
-            className="absolute -top-2 -right-2 text-xs font-semibold px-1.5 py-0.5 rounded-full text-white shadow-sm"
-            style={{
-              backgroundColor: totalOutstandingCredit > 15000 ? '#DC2626' : '#E68A00',
-            }}
+            className="absolute -top-2 -right-2 text-xs font-semibold px-2 py-0.5 rounded-full text-white bg-rose-600 shadow-sm"
           >
             {sessionOutstandingDelta > 0 ? '+' : ''}₹{formatIndian(sessionOutstandingDelta)}
           </span>
@@ -233,62 +213,57 @@ export default function DailyHisabTab({ store, lang, labels }) {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              {totalOutstandingCredit > 15000 ? (
-                <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
-              ) : (
-                <TrendingUp size={18} className="text-[#E68A00] dark:text-amber-400" />
-              )}
-              <p className="text-sm font-medium text-[#5A6573] dark:text-gray-300">
+              <AlertTriangle size={18} className="text-rose-600 dark:text-rose-400" />
+              <p className="text-xs font-semibold text-slate-700 dark:text-rose-200">
                 {lang === 'hi' ? 'कुल बकाया उधार' : 'Total Outstanding Credit'}
               </p>
             </div>
-            <p
-              className={`text-2xl font-bold ${
-                totalOutstandingCredit > 15000 ? 'text-red-600 dark:text-red-400' : 'text-[#B36B00] dark:text-amber-300'
-              }`}
-            >
+            <p className="text-3xl font-extrabold text-rose-600 dark:text-rose-400">
               ₹{formatIndian(totalOutstandingCredit)}
             </p>
+            <p className="text-[11px] text-slate-600 dark:text-rose-300/80 mt-1">
+              {lang === 'hi'
+                ? `मार्केट बेस ₹${formatIndian(baseMarketCredit)} + ग्राहकों का ₹${formatIndian(totalOutstandingCredit - baseMarketCredit)}`
+                : `Base market credit ₹${formatIndian(baseMarketCredit)} + customer balances`}
+            </p>
           </div>
-          {totalOutstandingCredit > 15000 && (
-            <div className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300">
-              {lang === 'hi' ? 'ज़्यादा!' : 'High!'}
-            </div>
-          )}
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+            {lang === 'hi' ? 'जोखिम अलर्ट' : 'High Risk'}
+          </span>
         </div>
       </div>
 
       {/* ═══════════ 2. Night-Time Galla Reconciliation ═══════════ */}
-      <div className="rounded-xl border border-[#E6DFD3] dark:border-[#2F3844] overflow-hidden bg-white dark:bg-[#1E252D]">
+      <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] overflow-hidden bg-white dark:bg-[#151F28] shadow-sm">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#E6DFD3] dark:border-[#2F3844] bg-[#F9F7F4] dark:bg-[#151B22]">
-          <h3 className="text-base font-bold text-[#1E242B] dark:text-white">
+        <div className="px-4 py-3 border-b border-[#E2D9C8] dark:border-[#2A3644] bg-[#F9F7F4] dark:bg-[#1E293B]">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
             🌙 {lang === 'hi' ? 'रात का गल्ला चेक' : 'Night-Time Galla Check'}
           </h3>
         </div>
 
         <div className="p-4 space-y-4">
           {/* Calculation breakdown */}
-          <div className="rounded-lg p-3 text-sm space-y-1 bg-[#F9F7F4] dark:bg-[#151B22] border border-[#E6DFD3] dark:border-[#2F3844] text-[#5A6573] dark:text-gray-300">
+          <div className="rounded-xl p-3 text-sm space-y-1 bg-[#F9F7F4] dark:bg-[#1E293B] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-600 dark:text-slate-300">
             <div className="flex justify-between">
               <span>{lang === 'hi' ? 'सुबह का गल्ला' : 'Opening Galla'}</span>
-              <span className="font-semibold text-[#1E242B] dark:text-white">
+              <span className="font-semibold text-slate-900 dark:text-white">
                 ₹{formatIndian(openingGalla)}
               </span>
             </div>
             <div className="flex justify-between">
               <span>{lang === 'hi' ? '+ नकद बिक्री' : '+ Cash Sales'}</span>
-              <span className="font-semibold text-[#1B7A43] dark:text-green-400">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                 +₹{formatIndian(cashSales)}
               </span>
             </div>
             <div className="flex justify-between">
               <span>{lang === 'hi' ? '+ नकद वसूली' : '+ Cash Wasooli'}</span>
-              <span className="font-semibold text-[#1B7A43] dark:text-green-400">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                 +₹{formatIndian(collectionsReceived)}
               </span>
             </div>
-            <div className="flex justify-between pt-2 mt-2 border-t border-[#E6DFD3] dark:border-gray-700 font-bold text-[#1E242B] dark:text-white">
+            <div className="flex justify-between pt-2 mt-2 border-t border-[#E2D9C8] dark:border-[#2A3644] font-bold text-slate-900 dark:text-white">
               <span>{lang === 'hi' ? 'Expected गल्ला' : 'Expected Galla'}</span>
               <span>₹{formatIndian(expectedGalla)}</span>
             </div>
@@ -296,20 +271,20 @@ export default function DailyHisabTab({ store, lang, labels }) {
 
           {/* Input */}
           <div>
-            <label className="block text-sm font-medium mb-1.5 text-[#1E242B] dark:text-white">
+            <label className="block text-sm font-medium mb-1.5 text-slate-900 dark:text-white">
               {lang === 'hi'
                 ? 'रात को गल्ले में कितना Cash मिला?'
                 : 'Raat ko Galla mein kitna Cash mila?'}
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-sm text-[#5A6573] dark:text-gray-400">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-sm text-slate-500 dark:text-slate-400">
                   ₹
                 </span>
                 <input
                   type="number"
                   inputMode="numeric"
-                  className="w-full pl-7 pr-3 py-2.5 rounded-lg border border-[#E6DFD3] dark:border-[#2F3844] bg-white dark:bg-[#151B22] text-[#1E242B] dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
+                  className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
                   placeholder={lang === 'hi' ? 'राशि डालें...' : 'Enter amount...'}
                   value={gallaInput}
                   onChange={(e) => setGallaInput(e.target.value)}
@@ -319,7 +294,7 @@ export default function DailyHisabTab({ store, lang, labels }) {
                 />
               </div>
               <button
-                className="px-4 py-2.5 rounded-lg text-white text-sm font-semibold bg-[#1B7A43] hover:bg-[#145E33] transition-colors"
+                className="px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#1B7A43] hover:bg-[#145E33] transition-colors shadow-sm"
                 onClick={() => gallaInput && handleGallaSubmit(gallaInput)}
               >
                 {lang === 'hi' ? 'चेक करो' : 'Check'}
@@ -330,13 +305,13 @@ export default function DailyHisabTab({ store, lang, labels }) {
           {/* Quick test buttons */}
           <div className="flex gap-2">
             <button
-              className="flex-1 py-2 px-3 rounded-lg border text-xs font-semibold transition-colors hover:opacity-80 bg-[#E8F5EE] dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-[#1B7A43] dark:text-green-300"
+              className="flex-1 py-2 px-3 rounded-xl border text-xs font-semibold transition-colors hover:opacity-80 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
               onClick={() => handleGallaSubmit(expectedGalla)}
             >
               ✅ Match Exact (₹{formatIndian(expectedGalla)})
             </button>
             <button
-              className="flex-1 py-2 px-3 rounded-lg border text-xs font-semibold transition-colors hover:opacity-80 bg-[#FFF4E0] dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-[#B36B00] dark:text-amber-300"
+              className="flex-1 py-2 px-3 rounded-xl border text-xs font-semibold transition-colors hover:opacity-80 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300"
               onClick={() => handleGallaSubmit(Math.max(0, expectedGalla - 250))}
             >
               ⚠️ Simulate ₹250 Short (₹{formatIndian(Math.max(0, expectedGalla - 250))})
@@ -407,19 +382,16 @@ export default function DailyHisabTab({ store, lang, labels }) {
       </div>
 
       {/* ═══════════ 3. Today's Customer Visits & Sales Breakdown ═══════════ */}
-      <div
-        className="rounded-xl border overflow-hidden bg-white dark:bg-[#1E252D] dark:border-[#2F3844]"
-        style={{ borderColor: '#E6DFD3' }}
-      >
+      <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] overflow-hidden bg-white dark:bg-[#151F28] shadow-sm">
         {/* Dual Tab Switcher */}
-        <div className="px-4 py-2.5 border-b flex items-center justify-between flex-wrap gap-2 bg-[#F9F7F4] dark:bg-[#151B22] dark:border-[#2F3844]" style={{ borderColor: '#E6DFD3' }}>
-          <div className="flex bg-gray-200 dark:bg-[#242C35] p-0.5 rounded-lg">
+        <div className="px-4 py-2.5 border-b border-[#E2D9C8] dark:border-[#2A3644] flex items-center justify-between flex-wrap gap-2 bg-[#F9F7F4] dark:bg-[#1E293B]">
+          <div className="flex bg-slate-200/80 dark:bg-[#11181F] p-0.5 rounded-lg">
             <button
               onClick={() => setDetailViewTab('customers')}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 detailViewTab === 'customers'
-                  ? 'bg-white dark:bg-[#1E252D] text-[#1B7A43] dark:text-green-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-[#151F28] text-[#1B7A43] dark:text-emerald-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               👥 Aaj Ke Grahak ({todayVisits.length})
@@ -428,15 +400,15 @@ export default function DailyHisabTab({ store, lang, labels }) {
               onClick={() => setDetailViewTab('breakdown')}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 detailViewTab === 'breakdown'
-                  ? 'bg-white dark:bg-[#1E252D] text-[#1B7A43] dark:text-green-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-[#151F28] text-[#1B7A43] dark:text-emerald-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               📊 Hisab Math Breakdown
             </button>
           </div>
 
-          <span className="text-xs font-bold text-[#1B7A43] dark:text-green-400">
+          <span className="text-xs font-bold text-[#1B7A43] dark:text-emerald-400">
             Turnover: ₹{formatIndian(totalTurnover)}
           </span>
         </div>
@@ -532,17 +504,17 @@ export default function DailyHisabTab({ store, lang, labels }) {
             </div>
 
             {/* Clear Math Explainer */}
-            <div className="rounded-lg p-3 bg-gray-50 dark:bg-[#151B22] border border-gray-200 dark:border-gray-800 space-y-2 text-xs">
-              <div className="flex justify-between items-center text-gray-700 dark:text-gray-300">
+            <div className="rounded-xl p-3 bg-[#F9F7F4] dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] space-y-2 text-xs">
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
                 <span>📦 Total Goods Sold Today (Turnover)</span>
                 <span className="font-bold">
-                  ₹{formatIndian(cashSales)} (Cash) + ₹{formatIndian(upiSales)} (UPI) + ₹{formatIndian(creditIssued)} (Udhaar) = <span className="text-[#1B7A43] dark:text-green-400">₹{formatIndian(totalTurnover)}</span>
+                  ₹{formatIndian(cashSales)} (Cash) + ₹{formatIndian(upiSales)} (UPI) + ₹{formatIndian(creditIssued)} (Udhaar) = <span className="text-[#1B7A43] dark:text-emerald-400">₹{formatIndian(totalTurnover)}</span>
                 </span>
               </div>
-              <div className="flex justify-between items-center text-gray-700 dark:text-gray-300 pt-1 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300 pt-1 border-t border-[#E2D9C8] dark:border-[#2A3644]">
                 <span>💰 Actual Money Received Today (Inflow)</span>
                 <span className="font-bold">
-                  ₹{formatIndian(cashSales)} (Cash) + ₹{formatIndian(upiSales)} (UPI) + ₹{formatIndian(collectionsReceived)} (Wasooli) = <span className="text-green-700 dark:text-green-400">₹{formatIndian(totalInflow)}</span>
+                  ₹{formatIndian(cashSales)} (Cash) + ₹{formatIndian(upiSales)} (UPI) + ₹{formatIndian(collectionsReceived)} (Wasooli) = <span className="text-emerald-700 dark:text-emerald-400">₹{formatIndian(totalInflow)}</span>
                 </span>
               </div>
             </div>

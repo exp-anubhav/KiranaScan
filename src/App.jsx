@@ -165,21 +165,19 @@ export default function App() {
           <div className="flex bg-[#FAF6F0] dark:bg-[#0F1419] p-1 rounded-2xl border border-[#E6DFD3] dark:border-[#2A343D]">
             <button
               onClick={() => { setAuthTab('login'); setAuthError(''); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-                authTab === 'login'
-                  ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-sm'
-                  : 'text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1E242B]'
-              }`}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${authTab === 'login'
+                ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-sm'
+                : 'text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1E242B]'
+                }`}
             >
               🔑 Dukan Login
             </button>
             <button
               onClick={() => { setAuthTab('signup'); setAuthError(''); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-                authTab === 'signup'
-                  ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-sm'
-                  : 'text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1E242B]'
-              }`}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${authTab === 'signup'
+                ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-sm'
+                : 'text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1E242B]'
+                }`}
             >
               ✨ Nayi Dukan Jodein (Sign Up)
             </button>
@@ -452,11 +450,10 @@ export default function App() {
               {/* Network Toggle Pill */}
               <button
                 onClick={() => setIsOnline(!isOnline)}
-                className={`px-2.5 py-1 rounded-full font-semibold transition-all flex items-center gap-1 ${
-                  isOnline
-                    ? 'bg-white/20 hover:bg-white/30 text-white'
-                    : 'bg-amber-400 text-amber-950 font-bold'
-                }`}
+                className={`px-2.5 py-1 rounded-full font-semibold transition-all flex items-center gap-1 ${isOnline
+                  ? 'bg-white/20 hover:bg-white/30 text-white'
+                  : 'bg-amber-400 text-amber-950 font-bold'
+                  }`}
                 title="Toggle Online / Offline Mode"
               >
                 {isOnline ? <Wifi size={11} className="text-green-300" /> : <WifiOff size={11} />}
@@ -473,11 +470,10 @@ export default function App() {
                   <button
                     key={l.key}
                     onClick={() => setLang(l.key)}
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
-                      lang === l.key
-                        ? 'bg-white text-[#1B7A43] shadow-xs'
-                        : 'text-white/80 hover:text-white'
-                    }`}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${lang === l.key
+                      ? 'bg-white text-[#1B7A43] shadow-xs'
+                      : 'text-white/80 hover:text-white'
+                      }`}
                   >
                     {l.label}
                   </button>
@@ -487,9 +483,8 @@ export default function App() {
               {/* Soundbox TTS Pill */}
               <button
                 onClick={() => setSoundboxEnabled(!soundboxEnabled)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 ${
-                  soundboxEnabled ? 'bg-white/20 text-white' : 'bg-black/20 text-white/60'
-                }`}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1 ${soundboxEnabled ? 'bg-white/20 text-white' : 'bg-black/20 text-white/60'
+                  }`}
                 title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
               >
                 {soundboxEnabled ? <Volume2 size={12} className="text-yellow-300" /> : <VolumeX size={12} />}
@@ -529,11 +524,10 @@ export default function App() {
                   <button
                     key={i}
                     onClick={() => setActiveTab(i)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                      isActive
-                        ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-md'
-                        : 'text-white/80 hover:text-white hover:bg-white/10'
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${isActive
+                      ? 'bg-white dark:bg-[#182026] text-[#1B7A43] dark:text-green-400 shadow-md'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                      }`}
                   >
                     <Icon size={16} />
                     <span>{label}</span>
@@ -560,11 +554,10 @@ export default function App() {
               <button
                 key={i}
                 onClick={() => setActiveTab(i)}
-                className={`flex-1 flex flex-col items-center py-2.5 text-[10px] font-medium transition-colors ${
-                  isActive
-                    ? 'text-[#1B7A43] dark:text-green-400 border-t-2 border-[#1B7A43] dark:border-green-400 font-bold'
-                    : 'text-[#5A6573] dark:text-[#9CA3AF]'
-                }`}
+                className={`flex-1 flex flex-col items-center py-2.5 text-[10px] font-medium transition-colors ${isActive
+                  ? 'text-[#1B7A43] dark:text-green-400 border-t-2 border-[#1B7A43] dark:border-green-400 font-bold'
+                  : 'text-[#5A6573] dark:text-[#9CA3AF]'
+                  }`}
               >
                 <Icon size={20} className={isActive ? 'text-[#1B7A43] dark:text-green-400' : 'text-[#5A6573] dark:text-[#9CA3AF]'} />
                 <span className="mt-0.5 truncate max-w-[80px]">{label}</span>

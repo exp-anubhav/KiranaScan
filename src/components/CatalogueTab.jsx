@@ -264,21 +264,21 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
   return (
     <div className="space-y-6 pb-8">
       {/* ===== SECTION 0: SHOP NAME / DUKAN PROFILE ===== */}
-      <section className="bg-white dark:bg-[#1E252D] rounded-xl border p-4 shadow-sm" style={{ borderColor: COLORS.cardBorder }}>
+      <section className="bg-white dark:bg-[#151F28] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 shadow-sm">
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2">
-            <Tag size={18} style={{ color: COLORS.green }} />
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+            <Tag size={18} className="text-[#1B7A43] dark:text-emerald-400" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
               🏪 Dukan Profile & Shop Name (दुकान का नाम)
             </h2>
           </div>
           {shopNameSaved && (
-            <span className="text-xs text-green-700 dark:text-green-400 font-semibold flex items-center gap-1">
+            <span className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
               <Check size={14} /> Saved!
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+        <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
           This name appears on customer WhatsApp slips, voice soundbox, and header.
         </p>
         <div className="flex gap-2">
@@ -290,7 +290,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               setShopNameSaved(false);
             }}
             placeholder="e.g. Gupta Kirana & General Store"
-            className="flex-1 px-3 py-2 text-sm border rounded-lg bg-white dark:bg-[#151B22] text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
+            className="flex-1 px-3 py-2 text-sm border rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white border-[#E2D9C8] dark:border-[#2A3644] focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
           />
           <button
             onClick={() => {
@@ -300,7 +300,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                 setTimeout(() => setShopNameSaved(false), 2500);
               }
             }}
-            className="px-4 py-2 bg-[#1B7A43] hover:bg-[#145E33] text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5 shrink-0"
+            className="px-4 py-2 bg-[#1B7A43] hover:bg-[#145E33] text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5 shrink-0"
           >
             <Save size={14} /> Save Name
           </button>
@@ -310,29 +310,28 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       {/* ===== SECTION 1: SHOP CATALOGUE MANAGER ===== */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <Package size={20} style={{ color: COLORS.green }} />
-          <h2 className="text-lg font-bold" style={{ color: COLORS.text }}>
+          <Package size={20} className="text-[#1B7A43] dark:text-emerald-400" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
             {lang === 'hi' ? 'दुकान कैटलॉग' : 'Dukan Catalogue'}
           </h2>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: COLORS.greenLight, color: COLORS.green }}>
+          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
             {filtered.length} items
           </span>
         </div>
 
         {/* Search */}
         <div className="relative mb-3">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: COLORS.secondary }} />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder={lang === 'hi' ? 'Item khojein...' : 'Search items by name or alias...'}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2"
-            style={{ borderColor: COLORS.cardBorder, color: COLORS.text }}
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X size={14} style={{ color: COLORS.secondary }} />
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <X size={14} />
             </button>
           )}
         </div>
@@ -344,22 +343,21 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             return (
               <div
                 key={item.id}
-                className="rounded-lg border bg-white"
-                style={{ borderColor: COLORS.cardBorder }}
+                className="rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28] overflow-hidden shadow-sm"
               >
                 {/* Item Header */}
                 <button
                   onClick={() => handleExpand(item)}
-                  className="w-full flex items-center justify-between p-3 text-left"
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-slate-50/60 dark:hover:bg-[#1E293B]/60 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       {isExpanded
-                        ? <ChevronDown size={14} style={{ color: COLORS.secondary }} />
-                        : <ChevronRight size={14} style={{ color: COLORS.secondary }} />}
-                      <span className="font-semibold text-sm" style={{ color: COLORS.text }}>{item.name}</span>
+                        ? <ChevronDown size={14} className="text-slate-500 dark:text-slate-400" />
+                        : <ChevronRight size={14} className="text-slate-500 dark:text-slate-400" />}
+                      <span className="font-semibold text-sm text-slate-900 dark:text-white">{item.name}</span>
                       {item.isMultiBrand && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ background: COLORS.amberBg, color: COLORS.amberText }}>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
                           Multi-Brand
                         </span>
                       )}
@@ -367,7 +365,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                     {item.aliases?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1 ml-5">
                         {item.aliases.map((alias, i) => (
-                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-[#1E293B] text-slate-600 dark:text-slate-300">
                             {alias}
                           </span>
                         ))}
@@ -375,48 +373,46 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                     )}
                   </div>
                   <div className="text-right shrink-0 ml-2">
-                    <div className="text-sm font-bold" style={{ color: COLORS.green }}>₹{item.rate}/{item.unit}</div>
+                    <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">₹{item.rate}/{item.unit}</div>
                   </div>
                 </button>
 
                 {/* Expanded Edit Form */}
                 {isExpanded && (
-                  <div className="px-3 pb-3 border-t pt-3 space-y-3" style={{ borderColor: COLORS.cardBorder }}>
+                  <div className="px-3 pb-3 border-t border-[#E2D9C8] dark:border-[#2A3644] pt-3 space-y-3">
                     <div className="flex gap-2">
                       <div className="flex-1">
-                        <label className="text-[11px] font-medium" style={{ color: COLORS.secondary }}>Base Rate (₹ / {item.unit})</label>
+                        <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Base Rate (₹ / {item.unit})</label>
                         <input
                           type="number"
                           value={editRate}
                           onChange={e => setEditRate(e.target.value)}
-                          className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-1"
-                          style={{ borderColor: COLORS.cardBorder }}
+                          className="w-full px-2 py-1.5 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-[11px] font-medium" style={{ color: COLORS.secondary }}>Aliases (comma-separated)</label>
+                        <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Aliases (comma-separated)</label>
                         <input
                           type="text"
                           value={editAliases}
                           onChange={e => setEditAliases(e.target.value)}
-                          className="w-full px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-1"
-                          style={{ borderColor: COLORS.cardBorder }}
+                          className="w-full px-2 py-1.5 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                           placeholder="e.g. aata, gehun"
                         />
                       </div>
                     </div>
 
                     {/* Multi-brand / Variant Manager */}
-                    <div className="pt-2 border-t border-gray-100">
+                    <div className="pt-2 border-t border-slate-100 dark:border-[#2A3644]">
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1">
                           <Tag size={13} className="text-amber-600" />
                           Brands & Variant Rates (ब्रांड और कीमतें)
                         </label>
                         <button
                           type="button"
                           onClick={() => setEditIsMultiBrand(!editIsMultiBrand)}
-                          className="text-[11px] text-green-700 font-medium hover:underline"
+                          className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium hover:underline"
                         >
                           {editIsMultiBrand || editVariants.length > 0 ? '✓ Multi-Brand Enabled' : '+ Enable Multi-Brand'}
                         </button>
@@ -426,33 +422,33 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                       {editVariants.length > 0 ? (
                         <div className="space-y-1.5 mb-2.5">
                           {editVariants.map((v, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-gray-50 p-2 rounded-md border border-gray-200">
+                            <div key={i} className="flex items-center gap-2 bg-slate-50 dark:bg-[#11181F] p-2 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644]">
                               <div className="flex-1">
-                                <span className="text-[10px] text-gray-400 block">Brand Name</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Brand Name</span>
                                 <input
                                   type="text"
                                   value={v.brand}
                                   onChange={e => handleUpdateVariantBrand(i, e.target.value)}
-                                  className="w-full text-xs px-2 py-1 bg-white border border-gray-200 rounded focus:outline-none"
+                                  className="w-full text-xs px-2 py-1 bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded focus:outline-none"
                                   placeholder="Brand name"
                                 />
                               </div>
                               <div className="w-24">
-                                <span className="text-[10px] text-gray-400 block">Rate (₹)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Rate (₹)</span>
                                 <div className="flex items-center gap-1">
-                                  <span className="text-xs text-gray-500">₹</span>
+                                  <span className="text-xs text-slate-500">₹</span>
                                   <input
                                     type="number"
                                     value={v.price}
                                     onChange={e => handleUpdateVariantPrice(i, e.target.value)}
-                                    className="w-full text-xs px-2 py-1 bg-white border border-gray-200 rounded font-semibold text-green-700 focus:outline-none"
+                                    className="w-full text-xs px-2 py-1 bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] rounded font-semibold text-emerald-700 dark:text-emerald-400 focus:outline-none"
                                   />
                                 </div>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveVariant(i)}
-                                className="text-red-500 hover:text-red-700 p-1.5 mt-3 rounded hover:bg-red-50 transition-colors"
+                                className="text-red-500 hover:text-red-700 p-1.5 mt-3 rounded hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                                 title="Remove Brand"
                               >
                                 <Trash2 size={14} />
@@ -461,44 +457,43 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-gray-400 italic mb-2">No separate brands. Fixed rate: ₹{editRate}/{item.unit}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 italic mb-2">No separate brands. Fixed rate: ₹{editRate}/{item.unit}</p>
                       )}
 
                       {/* Add new brand inline */}
-                      <div className="flex items-center gap-2 bg-green-50/60 p-2 rounded-md border border-green-200">
+                      <div className="flex items-center gap-2 bg-emerald-50/60 dark:bg-emerald-950/30 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
                         <input
                           type="text"
                           value={newBrandName}
                           onChange={e => setNewBrandName(e.target.value)}
                           placeholder="Brand Name (e.g. Lifebuoy, Tata)"
-                          className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-gray-200 rounded focus:outline-none"
+                          className="flex-1 text-xs px-2.5 py-1.5 bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded-md focus:outline-none"
                         />
                         <div className="flex items-center gap-1 w-24">
-                          <span className="text-xs text-gray-500">₹</span>
+                          <span className="text-xs text-slate-500">₹</span>
                           <input
                             type="number"
                             value={newBrandPrice}
                             onChange={e => setNewBrandPrice(e.target.value)}
                             placeholder="Price"
-                            className="w-full text-xs px-2 py-1.5 bg-white border border-gray-200 rounded focus:outline-none"
+                            className="w-full text-xs px-2 py-1.5 bg-white dark:bg-[#151F28] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded-md focus:outline-none"
                           />
                         </div>
                         <button
                           type="button"
                           onClick={handleAddBrandToExisting}
                           disabled={!newBrandName.trim()}
-                          className="px-3 py-1.5 text-xs font-semibold bg-[#1B7A43] text-white rounded hover:bg-[#145E33] shrink-0 disabled:opacity-40"
+                          className="px-3 py-1.5 text-xs font-semibold bg-[#1B7A43] text-white rounded-md hover:bg-[#145E33] shrink-0 disabled:opacity-40"
                         >
                           + Add Brand
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#2A3644]">
                       <button
                         onClick={() => handleSaveEdit(item.id)}
-                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-md text-white text-xs font-bold transition-colors"
-                        style={{ background: COLORS.green }}
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-white text-xs font-bold transition-colors bg-[#1B7A43] hover:bg-[#145E33]"
                       >
                         <Save size={14} /> Save Changes
                       </button>
@@ -508,7 +503,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                             store.deleteCatalogueItem(item.id);
                           }
                         }}
-                        className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 px-2.5 py-1 rounded hover:bg-red-50 transition-colors"
+                        className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 hover:text-red-800 px-2.5 py-1 rounded hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                       >
                         <Trash2 size={13} /> Delete Item
                       </button>
@@ -519,7 +514,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             );
           })}
           {filtered.length === 0 && (
-            <p className="text-sm text-center py-4" style={{ color: COLORS.secondary }}>
+            <p className="text-sm text-center py-4 text-slate-500 dark:text-slate-400">
               {searchQuery ? 'No items match your search.' : 'No catalogue items yet.'}
             </p>
           )}
@@ -529,19 +524,18 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
         {!showAddForm ? (
           <button
             onClick={() => setShowAddForm(true)}
-            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border-2 border-dashed text-sm font-medium transition-colors hover:bg-green-50"
-            style={{ borderColor: COLORS.green, color: COLORS.green }}
+            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-dashed border-[#1B7A43] text-[#1B7A43] dark:text-emerald-400 text-sm font-semibold transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
           >
             <Plus size={16} /> {lang === 'hi' ? 'नया आइटम जोड़ें' : '+ Add New Item'}
           </button>
         ) : (
-          <div className="mt-3 rounded-xl border-2 p-4 bg-white space-y-3 shadow-sm" style={{ borderColor: COLORS.green }}>
+          <div className="mt-3 rounded-2xl border-2 border-[#1B7A43] p-4 bg-white dark:bg-[#151F28] space-y-3 shadow-sm">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: COLORS.text }}>
-                <Package size={16} className="text-[#1B7A43]" /> New Item (नया सामान)
+              <h3 className="text-sm font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
+                <Package size={16} className="text-[#1B7A43] dark:text-emerald-400" /> New Item (नया सामान)
               </h3>
               <button onClick={() => setShowAddForm(false)}>
-                <X size={16} style={{ color: COLORS.secondary }} />
+                <X size={16} className="text-slate-500 hover:text-slate-700" />
               </button>
             </div>
             <input
@@ -549,43 +543,39 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               value={newItem.name}
               onChange={e => setNewItem({ ...newItem, name: e.target.value })}
               placeholder="Item name (e.g. Toor Dal, Namkeen)"
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-green-600"
-              style={{ borderColor: COLORS.cardBorder }}
+              className="w-full px-3 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
             />
             <input
               type="text"
               value={newItem.aliases}
               onChange={e => setNewItem({ ...newItem, aliases: e.target.value })}
               placeholder="Spoken Aliases (e.g. arhar, toor, dal)"
-              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-green-600"
-              style={{ borderColor: COLORS.cardBorder }}
+              className="w-full px-3 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
             />
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="text-[11px] font-medium" style={{ color: COLORS.secondary }}>Unit (मात्रा प्रकार)</label>
+                <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Unit (मात्रा प्रकार)</label>
                 <select
                   value={newItem.unit}
                   onChange={e => setNewItem({ ...newItem, unit: e.target.value })}
-                  className="w-full px-2.5 py-2 text-sm border rounded-lg focus:outline-none bg-white"
-                  style={{ borderColor: COLORS.cardBorder }}
+                  className="w-full px-2.5 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none"
                 >
                   {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
               <div className="flex-1">
-                <label className="text-[11px] font-medium" style={{ color: COLORS.secondary }}>Base Rate (₹)</label>
+                <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Base Rate (₹)</label>
                 <input
                   type="number"
                   value={newItem.rate}
                   onChange={e => setNewItem({ ...newItem, rate: e.target.value })}
                   placeholder="0"
-                  className="w-full px-2.5 py-2 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-green-600"
-                  style={{ borderColor: COLORS.cardBorder }}
+                  className="w-full px-2.5 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                 />
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer p-2 rounded-lg bg-gray-50 border border-gray-200" style={{ color: COLORS.text }}>
+            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer p-2.5 rounded-xl bg-slate-50 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white">
               <input
                 type="checkbox"
                 checked={newItem.isMultiBrand}
@@ -597,12 +587,12 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
             {/* Merchant-friendly Brand Manager for New Item */}
             {newItem.isMultiBrand && (
-              <div className="bg-amber-50/60 p-3 rounded-lg border border-amber-200 space-y-2.5">
+              <div className="bg-amber-50/70 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-800/60 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900 flex items-center gap-1">
+                  <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1">
                     <Tag size={12} /> Add Brands & Rates (ब्रांड और भाव)
                   </span>
-                  <span className="text-[10px] text-gray-500">e.g. Tata, Local, 10 Mini</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">e.g. Tata, Local, 10 Mini</span>
                 </div>
                 {newItemVariants.map((v, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -615,10 +605,10 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                         setNewItemVariants(arr);
                       }}
                       placeholder={`Brand ${i + 1} (e.g. Tata, GoodDay)`}
-                      className="flex-1 px-2.5 py-1.5 text-xs border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-green-600"
+                      className="flex-1 px-2.5 py-1.5 text-xs border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#151F28] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                     />
                     <div className="flex items-center gap-1 w-24">
-                      <span className="text-xs text-gray-500">₹</span>
+                      <span className="text-xs text-slate-500">₹</span>
                       <input
                         type="number"
                         value={v.price}
@@ -628,7 +618,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                           setNewItemVariants(arr);
                         }}
                         placeholder="Rate"
-                        className="w-full px-2 py-1.5 text-xs border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-green-600"
+                        className="w-full px-2 py-1.5 text-xs border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#151F28] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                       />
                     </div>
                     {newItemVariants.length > 1 && (
@@ -645,7 +635,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                 <button
                   type="button"
                   onClick={() => setNewItemVariants([...newItemVariants, { brand: '', price: '' }])}
-                  className="text-xs font-semibold text-green-700 hover:text-green-800 flex items-center gap-1 pt-1"
+                  className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 pt-1"
                 >
                   <Plus size={13} /> + Add Another Brand (नया ब्रांड जोड़ें)
                 </button>
@@ -655,8 +645,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             <button
               onClick={handleAddItem}
               disabled={!newItem.name.trim()}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-white text-sm font-bold disabled:opacity-40 shadow-sm transition-all"
-              style={{ background: COLORS.green }}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white text-sm font-bold bg-[#1B7A43] hover:bg-[#145E33] disabled:opacity-40 shadow-sm transition-all"
             >
               <Save size={16} /> Save Item to Catalogue
             </button>
@@ -667,18 +656,18 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       {/* ===== SECTION 2: SYNC QUEUE INSPECTOR ===== */}
       <section>
         <div className="flex items-center gap-2 mb-1">
-          <RefreshCw size={18} style={{ color: COLORS.amber }} />
-          <h2 className="text-lg font-bold" style={{ color: COLORS.text }}>
+          <RefreshCw size={18} className="text-[#E68A00] dark:text-amber-400" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
             🔄 Duplicate-Safe Offline Sync Queue
           </h2>
         </div>
-        <p className="text-xs mb-3" style={{ color: COLORS.secondary }}>
+        <p className="text-xs mb-3 text-slate-600 dark:text-slate-400">
           Each transaction gets a unique <span className="font-mono font-semibold">TXN_UUID</span> + <span className="font-mono font-semibold">Idempotency Key</span> for duplicate-safe sync.
         </p>
 
         {/* Architecture Flow Diagram */}
-        <div className="rounded-lg border p-3 mb-3 overflow-x-auto" style={{ borderColor: COLORS.cardBorder, background: '#FAFAF8' }}>
-          <div className="flex items-center gap-0 text-[11px] font-medium min-w-[520px]" style={{ color: COLORS.text }}>
+        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-3 mb-3 overflow-x-auto bg-[#F9F7F4] dark:bg-[#11181F]">
+          <div className="flex items-center gap-0 text-[11px] font-medium min-w-[520px] text-slate-800 dark:text-slate-200">
             {[
               { label: 'Voice Input', icon: '🎤' },
               { label: 'Parser', icon: '⚙️' },
@@ -694,7 +683,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                   <span className="whitespace-nowrap mt-0.5">{step.label}</span>
                 </div>
                 {i < arr.length - 1 && (
-                  <span className="text-base mx-0.5" style={{ color: COLORS.green }}>→</span>
+                  <span className="text-base mx-0.5 text-[#1B7A43] dark:text-emerald-400">→</span>
                 )}
               </div>
             ))}
@@ -703,41 +692,41 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
         {/* Sync Queue Table */}
         {syncQueue.length > 0 ? (
-          <div className="overflow-x-auto rounded-lg border" style={{ borderColor: COLORS.cardBorder }}>
+          <div className="overflow-x-auto rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28]">
             <table className="w-full text-xs">
               <thead>
-                <tr style={{ background: '#F7F5F0' }}>
-                  <th className="text-left px-2 py-2 font-semibold" style={{ color: COLORS.secondary }}>TXN_UUID</th>
-                  <th className="text-left px-2 py-2 font-semibold" style={{ color: COLORS.secondary }}>Idempotency Key</th>
-                  <th className="text-left px-2 py-2 font-semibold" style={{ color: COLORS.secondary }}>Timestamp</th>
-                  <th className="text-left px-2 py-2 font-semibold" style={{ color: COLORS.secondary }}>Status</th>
+                <tr className="bg-[#F7F5F0] dark:bg-[#1E293B] border-b border-[#E2D9C8] dark:border-[#2A3644]">
+                  <th className="text-left px-3 py-2.5 font-semibold text-slate-600 dark:text-slate-300">TXN_UUID</th>
+                  <th className="text-left px-3 py-2.5 font-semibold text-slate-600 dark:text-slate-300">Idempotency Key</th>
+                  <th className="text-left px-3 py-2.5 font-semibold text-slate-600 dark:text-slate-300">Timestamp</th>
+                  <th className="text-left px-3 py-2.5 font-semibold text-slate-600 dark:text-slate-300">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {syncQueue.map((entry, i) => (
-                  <tr key={entry.txnId || i} className="border-t" style={{ borderColor: COLORS.cardBorder }}>
-                    <td className="px-2 py-1.5 font-mono text-[11px]" style={{ color: COLORS.text }}>
+                  <tr key={entry.txnId || i} className="border-t border-[#E2D9C8] dark:border-[#2A3644]">
+                    <td className="px-3 py-2 font-mono text-[11px] text-slate-900 dark:text-white font-semibold">
                       {entry.txnId || '—'}
                     </td>
-                    <td className="px-2 py-1.5 font-mono text-[11px]" style={{ color: COLORS.secondary }}>
+                    <td className="px-3 py-2 font-mono text-[11px] text-slate-600 dark:text-slate-400">
                       {entry.idempotencyKey
                         ? entry.idempotencyKey.length > 12
                           ? entry.idempotencyKey.slice(0, 12) + '…'
                           : entry.idempotencyKey
                         : '—'}
                     </td>
-                    <td className="px-2 py-1.5" style={{ color: COLORS.secondary }}>
+                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
                       {entry.timestamp
                         ? new Date(entry.timestamp).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })
                         : '—'}
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className="px-3 py-2">
                       {entry.status === 'SYNCED' ? (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: COLORS.greenLight, color: COLORS.green }}>
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
                           <Check size={10} /> SYNCED
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: COLORS.amberBg, color: COLORS.amberText }}>
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
                           <WifiOff size={10} /> QUEUED_OFFLINE
                         </span>
                       )}
@@ -748,7 +737,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             </table>
           </div>
         ) : (
-          <div className="text-center py-4 text-sm rounded-lg border" style={{ borderColor: COLORS.cardBorder, color: COLORS.secondary }}>
+          <div className="text-center py-4 text-sm rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#151F28] text-slate-500 dark:text-slate-400">
             <Database size={20} className="mx-auto mb-1 opacity-40" />
             Sync queue is empty.
           </div>
@@ -759,8 +748,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-white text-sm font-semibold transition-all disabled:opacity-60"
-            style={{ background: COLORS.amber }}
+            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-60 bg-[#E68A00] hover:bg-[#B36B00] shadow-sm"
           >
             <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
             {syncing
@@ -772,56 +760,53 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
       {/* ===== SECTION 3: GEMINI AI KEY ===== */}
       <section>
-        <div className="rounded-lg border p-4 bg-white" style={{ borderColor: COLORS.cardBorder }}>
-          <h2 className="text-base font-bold mb-1" style={{ color: COLORS.text }}>
+        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#151F28] shadow-sm">
+          <h2 className="text-base font-bold mb-1 text-slate-900 dark:text-white">
             🤖 Optional Gemini AI Enhancement
           </h2>
-          <p className="text-xs mb-3 leading-relaxed" style={{ color: COLORS.secondary }}>
+          <p className="text-xs mb-3 leading-relaxed text-slate-600 dark:text-slate-400">
             The built-in <strong>Position-Independent Hinglish NLP Engine</strong> works 100% offline with zero API keys.
             Optionally add a Gemini API key for LLM-powered parsing fallback.
           </p>
 
           <div className="flex gap-2 mb-2">
             <div className="relative flex-1">
-              <Key size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: COLORS.secondary }} />
+              <Key size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
               <input
                 type={showGeminiKey ? 'text' : 'password'}
                 value={geminiKey}
                 onChange={e => { setGeminiKey(e.target.value); setGeminiSaved(false); }}
                 placeholder="Gemini API Key"
-                className="w-full pl-8 pr-16 py-2 text-sm border rounded-md focus:outline-none focus:ring-1"
-                style={{ borderColor: COLORS.cardBorder }}
+                className="w-full pl-8 pr-16 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
               />
               <button
                 onClick={() => setShowGeminiKey(!showGeminiKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium px-1.5 py-0.5 rounded"
-                style={{ color: COLORS.secondary, background: '#F3F0EB' }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium px-2 py-0.5 rounded-lg text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-[#1E293B]"
               >
                 {showGeminiKey ? 'Hide' : 'Show'}
               </button>
             </div>
             <button
               onClick={handleSaveGeminiKey}
-              className="px-3 py-2 rounded-md text-white text-sm font-medium shrink-0"
-              style={{ background: COLORS.green }}
+              className="px-3.5 py-2 rounded-xl text-white text-sm font-medium shrink-0 bg-[#1B7A43] hover:bg-[#145E33] shadow-sm"
             >
               <Save size={14} />
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: geminiSaved && geminiKey ? COLORS.green : COLORS.secondary }}>
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
             {geminiSaved && geminiKey ? (
-              <>
+              <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
                 <Check size={14} /> Connected ✅
-              </>
+              </span>
             ) : (
-              <>
+              <span className="flex items-center gap-1">
                 <Globe size={14} /> Not configured (optional)
-              </>
+              </span>
             )}
           </div>
 
-          <p className="text-[10px] mt-2 italic" style={{ color: COLORS.secondary }}>
+          <p className="text-[10px] mt-2 italic text-slate-500 dark:text-slate-400">
             Roadmap: Gemini 1.5 Flash for complex multi-item disambiguation
           </p>
         </div>
@@ -829,10 +814,10 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
       {/* ===== SECTION 4: DATA PRIVACY & PORTABILITY ===== */}
       <section>
-        <div className="rounded-lg border p-4 bg-white" style={{ borderColor: COLORS.cardBorder }}>
+        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#151F28] shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <Shield size={18} style={{ color: COLORS.green }} />
-            <h2 className="text-base font-bold" style={{ color: COLORS.text }}>
+            <Shield size={18} className="text-[#1B7A43] dark:text-emerald-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               🛡️ Data Privacy & Portability
             </h2>
           </div>
@@ -841,45 +826,41 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             {/* Export JSON */}
             <button
               onClick={handleExportJSON}
-              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-medium text-left transition-colors hover:bg-green-50"
-              style={{ borderColor: COLORS.cardBorder, color: COLORS.text }}
+              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-left transition-colors bg-white dark:bg-[#11181F] text-slate-900 dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
             >
-              <Download size={16} style={{ color: COLORS.green }} />
+              <Download size={16} className="text-[#1B7A43] dark:text-emerald-400" />
               <span>📥 Export Full Shop Ledger (JSON)</span>
             </button>
 
             {/* Export CSV */}
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-medium text-left transition-colors hover:bg-green-50"
-              style={{ borderColor: COLORS.cardBorder, color: COLORS.text }}
+              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-left transition-colors bg-white dark:bg-[#11181F] text-slate-900 dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
             >
-              <Download size={16} style={{ color: COLORS.green }} />
+              <Download size={16} className="text-[#1B7A43] dark:text-emerald-400" />
               <span>📥 Export as CSV</span>
             </button>
 
             {/* Reset Demo */}
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-medium text-left transition-colors hover:bg-amber-50"
-              style={{ borderColor: COLORS.amberBg, color: COLORS.amberText }}
+              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 text-sm font-medium text-left transition-colors bg-amber-50/60 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100"
             >
-              <RefreshCw size={16} style={{ color: COLORS.amber }} />
+              <RefreshCw size={16} className="text-[#E68A00] dark:text-amber-400" />
               <span>🔄 Restore Default Sample Data</span>
             </button>
 
             {/* Delete All */}
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-medium text-left transition-colors hover:bg-red-50"
-              style={{ borderColor: '#FECACA', color: COLORS.danger }}
+              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-red-200 dark:border-red-900/60 text-sm font-medium text-left transition-colors bg-red-50/60 dark:bg-red-950/30 text-red-600 dark:text-red-300 hover:bg-red-100"
             >
-              <Trash2 size={16} style={{ color: COLORS.danger }} />
+              <Trash2 size={16} className="text-red-600 dark:text-red-400" />
               <span>🗑️ Delete All Shop Data</span>
             </button>
           </div>
 
-          <p className="text-[10px] mt-3 leading-relaxed" style={{ color: COLORS.secondary }}>
+          <p className="text-[10px] mt-3 leading-relaxed text-slate-500 dark:text-slate-400">
             🔒 All data stored locally on your device. Zero data sent to any server without your explicit consent.
           </p>
         </div>
@@ -887,24 +868,22 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
       {/* ===== RESET CONFIRMATION MODAL ===== */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-xl" style={{ borderColor: COLORS.cardBorder }}>
-            <h3 className="text-base font-bold mb-2" style={{ color: COLORS.text }}>Restore Default Sample Data?</h3>
-            <p className="text-sm mb-4" style={{ color: COLORS.secondary }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
+          <div className="bg-white dark:bg-[#151F28] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-5 max-w-sm w-full shadow-2xl">
+            <h3 className="text-base font-bold mb-2 text-slate-900 dark:text-white">Restore Default Sample Data?</h3>
+            <p className="text-sm mb-4 text-slate-600 dark:text-slate-400">
               This will restore default sample customers, catalogue items, and hisab entries. Your current data will be reset.
             </p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 rounded-lg border text-sm font-medium"
-                style={{ borderColor: COLORS.cardBorder, color: COLORS.secondary }}
+                className="px-4 py-2 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-slate-700 dark:text-slate-300"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReset}
-                className="px-4 py-2 rounded-lg text-white text-sm font-semibold"
-                style={{ background: COLORS.amber }}
+                className="px-4 py-2 rounded-xl text-white text-sm font-semibold bg-[#E68A00] hover:bg-[#B36B00] shadow-sm"
               >
                 Yes, Reset
               </button>
@@ -915,43 +894,37 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
       {/* ===== DELETE CONFIRMATION MODAL ===== */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-xl border-2" style={{ borderColor: COLORS.danger }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
+          <div className="bg-white dark:bg-[#151F28] rounded-2xl border-2 border-red-500 p-5 max-w-sm w-full shadow-2xl">
             <div className="flex items-center gap-2 mb-2">
-              <Trash2 size={20} style={{ color: COLORS.danger }} />
-              <h3 className="text-base font-bold" style={{ color: COLORS.danger }}>Delete All Data?</h3>
+              <Trash2 size={20} className="text-red-600" />
+              <h3 className="text-base font-bold text-red-600">Delete All Data?</h3>
             </div>
-            <p className="text-sm mb-3" style={{ color: COLORS.secondary }}>
+            <p className="text-sm mb-3 text-slate-600 dark:text-slate-400">
               This will <strong>permanently delete</strong> all your shop data including customers, transactions, and catalogue.
               This action cannot be undone.
             </p>
-            <p className="text-xs font-medium mb-2" style={{ color: COLORS.text }}>
-              Type <span className="font-mono font-bold" style={{ color: COLORS.danger }}>DELETE</span> to confirm:
+            <p className="text-xs font-medium mb-2 text-slate-900 dark:text-white">
+              Type <span className="font-mono font-bold text-red-600">DELETE</span> to confirm:
             </p>
             <input
               type="text"
               value={deleteText}
               onChange={e => setDeleteText(e.target.value)}
               placeholder="DELETE"
-              className="w-full px-3 py-2 text-sm font-mono border-2 rounded-md mb-3 focus:outline-none"
-              style={{
-                borderColor: deleteText === 'DELETE' ? COLORS.danger : COLORS.cardBorder,
-                color: COLORS.danger,
-              }}
+              className="w-full px-3 py-2 text-sm font-mono border-2 border-red-300 rounded-xl mb-3 focus:outline-none bg-white dark:bg-[#11181F] text-red-600 font-bold"
             />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setShowDeleteConfirm(false); setDeleteText(''); }}
-                className="px-4 py-2 rounded-lg border text-sm font-medium"
-                style={{ borderColor: COLORS.cardBorder, color: COLORS.secondary }}
+                className="px-4 py-2 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-slate-700 dark:text-slate-300"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAll}
                 disabled={deleteText !== 'DELETE'}
-                className="px-4 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-30"
-                style={{ background: COLORS.danger }}
+                className="px-4 py-2 rounded-xl text-white text-sm font-semibold bg-red-600 hover:bg-red-700 disabled:opacity-30 shadow-sm"
               >
                 Delete Everything
               </button>
