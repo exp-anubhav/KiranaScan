@@ -1010,12 +1010,12 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
   // ─────────────────────────────── RENDER ───────────────────────────
   return (
-    <div className={`flex-1 flex flex-col min-h-0 ${draft && !confirmedTxn ? 'space-y-3 pb-6' : 'pb-0.5'}`}>
+    <div className={`flex-1 flex flex-col min-h-0 ${draft && !confirmedTxn ? 'space-y-3 pb-4' : ''}`}>
       {/* ── STATE 1: NO DRAFT OPEN -> EXTENDED GEMINI-STYLE WORKSPACE + SINGLE TEST CASES OPTION ── */}
       {(!draft || confirmedTxn) && (
         <div className={`flex-1 flex flex-col justify-between gap-2 sm:gap-3 min-h-0 fade-in ${!isMobileFrame ? 'max-w-3xl w-full mx-auto py-1' : ''}`}>
           {/* ── MAIN EXTENDED GEMINI-STYLE VOICE & BILL SURFACE ── */}
-          <section className="flex-1 flex flex-col justify-between min-h-0 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-3xl shadow-xs p-3.5 sm:p-6">
+          <section className="flex-1 flex flex-col justify-between min-h-0 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-3xl shadow-xs p-3 sm:p-6">
             {/* Minimal Top Status Row */}
             <div className="flex items-center justify-between gap-2 text-[11px]">
               <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#1B7A43] dark:text-emerald-400">
@@ -1030,20 +1030,20 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
             </div>
 
             {/* Spacious Centered Gemini Hero Stage */}
-            <div className="flex-1 flex flex-col items-center justify-center text-center py-2 sm:py-8">
-              <div className="relative flex items-center justify-center mb-3 sm:mb-5">
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-1.5 sm:py-8">
+              <div className="relative flex items-center justify-center mb-2.5 sm:mb-5">
                 {isListening ? (
                   <>
                     <div className="absolute w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-red-500/20 animate-ping" />
                     <div className="absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-red-500/10 animate-pulse" />
                   </>
                 ) : (
-                  <div className="absolute w-26 h-26 sm:w-32 sm:h-32 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 animate-pulse" />
+                  <div className="absolute w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 animate-pulse" />
                 )}
 
                 <button
                   onClick={isListening ? stopListening : startListening}
-                  className={`relative w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
+                  className={`relative w-[76px] h-[76px] sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
                     isListening
                       ? 'bg-red-600 text-white mic-pulse ring-4 ring-red-300 dark:ring-red-900'
                       : 'bg-[#1B7A43] text-white hover:bg-[#156336] hover:scale-105 active:scale-95 ring-4 ring-emerald-100 dark:ring-emerald-950/40'

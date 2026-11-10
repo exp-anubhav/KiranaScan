@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { useStore } from './stores/useStore.js';
 import { LABELS } from './data/seedData.js';
 import VoiceTab from './components/VoiceTab.jsx';
@@ -37,6 +37,29 @@ export default function App() {
       localStorage.setItem('kiranascan_theme', 'light');
     }
   }, [isDarkMode]);
+
+  // Sync CSS --app-height to exact visible viewport height so real mobile browsers
+  // with URL/address bars never stretch containers to 100lvh/100vh and push content off-screen.
+  useLayoutEffect(() => {
+    const syncAppHeight = () => {
+      const activeTag = document.activeElement?.tagName;
+      const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+      if (isTyping && window.innerHeight < window.screen.height * 0.72) return;
+      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    };
+    syncAppHeight();
+    const onFocusOut = () => setTimeout(syncAppHeight, 120);
+    window.addEventListener('resize', syncAppHeight);
+    window.addEventListener('orientationchange', syncAppHeight);
+    window.addEventListener('focusout', onFocusOut);
+    window.visualViewport?.addEventListener('resize', syncAppHeight);
+    return () => {
+      window.removeEventListener('resize', syncAppHeight);
+      window.removeEventListener('orientationchange', syncAppHeight);
+      window.removeEventListener('focusout', onFocusOut);
+      window.visualViewport?.removeEventListener('resize', syncAppHeight);
+    };
+  }, []);
 
   // Shop Name inline editing
   const [editingShopName, setEditingShopName] = useState(false);
@@ -116,7 +139,7 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════
   if (!currentMerchant) {
     return (
-      <div className={`min-h-screen flex flex-col justify-center items-center p-4 bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
+      <div className={`app-min-h flex flex-col justify-center items-center p-4 bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
         {/* Top Floating Controls */}
         <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
           <button
@@ -361,9 +384,9 @@ export default function App() {
   };
 
   const appContent = (
-    <div className="flex flex-col w-full min-h-screen bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors relative">
+    <div className="flex flex-col w-full flex-1 app-min-h bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors relative">
       {/* ── 2-ROW CLEAN PROFESSIONAL MERCHANT HEADER ── */}
-      <header className="bg-[#1B7A43] text-white px-3.5 py-2.5 shadow-md sticky top-0 z-30 transition-all">
+      <header className="bg-[#1B7A43] text-white px-3.5 py-2.5 shadow-md sticky top-0 z-30 shrink-0 transition-all">
         <div className={isMobileFrame ? 'space-y-2' : 'max-w-5xl mx-auto space-y-2.5'}>
           {/* Row 1: Shop Identity + Quick Icon Actions */}
           <div className="flex items-center justify-between gap-2">
@@ -514,7 +537,10 @@ export default function App() {
                 return (
                   <button
                     key={i}
-                    onClick={() => setActiveTab(i)}
+                    onClick={() => {
+                      setActiveTab(i);
+                      window.scrollTo(0, 0);
+                    }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${isActive
                       ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-emerald-400 shadow-md'
                       : 'text-white/80 hover:text-white hover:bg-white/10'
@@ -531,13 +557,13 @@ export default function App() {
       </header>
 
       {/* Tab Content */}
-      <main className={`flex-1 flex flex-col ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-3 pb-[72px]' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
+      <main className={`flex-1 flex flex-col min-h-0 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-2.5 sm:p-3' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
         {renderTabContent()}
       </main>
 
-      {/* Bottom Navigation for Mobile View (Clean, always visible & accessible at bottom of screen) */}
+      {/* Bottom Navigation for Mobile View (In-flow sticky so it sits right inside visible viewport without hiding content) */}
       {isMobileFrame && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#16202A]/95 backdrop-blur-md border-t border-[#E2D9C8] dark:border-[#2A3644] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <nav className="sticky bottom-0 z-40 shrink-0 bg-white/95 dark:bg-[#16202A]/95 backdrop-blur-md border-t border-[#E2D9C8] dark:border-[#2A3644] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-[440px] mx-auto flex items-center justify-around">
             {tabLabels.map((label, i) => {
               const Icon = TAB_ICONS[i];
@@ -547,7 +573,7 @@ export default function App() {
                   key={i}
                   onClick={() => {
                     setActiveTab(i);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    window.scrollTo(0, 0);
                   }}
                   className={`flex-1 flex flex-col items-center py-2 px-1 text-[11px] font-medium transition-all ${isActive
                     ? 'text-[#1B7A43] dark:text-emerald-400 font-bold'
@@ -568,10 +594,10 @@ export default function App() {
   );
 
   return (
-    <div className={`min-h-screen bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`app-min-h bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
       {isMobileFrame ? (
-        <div className="w-full min-h-screen flex justify-center bg-[#F2EDE4] dark:bg-[#070B0E]">
-          <div className="w-full max-w-[440px] min-h-screen bg-[#FAF6F0] dark:bg-[#0B1116] border-x border-[#E2D9C8] dark:border-[#2A3644] shadow-2xl flex flex-col relative">
+        <div className="w-full app-min-h flex justify-center bg-[#F2EDE4] dark:bg-[#070B0E]">
+          <div className="w-full max-w-[440px] app-min-h bg-[#FAF6F0] dark:bg-[#0B1116] border-x border-[#E2D9C8] dark:border-[#2A3644] shadow-2xl flex flex-col relative">
             {appContent}
           </div>
         </div>
