@@ -204,15 +204,23 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
       setOcrRawText(result.rawText || '');
       setOcrData(result.entries || []);
       setOcrEngineUsed(result.engine || '');
+      const hasEntries = (result.entries || []).length > 0;
+      const hasRaw = Boolean(result.rawText);
+      // Always show warning (shadow / tips) if present
       if (result.warning) {
         setOcrNotice(result.warning);
-      } else if ((result.entries || []).length === 0) {
-        setOcrNotice(
-          result.rawText
-            ? 'Text padha gaya par clear Name + ₹ Balance rows nahi bane. Neeche Raw Text dekhein ya manual rows jodein.'
-            : 'Is photo se clear text nahi mil paya (blur ya handwriting ho sakti hai). Neeche manual rows jodein ya Gemini Key lagakar AI scan karein.'
-        );
-        setShowRawText(Boolean(result.rawText));
+      }
+      if (!hasEntries) {
+        // Show raw text editor automatically so user can see what was scanned
+        if (hasRaw) setShowRawText(true);
+        // If no existing warning set, set a helpful one
+        if (!result.warning) {
+          setOcrNotice(
+            hasRaw
+              ? 'Text padha gaya par clear Name + ₹ Balance rows nahi bane. Neeche Raw Text edit karein ya manual rows jodein.'
+              : 'Is photo se clear text nahi mil paya. Photo mein shadow ho sakta hai ya handwriting bahut cursive hai. Neeche tips dekhein.'
+          );
+        }
       }
       setOcrStage('review');
     } catch (err) {
@@ -598,13 +606,14 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
             {/* Idle Stage */}
             {ocrStage === 'idle' && (
               <div className="space-y-3">
+                {/* Upload dropzone */}
                 <label className="border-2 border-dashed border-[#E2D9C8] dark:border-[#2A3644] hover:border-[#1B7A43] rounded-xl p-5 text-center cursor-pointer transition-colors block bg-[#FAF6F0]/60 dark:bg-[#11181F]/60">
                   <Upload className="w-7 h-7 mx-auto mb-2 text-[#1B7A43] dark:text-emerald-400" />
                   <p className="text-sm font-bold text-slate-900 dark:text-white">
                     {ocrImageFile ? 'Choose a Different Photo from Gallery' : 'Upload Photo from Gallery or Camera'}
                   </p>
                   <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">
-                    JPG, PNG, WEBP · Clear photo of your Bahi-Khata / register page
+                    JPG, PNG, WEBP · Best results: bright, even lighting — no finger shadows
                   </p>
                   <input
                     type="file"
@@ -623,6 +632,30 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                     </div>
                   )}
                 </label>
+
+                {/* Gemini AI Boost — prominent card when no key is set */}
+                {!geminiKeyDraft.trim() && (
+                  <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/30 p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-indigo-800 dark:text-indigo-300">
+                          ✨ Gemini Vision AI — Best for shadows & cursive handwriting
+                        </p>
+                        <p className="text-[11px] text-indigo-700 dark:text-indigo-400 mt-0.5 leading-relaxed">
+                          Built-in OCR (Tesseract) struggles with heavy shadows, dim lighting, or cursive mixed Hindi+English. Gemini Vision reads these accurately. Free tier: 1,500 scans/day — no credit card needed.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowGeminiConfig(true)}
+                      className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Add Free Gemini API Key →
+                    </button>
+                  </div>
+                )}
 
                 {/* Language & AI Engine Bar */}
                 <div className="flex items-center justify-between gap-2 flex-wrap text-xs px-1">
@@ -647,27 +680,35 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                     ))}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowGeminiConfig((v) => !v)}
-                    className="text-[11px] font-semibold text-[#1B7A43] dark:text-emerald-400 hover:underline flex items-center gap-1"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    {geminiKeyDraft.trim() ? 'Gemini AI Active ✓' : '+ AI Handwriting Boost'}
-                  </button>
+                  {geminiKeyDraft.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setShowGeminiConfig((v) => !v)}
+                      className="text-[11px] font-semibold text-[#1B7A43] dark:text-emerald-400 hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Gemini AI Active ✓
+                    </button>
+                  )}
                 </div>
 
                 {showGeminiConfig && (
-                  <div className="p-3 rounded-xl bg-stone-50 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] space-y-2">
+                  <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 space-y-2">
+                    <p className="text-[11px] text-indigo-800 dark:text-indigo-300 font-semibold">
+                      🔑 Gemini API Key — Free at{' '}
+                      <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline">
+                        aistudio.google.com/apikey
+                      </a>{' '}
+                      (no credit card, 1,500 scans/day free)
+                    </p>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                      Optional: Built-in OCR works without any key. Add a Gemini API key if your page has messy cursive handwriting.
+                      Gemini Vision AI reads cursive handwriting, shadows, mixed Hindi+English, and dim photos much better than built-in OCR.
                     </p>
                     <div className="flex gap-1.5">
                       <input
                         type="password"
                         value={geminiKeyDraft}
                         onChange={(e) => setGeminiKeyDraft(e.target.value)}
-                        placeholder="Paste Gemini API Key (optional)"
+                        placeholder="Paste Gemini API Key (starts with AIza…)"
                         className="flex-1 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
                       />
                       <button
@@ -685,6 +726,31 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                   <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>{ocrNotice}</span>
+                  </div>
+                )}
+
+                {/* Gemini upsell when no entries extracted and no Gemini key */}
+                {ocrData.length === 0 && ocrEngineUsed !== 'gemini' && !geminiKeyDraft.trim() && (
+                  <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/30 p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-indigo-800 dark:text-indigo-300">Try Gemini Vision AI — handles shadows & cursive</p>
+                        <p className="text-[11px] text-indigo-700 dark:text-indigo-400 mt-0.5 leading-relaxed">
+                          Shadows, dim light, or cursive handwriting confuse built-in OCR. Gemini Vision AI reads these accurately (free: 1,500 scans/day at{' '}
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
+                            aistudio.google.com
+                          </a>).
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setOcrStage('idle'); setShowGeminiConfig(true); }}
+                      className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Add Gemini Key & Re-scan →
+                    </button>
                   </div>
                 )}
 
@@ -772,6 +838,31 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                   <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>{ocrNotice}</span>
+                  </div>
+                )}
+
+                {/* Gemini upsell when no entries extracted and no Gemini key */}
+                {ocrData.length === 0 && ocrEngineUsed !== 'gemini' && !geminiKeyDraft.trim() && (
+                  <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/30 p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-indigo-800 dark:text-indigo-300">Try Gemini Vision AI — handles shadows & cursive</p>
+                        <p className="text-[11px] text-indigo-700 dark:text-indigo-400 mt-0.5 leading-relaxed">
+                          Shadows, dim light, or cursive handwriting confuse built-in OCR. Gemini Vision AI reads these accurately (free: 1,500 scans/day at{' '}
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
+                            aistudio.google.com
+                          </a>).
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setOcrStage('idle'); setShowGeminiConfig(true); }}
+                      className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Add Gemini Key & Re-scan →
+                    </button>
                   </div>
                 )}
 
