@@ -53,8 +53,9 @@ export default function DailyHisabTab({ store, lang, labels }) {
     openingGalla = 0,
   } = dailyHisab;
 
-  const [gallaInput, setGallaInput] = useState('');
+  const [gallaInput, setGallaInput] = useState(gallaActual != null ? String(gallaActual) : '');
   const [gallaSubmitted, setGallaSubmitted] = useState(gallaActual != null);
+  const [gallaPresetChoice, setGallaPresetChoice] = useState(null); // 'exact' | 'short' | null
   const [detailViewTab, setDetailViewTab] = useState('customers'); // 'customers' | 'breakdown'
 
   // Session deltas (how much this session added to each metric)
@@ -65,12 +66,24 @@ export default function DailyHisabTab({ store, lang, labels }) {
   const sessionOutstandingDelta = sessionStats?.outstandingDelta ?? 0;
 
   // Galla reconciliation
+  const shortGallaAmount = Math.max(0, expectedGalla - 250);
   const gallaActualVal = gallaActual != null ? Number(gallaActual) : null;
   const gallaDiff = gallaActualVal != null ? gallaActualVal - expectedGalla : null;
+  const effectiveGallaInput = gallaInput.trim() !== '' ? Number(gallaInput) : gallaActualVal;
+  const hasGallaValue = effectiveGallaInput != null && !isNaN(effectiveGallaInput) && (gallaSubmitted || gallaInput.trim() !== '');
+  const isExactSelected =
+    hasGallaValue &&
+    effectiveGallaInput === expectedGalla &&
+    (gallaPresetChoice === 'exact' || gallaPresetChoice === null);
+  const isShortSelected =
+    hasGallaValue &&
+    effectiveGallaInput === shortGallaAmount &&
+    (gallaPresetChoice === 'short' || (gallaPresetChoice === null && expectedGalla > 0));
 
-  const handleGallaSubmit = (amount) => {
+  const handleGallaSubmit = (amount, presetChoice = null) => {
     const val = Number(amount);
     if (isNaN(val) || val < 0) return;
+    setGallaPresetChoice(presetChoice);
     setGallaActual?.(val);
     setGallaInput(String(val));
     setGallaSubmitted(true);
@@ -287,15 +300,19 @@ export default function DailyHisabTab({ store, lang, labels }) {
                   className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
                   placeholder={lang === 'hi' ? 'राशि डालें...' : 'Enter amount...'}
                   value={gallaInput}
-                  onChange={(e) => setGallaInput(e.target.value)}
+                  onChange={(e) => {
+                    setGallaInput(e.target.value);
+                    setGallaPresetChoice(null);
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && gallaInput) handleGallaSubmit(gallaInput);
+                    if (e.key === 'Enter' && gallaInput) handleGallaSubmit(gallaInput, null);
                   }}
                 />
               </div>
               <button
+                type="button"
                 className="px-4 py-2.5 rounded-xl text-white text-sm font-semibold bg-[#1B7A43] hover:bg-[#145E33] transition-colors shadow-sm"
-                onClick={() => gallaInput && handleGallaSubmit(gallaInput)}
+                onClick={() => gallaInput && handleGallaSubmit(gallaInput, null)}
               >
                 {lang === 'hi' ? 'चेक करो' : 'Check'}
               </button>
@@ -303,18 +320,32 @@ export default function DailyHisabTab({ store, lang, labels }) {
           </div>
 
           {/* Quick test buttons */}
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
-              className="flex-1 py-2 px-3 rounded-xl border text-xs font-semibold transition-colors hover:opacity-80 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
-              onClick={() => handleGallaSubmit(expectedGalla)}
+              type="button"
+              aria-pressed={isExactSelected}
+              className={`py-2 px-2.5 rounded-xl border text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1.5 text-center leading-tight active:scale-[0.98] ${
+                isExactSelected
+                  ? 'bg-emerald-50 dark:bg-emerald-500/15 border-[#1B7A43] dark:border-emerald-400 text-[#1B7A43] dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                  : 'bg-[#FAF6F0] dark:bg-[#11181F] border-[#E2D9C8] dark:border-[#2A3644] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              onClick={() => handleGallaSubmit(expectedGalla, 'exact')}
             >
-              ✅ Match Exact (₹{formatIndian(expectedGalla)})
+              <CheckCircle className={`w-3.5 h-3.5 shrink-0 ${isExactSelected ? 'text-[#1B7A43] dark:text-emerald-400' : 'text-emerald-600/80 dark:text-emerald-400/70'}`} />
+              <span>Match Exact (₹{formatIndian(expectedGalla)})</span>
             </button>
             <button
-              className="flex-1 py-2 px-3 rounded-xl border text-xs font-semibold transition-colors hover:opacity-80 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300"
-              onClick={() => handleGallaSubmit(Math.max(0, expectedGalla - 250))}
+              type="button"
+              aria-pressed={isShortSelected}
+              className={`py-2 px-2.5 rounded-xl border text-[11px] sm:text-xs font-semibold transition-all flex items-center justify-center gap-1.5 text-center leading-tight active:scale-[0.98] ${
+                isShortSelected
+                  ? 'bg-amber-50 dark:bg-amber-500/15 border-amber-500 dark:border-amber-400 text-amber-800 dark:text-amber-300 ring-2 ring-amber-500/20 shadow-xs'
+                  : 'bg-[#FAF6F0] dark:bg-[#11181F] border-[#E2D9C8] dark:border-[#2A3644] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              onClick={() => handleGallaSubmit(shortGallaAmount, 'short')}
             >
-              ⚠️ Simulate ₹250 Short (₹{formatIndian(Math.max(0, expectedGalla - 250))})
+              <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${isShortSelected ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600/80 dark:text-amber-400/70'}`} />
+              <span>Simulate ₹250 Short (₹{formatIndian(shortGallaAmount)})</span>
             </button>
           </div>
 
