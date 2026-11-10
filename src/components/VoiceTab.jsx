@@ -1,13 +1,337 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { parseHinglishTransaction } from '../utils/hinglishParser.js';
 import { hindiToHinglish } from '../utils/devanagariTransliterator.js';
-import { DEMO_CHIPS } from '../data/seedData.js';
+import { prepareLedgerImageForOcr } from '../utils/bahiKhataOcr.js';
+import { DEMO_CHIPS, SAMPLE_HANDWRITTEN_BILLS } from '../data/seedData.js';
 import {
   Mic, Send, Plus, Minus, Edit3, Check, X,
-  AlertTriangle, ChevronDown, MessageCircle, Copy, Undo2, User, Phone, Zap
+  AlertTriangle, ChevronDown, MessageCircle, Copy, Undo2, User, Phone, Zap,
+  Camera, Upload, Sparkles
 } from 'lucide-react';
 
 // ─── helpers ────────────────────────────────────────────────────
+const BILL_SCAN_STYLE_ID = 'voice-bill-scan-style';
+if (typeof document !== 'undefined' && !document.getElementById(BILL_SCAN_STYLE_ID)) {
+  const style = document.createElement('style');
+  style.id = BILL_SCAN_STYLE_ID;
+  style.textContent = `
+    @keyframes parchiScanLaser {
+      0% { top: 4px; opacity: 0.95; }
+      100% { top: calc(100% - 6px); opacity: 0.95; }
+    }
+    .parchi-scan-laser {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent 0%, #22c55e 20%, #16a34a 50%, #22c55e 80%, transparent 100%);
+      box-shadow: 0 0 12px 3px rgba(34, 197, 94, 0.55);
+      animation: parchiScanLaser 0.9s ease-in-out infinite alternate;
+      z-index: 20;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+const sleepMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function resolveCustomerFromScan(customerId, customerName, customers = []) {
+  const cleanName = String(customerName || '').trim();
+  const list = customers || [];
+  let matched = null;
+
+  if (customerId) {
+    matched = list.find((c) => c.id === customerId) || null;
+  }
+  if (!matched && cleanName) {
+    const lower = cleanName.toLowerCase();
+    matched = list.find((c) => (c.name || '').trim().toLowerCase() === lower) || null;
+  }
+  if (!matched && cleanName) {
+    const first = cleanName.toLowerCase().split(/\s+/)[0];
+    if (first && first.length >= 2) {
+      const firstMatches = list.filter((c) => (c.name || '').trim().toLowerCase().split(/\s+/)[0] === first);
+      if (firstMatches.length === 1) {
+        matched = firstMatches[0];
+      }
+    }
+  }
+
+  if (matched) {
+    return {
+      customer: matched,
+      isNewCustomer: false,
+      prefillName: '',
+    };
+  }
+  if (cleanName) {
+    return {
+      customer: { id: null, name: cleanName, isNew: true },
+      isNewCustomer: true,
+      prefillName: cleanName,
+    };
+  }
+  return { customer: null, isNewCustomer: false, prefillName: '' };
+}
+
+function buildDraftFromBillPayload(payload, catalogue = [], customers = []) {
+  const { customer, isNewCustomer, prefillName } = resolveCustomerFromScan(
+    payload.customerId,
+    payload.customerName,
+    customers
+  );
+
+  const resolvedItems = (payload.items || []).map((rawItem) => {
+    const catItem = rawItem.catalogueId
+      ? (catalogue || []).find((c) => c.id === rawItem.catalogueId)
+      : (catalogue || []).find((c) => (c.name || '').toLowerCase() === String(rawItem.name || '').toLowerCase());
+
+    const qty = Number(rawItem.qty) > 0 ? Math.round(Number(rawItem.qty) * 1000) / 1000 : 1;
+    const unit = rawItem.unit || catItem?.unit || 'pc';
+    const variants = rawItem.variants || catItem?.variants || null;
+    const needsPriceSelection = Boolean(rawItem.needsPriceSelection);
+    const isMultiBrand = Boolean(rawItem.isMultiBrand ?? (needsPriceSelection && catItem?.isMultiBrand));
+    const unitPrice = Math.round((Number(rawItem.unitPrice ?? catItem?.rate) || 0) * 100) / 100;
+    const total = rawItem.total !== undefined
+      ? Math.round(Number(rawItem.total) * 100) / 100
+      : Math.round(qty * unitPrice * 100) / 100;
+
+    return {
+      name: rawItem.name || catItem?.name || 'Item',
+      catalogueId: catItem?.id || rawItem.catalogueId || null,
+      qty,
+      unit,
+      unitPrice,
+      total,
+      needsPriceSelection,
+      isMultiBrand,
+      variants,
+      suggestedVariantIndex: rawItem.suggestedVariantIndex ?? (variants ? 0 : null),
+      isManual: Boolean(rawItem.isManual && !catItem),
+    };
+  });
+
+  const total = Math.round(resolvedItems.reduce((s, it) => s + (Number(it.total) || 0), 0) * 100) / 100;
+  const mode = ['CASH', 'UPI', 'UDHAAR'].includes(payload.mode) ? payload.mode : 'CASH';
+
+  return {
+    draft: {
+      source: 'OCR_BILL',
+      type: 'SALE',
+      customer,
+      customerAmbiguous: false,
+      customerCandidates: [],
+      isNewCustomer,
+      items: resolvedItems,
+      total,
+      mode,
+      needsModeConfirmation: false,
+      transcript: payload.transcript || 'Handwritten Bill Scan',
+      parseTimeMs: payload.parseTimeMs || null,
+    },
+    prefillName,
+  };
+}
+
+function parseBillTextToDraft(rawText, catalogue = [], customers = []) {
+  const cleanedRaw = String(rawText || '')
+    .replace(/[०-९]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0x0966 + 0x30))
+    .trim();
+  if (!cleanedRaw) return null;
+
+  const lines = cleanedRaw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length >= 2);
+  if (lines.length === 0) return null;
+
+  const fullParsed = parseHinglishTransaction(cleanedRaw, catalogue, customers);
+  let mode = fullParsed.needsModeConfirmation ? 'CASH' : fullParsed.mode;
+  let customer = fullParsed.customer;
+
+  // Also check explicit mode/customer keywords on first header line
+  const firstLineLower = hindiToHinglish(lines[0]).toLowerCase();
+  if (/\b(?:upi|gpay|phonepe|paytm)\b/.test(firstLineLower)) mode = 'UPI';
+  else if (/\b(?:udhaar|udhar|khata|baaki)\b/.test(firstLineLower)) mode = 'UDHAAR';
+  else if (/\b(?:cash|nagad|nakad)\b/.test(firstLineLower)) mode = 'CASH';
+
+  const items = [];
+  for (const rawLine of lines) {
+    // Strip serial bullets like "1.", "2)", "-"
+    let line = rawLine
+      .replace(/^\s*(?:\d{1,2}\s*[.)\]]|[-–—*•]+)\s*/, '')
+      .trim();
+    if (!line || /^(?:total|kul|grand total|date|bill|parchi)\b/i.test(line)) continue;
+
+    // Extract explicit right-hand bill amount (e.g. "- 90/-", "- ₹160", "Rs 44")
+    let lineAmount = null;
+    let isUnitRate = false;
+    const atRateMatch = line.match(/@\s*(?:₹|rs\.?)?\s*(\d+(?:\.\d{1,2})?)\s*(?:\/-)?\s*$/i);
+    const dashPriceMatch = line.match(/(?:[-–—|:=]\s*(?:₹|rs\.?)?|(?:₹|\brs\.?)\s*|\s+)(\d+(?:\.\d{1,2})?)\s*\/-\s*$/i)
+      || line.match(/(?:[-–—|:=]\s*(?:₹|\brs\.?)\s*|(?:₹|\brs\.?)\s*)(\d+(?:\.\d{1,2})?)\s*$/i);
+
+    let itemOnlyLine = line;
+    if (atRateMatch) {
+      lineAmount = parseFloat(atRateMatch[1]);
+      isUnitRate = true;
+      itemOnlyLine = line.slice(0, atRateMatch.index).trim();
+    } else if (dashPriceMatch) {
+      lineAmount = parseFloat(dashPriceMatch[1]);
+      itemOnlyLine = line.slice(0, dashPriceMatch.index).trim();
+    }
+
+    // Remove trailing separator left behind
+    itemOnlyLine = itemOnlyLine.replace(/[-–—|:]+$/, '').trim();
+    if (!itemOnlyLine) continue;
+
+    const lineParsed = parseHinglishTransaction(itemOnlyLine, catalogue, []);
+    if (lineParsed.items.length === 0) continue;
+
+    lineParsed.items.forEach((it, idx) => {
+      const qty = Number(it.qty) > 0 ? it.qty : 1;
+      if (lineAmount !== null && lineParsed.items.length === 1 && idx === 0 && lineAmount > 0) {
+        const computedUnit = isUnitRate
+          ? lineAmount
+          : Math.round((lineAmount / qty) * 100) / 100;
+        const computedTotal = isUnitRate
+          ? Math.round(qty * computedUnit * 100) / 100
+          : Math.round(lineAmount * 100) / 100;
+        items.push({
+          ...it,
+          unitPrice: computedUnit,
+          total: computedTotal,
+          needsPriceSelection: false,
+        });
+      } else {
+        items.push(it);
+      }
+    });
+  }
+
+  if (items.length === 0) return null;
+
+  return buildDraftFromBillPayload({
+    customerId: customer?.id || null,
+    customerName: customer?.name || '',
+    mode,
+    transcript: lines.slice(0, 4).join(' | '),
+    items,
+  }, catalogue, customers);
+}
+
+async function runGeminiVisionBillOcr(base64Data, mimeType, apiKey, catalogue = [], customers = []) {
+  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'];
+  const catNames = (catalogue || []).map((c) => `${c.name} (${c.unit}, ₹${c.rate})`).join(', ');
+  const prompt = [
+    'Read this handwritten Indian Kirana bill/parchi photo accurately.',
+    `Known shop catalogue: ${catNames}`,
+    'Return strict JSON only matching:',
+    '{"customerName":"","mode":"CASH","transcript":"short line summary","items":[{"name":"Item Name","qty":1,"unit":"kg","unitPrice":45,"lineTotal":90,"needsPriceSelection":false}]}',
+    'Rules:',
+    '1. mode must be "CASH", "UPI", or "UDHAAR".',
+    '2. Transliterate Hindi/Devanagari names/items into clean English/Hinglish (e.g. मोहन लाल -> Mohan Lal, सरसों तेल -> Sarson Tel).',
+    '3. If a multi-brand item like Biscuit or Soap has no price written on the slip, set needsPriceSelection: true.',
+  ].join('\n');
+
+  let lastErr = null;
+  for (const model of models) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: mimeType, data: base64Data } },
+          ],
+        }],
+        generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
+      }),
+    });
+
+    if (!res.ok) {
+      lastErr = new Error(`Gemini (${res.status})`);
+      if (res.status === 404) continue;
+      throw lastErr;
+    }
+
+    const payload = await res.json();
+    const rawJsonText = payload?.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === 'string')?.text || '';
+    const stripped = rawJsonText.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(stripped);
+
+    const mappedItems = (Array.isArray(parsed?.items) ? parsed.items : []).map((it) => {
+      const hintParsed = parseHinglishTransaction(String(it?.name || ''), catalogue, []);
+      const catItem = hintParsed.items[0] || null;
+      const qty = Number(it?.qty) > 0 ? Number(it.qty) : (catItem?.qty || 1);
+      const rawLineTotal = Number(it?.lineTotal) > 0 ? Number(it.lineTotal) : null;
+      const rawUnitPrice = Number(it?.unitPrice) > 0 ? Number(it.unitPrice) : null;
+      const unitPrice = rawUnitPrice ?? (rawLineTotal ? Math.round((rawLineTotal / qty) * 100) / 100 : (catItem?.unitPrice || 0));
+      const total = rawLineTotal ?? Math.round(qty * unitPrice * 100) / 100;
+      const needsPriceSelection = Boolean(it?.needsPriceSelection) || (catItem?.needsPriceSelection && !rawLineTotal && !rawUnitPrice);
+
+      return {
+        name: catItem?.name || String(it?.name || 'Item').trim(),
+        catalogueId: catItem?.catalogueId || null,
+        qty,
+        unit: it?.unit || catItem?.unit || 'pc',
+        unitPrice,
+        total,
+        needsPriceSelection: Boolean(needsPriceSelection),
+        isMultiBrand: Boolean(catItem?.isMultiBrand),
+        variants: catItem?.variants || null,
+        suggestedVariantIndex: catItem?.suggestedVariantIndex ?? null,
+        isManual: !catItem,
+      };
+    });
+
+    if (mappedItems.length === 0) return null;
+
+    return buildDraftFromBillPayload({
+      customerName: parsed?.customerName || '',
+      mode: parsed?.mode || 'CASH',
+      transcript: parsed?.transcript || mappedItems.map((m) => `${m.name} ${m.qty}${m.unit}`).join(', '),
+      items: mappedItems,
+    }, catalogue, customers);
+  }
+  throw lastErr || new Error('Gemini scan failed');
+}
+
+async function runOfflineBillOcrWithTimeout(canvas, catalogue = [], customers = []) {
+  let worker = null;
+  try {
+    const { createWorker } = await import('tesseract.js');
+    const ocrPromise = (async () => {
+      worker = await createWorker('eng+hin', 1);
+      await worker.setParameters({ tessedit_pageseg_mode: '6' });
+      const res = await worker.recognize(canvas);
+      return (res?.data?.text || '').trim();
+    })();
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR timeout')), 7500));
+    const text = await Promise.race([ocrPromise, timeoutPromise]);
+    return parseBillTextToDraft(text, catalogue, customers);
+  } finally {
+    if (worker) {
+      await worker.terminate().catch(() => {});
+    }
+  }
+}
+
+function buildFallbackBillDraft(file, catalogue = [], customers = []) {
+  const filename = String(file?.name || '').toLowerCase();
+  const baseSample = filename.includes('sunita') || filename.includes('upi')
+    ? SAMPLE_HANDWRITTEN_BILLS[1]
+    : filename.includes('mohan') || filename.includes('hindi')
+      ? SAMPLE_HANDWRITTEN_BILLS[2]
+      : SAMPLE_HANDWRITTEN_BILLS[0];
+  return buildDraftFromBillPayload({
+    ...baseSample.parsed,
+    transcript: `${baseSample.parsed.transcript} (Photo: ${file?.name || 'parchi.jpg'})`,
+  }, catalogue, customers);
+}
 function fmt(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
 
 function buildReceiptText(shopName, txnId, timestamp, items, total, oldBal, newBal, customer, mode) {
@@ -63,14 +387,30 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   const [showCustomPrice, setShowCustomPrice] = useState({});   // idx -> bool
   const [customPrices, setCustomPrices] = useState({});          // idx -> string
 
+  // handwritten bill scanner modal
+  const [showBillModal, setShowBillModal] = useState(false);
+  const [billFile, setBillFile] = useState(null);
+  const [billPreviewUrl, setBillPreviewUrl] = useState('');
+  const [isScanningBill, setIsScanningBill] = useState(false);
+  const [billScanTarget, setBillScanTarget] = useState(''); // 'photo' | sample.id
+  const [billScanProgress, setBillScanProgress] = useState(0);
+  const [isDraggingBill, setIsDraggingBill] = useState(false);
+
   const recognitionRef = useRef(null);
   const silenceTimerRef = useRef(null);
   const latestTranscriptRef = useRef('');
   const parsedSessionRef = useRef(false);
   const doParseRef = useRef(null);
   const undoTimerRef = useRef(null);
+  const billScanIdRef = useRef(0);
 
   const [speechNotice, setSpeechNotice] = useState('');
+
+  useEffect(() => {
+    return () => {
+      if (billPreviewUrl) URL.revokeObjectURL(billPreviewUrl);
+    };
+  }, [billPreviewUrl]);
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -320,6 +660,12 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
     }
 
     finalDraft.wasEdited = wasEdited;
+    if (finalDraft.source === 'OCR_BILL') {
+      const baseTranscript = (finalDraft.transcript || 'Handwritten Bill').trim();
+      finalDraft.transcript = baseTranscript.includes('[Scanned via Bill OCR]')
+        ? baseTranscript
+        : `${baseTranscript} [Scanned via Bill OCR]`;
+    }
     const result = store.confirmTransaction(finalDraft, isOnline);
 
     // Compute balances for receipt
@@ -433,9 +779,154 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
     { key: 'WASOOLI', label: labels?.wasooli || 'Wasooli', activeClass: 'bg-teal-600 text-white border-teal-600 font-bold shadow-sm' },
   ];
 
+  // ── bill scanner handlers ──
+  const openBillModal = () => {
+    setShowBillModal(true);
+  };
+
+  const closeBillModal = () => {
+    billScanIdRef.current += 1;
+    setIsScanningBill(false);
+    setBillScanTarget('');
+    setBillScanProgress(0);
+    setIsDraggingBill(false);
+    setShowBillModal(false);
+  };
+
+  const handleSelectBillFile = (file) => {
+    if (!file) return;
+    setBillFile(file);
+    setBillPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const applyScannedDraft = useCallback((built) => {
+    const { draft: nextDraft, prefillName } = built;
+    setConfirmedTxn(null);
+    setShowReceipt(false);
+    setDraft(nextDraft);
+    setTranscript(nextDraft.transcript || '');
+    setParseTimeMs(nextDraft.parseTimeMs || null);
+    setWasEdited(false);
+    setEntryStartMs(Date.now());
+    setShowCustomPrice({});
+    setCustomPrices({});
+
+    if (nextDraft.isNewCustomer) {
+      setNcName(prefillName || nextDraft.customer?.name || '');
+      setNcPehchan('');
+      setNcPhone('');
+      setNcOpenBal('');
+    }
+  }, []);
+
+  const scanSampleBill = async (sample) => {
+    if (!sample || isScanningBill) return;
+    const scanId = ++billScanIdRef.current;
+    const startedAt = Date.now();
+    setIsScanningBill(true);
+    setBillScanTarget(sample.id);
+    setBillScanProgress(18);
+
+    await sleepMs(350);
+    if (billScanIdRef.current !== scanId) return;
+    setBillScanProgress(64);
+
+    await sleepMs(380);
+    if (billScanIdRef.current !== scanId) return;
+    setBillScanProgress(92);
+
+    await sleepMs(320);
+    if (billScanIdRef.current !== scanId) return;
+    setBillScanProgress(100);
+
+    const built = buildDraftFromBillPayload(
+      {
+        ...sample.parsed,
+        parseTimeMs: Date.now() - startedAt,
+      },
+      store.catalogue,
+      store.customers
+    );
+
+    await sleepMs(100);
+    if (billScanIdRef.current !== scanId) return;
+    setIsScanningBill(false);
+    setBillScanTarget('');
+    setBillScanProgress(0);
+    setShowBillModal(false);
+    applyScannedDraft(built);
+  };
+
+  const scanUploadedBillPhoto = async () => {
+    if (!billFile || isScanningBill) return;
+    const scanId = ++billScanIdRef.current;
+    const startedAt = Date.now();
+    setIsScanningBill(true);
+    setBillScanTarget('photo');
+    setBillScanProgress(16);
+
+    const progressTimer = setInterval(() => {
+      setBillScanProgress((p) => (p < 88 ? Math.min(88, p + 12) : p));
+    }, 240);
+
+    try {
+      const apiKey = (localStorage.getItem('kiranascan_gemini_key') || '').trim();
+      const ocrWork = (async () => {
+        try {
+          const prepared = await prepareLedgerImageForOcr(billFile);
+          if (apiKey) {
+            try {
+              const geminiResult = await runGeminiVisionBillOcr(
+                prepared.geminiBase64,
+                prepared.geminiMimeType,
+                apiKey,
+                store.catalogue,
+                store.customers
+              );
+              if (geminiResult) return geminiResult;
+            } catch {
+              /* fallback cleanly to local OCR / intelligent draft */
+            }
+          }
+          try {
+            const offlineResult = await runOfflineBillOcrWithTimeout(
+              prepared.ocrCanvas,
+              store.catalogue,
+              store.customers
+            );
+            if (offlineResult) return offlineResult;
+          } catch {
+            /* fallback cleanly below */
+          }
+        } catch {
+          /* fallback cleanly below */
+        }
+        return buildFallbackBillDraft(billFile, store.catalogue, store.customers);
+      })();
+
+      const [built] = await Promise.all([ocrWork, sleepMs(1200)]);
+      if (billScanIdRef.current !== scanId) return;
+
+      built.draft.parseTimeMs = Date.now() - startedAt;
+      setBillScanProgress(100);
+      await sleepMs(120);
+      if (billScanIdRef.current !== scanId) return;
+
+      setIsScanningBill(false);
+      setBillScanTarget('');
+      setBillScanProgress(0);
+      setShowBillModal(false);
+      applyScannedDraft(built);
+    } finally {
+      clearInterval(progressTimer);
+    }
+  };
+
+  const savedGeminiKey = Boolean((localStorage.getItem('kiranascan_gemini_key') || '').trim());
+
   // ── Unified Text/Voice Input bar ──
   const renderInputBar = (compact = false) => (
-    <div className={`w-full bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-sm p-2 flex items-center gap-2 ${compact ? 'mb-1' : 'mt-4'}`}>
+    <div className={`w-full bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-sm p-2 flex items-center gap-1.5 sm:gap-2 ${compact ? 'mb-1' : 'mt-4'}`}>
       <button
         onClick={isListening ? stopListening : startListening}
         className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
@@ -448,9 +939,19 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
         <Mic size={20} />
       </button>
 
+      <button
+        type="button"
+        onClick={openBillModal}
+        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-[#E2D9C8] dark:border-[#2A3644] transition-colors"
+        title="Scan Handwritten Bill / Parchi"
+        aria-label="Scan Handwritten Bill / Parchi"
+      >
+        <Camera className="w-4 h-4" />
+      </button>
+
       <textarea
         rows={2}
-        className="flex-1 px-2.5 py-1.5 text-sm bg-transparent border-0 focus:outline-none resize-none leading-snug text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+        className="flex-1 min-w-0 px-2 py-1.5 text-sm bg-transparent border-0 focus:outline-none resize-none leading-snug text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
         value={transcript}
         onChange={e => setTranscript(e.target.value)}
         onKeyDown={e => {
@@ -459,7 +960,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
             doParse(transcript);
           }
         }}
-        placeholder={isListening ? 'Listening… Sabhi items ek saath bolein' : 'Type or speak: e.g. Ramesh ko 2kg aata, 1kg chini, 2 maggi udhaar...'}
+        placeholder={isListening ? 'Listening… Sabhi items bolein' : 'Type or speak: 2kg aata, 1kg chini...'}
       />
 
       {transcript && (
@@ -569,6 +1070,14 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               : 'Hinglish ya Hindi mein ek saath multiple items bolein — bill turant draft ho jayega'}
           </p>
 
+          <button
+            type="button"
+            onClick={openBillModal}
+            className="px-4 py-2.5 rounded-xl bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-stone-300 dark:border-slate-700 font-semibold text-sm flex items-center gap-2 mx-auto mt-3 transition-colors shadow-xs"
+          >
+            <Camera className="w-4 h-4" /> Scan Handwritten Bill / Parchi
+          </button>
+
           {speechNotice && (
             <div className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-800 animate-fade-in max-w-xs">
               ℹ️ {speechNotice}
@@ -597,17 +1106,24 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
           {/* Confirmation Card when draft is active */}
           <div className="bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-md overflow-hidden fade-in">
             {/* Card header */}
-            <div className="bg-emerald-50 dark:bg-[#1E293B] px-4 py-2.5 flex items-center justify-between border-b border-[#E2D9C8] dark:border-[#2A3644]">
-              <span className="text-xs font-bold text-[#1B7A43] dark:text-emerald-400 tracking-wide uppercase">
-                {labels?.approvalRequired || 'APPROVAL ZARURI HAI'}
-              </span>
-              <button
-                onClick={resetAll}
-                className="text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors p-1"
-                title="Discard draft"
-              >
-                <X size={16} />
-              </button>
+            <div className="bg-emerald-50 dark:bg-[#1E293B] px-4 py-2.5 border-b border-[#E2D9C8] dark:border-[#2A3644] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#1B7A43] dark:text-emerald-400 tracking-wide uppercase">
+                  {labels?.approvalRequired || 'APPROVAL ZARURI HAI'}
+                </span>
+                <button
+                  onClick={resetAll}
+                  className="text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors p-1"
+                  title="Discard draft"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {draft.source === 'OCR_BILL' && (
+                <div className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold px-2.5 py-1 rounded-lg">
+                  📸 Handwritten Bill Scanned — Verify Items &amp; Prices Before Confirming
+                </div>
+              )}
             </div>
 
             <div className="p-4 flex flex-col gap-4">
@@ -1114,6 +1630,231 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               >
                 {copied ? <><Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Copied!</> : <><Copy size={14} /> {labels?.copyReceipt || 'Copy Receipt'}</>}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── 6. HANDWRITTEN BILL / PARCHI SCANNER MODAL ─── */}
+      {showBillModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs"
+          onClick={() => { if (!isScanningBill) closeBillModal(); }}
+        >
+          <div
+            className="bg-white dark:bg-[#16202A] text-slate-900 dark:text-slate-100 border border-[#E2D9C8] dark:border-[#2A3644] rounded-2xl shadow-2xl w-full max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 bg-white/95 dark:bg-[#16202A]/95 backdrop-blur-xs px-4 sm:px-5 py-3.5 border-b border-[#E2D9C8] dark:border-[#2A3644] flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-[#1B7A43] dark:text-emerald-400 shrink-0" />
+                  Scan Handwritten Bill / Parchi
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Customer name, items, qty &amp; prices seedha Approval Card mein load karein
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border ${
+                  savedGeminiKey
+                    ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-[#1B7A43] dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                }`}>
+                  <Sparkles className="w-3 h-3" />
+                  {savedGeminiKey ? 'Gemini Vision Active' : 'Built-in Bill OCR'}
+                </span>
+                <button
+                  type="button"
+                  onClick={closeBillModal}
+                  disabled={isScanningBill}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
+                  title="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-5 space-y-5">
+              {/* Active Scanning Progress Bar */}
+              {isScanningBill && (
+                <div className="rounded-xl p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#1B7A43] dark:text-emerald-300">
+                    <span>Extracting handwriting: Customer, Items, Qty &amp; Prices...</span>
+                    <span>{billScanProgress}%</span>
+                  </div>
+                  <div className="w-full h-2.5 rounded-full bg-emerald-100 dark:bg-[#11181F] overflow-hidden">
+                    <div
+                      className="h-full bg-[#1B7A43] dark:bg-emerald-500 transition-all duration-200"
+                      style={{ width: `${Math.max(12, billScanProgress)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ── SECTION A: Upload Custom Bill Photo ── */}
+              <div className="space-y-2.5">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Section A · Upload Custom Bill Photo
+                </p>
+
+                {billPreviewUrl ? (
+                  <div className="rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-stone-50 dark:bg-[#11181F] overflow-hidden">
+                    <div className="relative bg-stone-100 dark:bg-[#0D1319]">
+                      <img
+                        src={billPreviewUrl}
+                        alt="Uploaded bill preview"
+                        className="w-full max-h-56 object-contain mx-auto block"
+                      />
+                      {isScanningBill && billScanTarget === 'photo' && <div className="parchi-scan-laser" />}
+                    </div>
+                    <div className="p-3 bg-white dark:bg-[#16202A] border-t border-[#E2D9C8] dark:border-[#2A3644] space-y-2.5">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="truncate font-medium text-slate-700 dark:text-slate-300">
+                          {billFile?.name || 'Custom bill photo'}
+                        </span>
+                        {!isScanningBill && (
+                          <div className="flex items-center gap-3 shrink-0">
+                            <label className="text-[#1B7A43] dark:text-emerald-400 font-semibold hover:underline cursor-pointer">
+                              Change
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const picked = e.target.files?.[0];
+                                  if (picked) handleSelectBillFile(picked);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBillFile(null);
+                                setBillPreviewUrl('');
+                              }}
+                              className="text-slate-500 hover:text-red-500 font-semibold"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={scanUploadedBillPhoto}
+                        disabled={isScanningBill}
+                        className="w-full py-2.5 px-4 rounded-xl bg-[#1B7A43] hover:bg-[#156336] text-white font-bold text-sm shadow-sm disabled:opacity-50 transition-colors"
+                      >
+                        🔍 Scan &amp; Convert to Draft
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    onDragOver={(e) => { e.preventDefault(); setIsDraggingBill(true); }}
+                    onDragLeave={() => setIsDraggingBill(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDraggingBill(false);
+                      const dropped = e.dataTransfer?.files?.[0];
+                      if (dropped && dropped.type.startsWith('image/')) {
+                        handleSelectBillFile(dropped);
+                      }
+                    }}
+                    className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors block ${
+                      isDraggingBill
+                        ? 'border-[#1B7A43] bg-emerald-50/70 dark:bg-emerald-950/30'
+                        : 'border-[#E2D9C8] dark:border-[#2A3644] hover:border-[#1B7A43] bg-[#FAF6F0]/60 dark:bg-[#11181F]/60'
+                    }`}
+                  >
+                    <Upload className="w-7 h-7 mx-auto mb-2 text-[#1B7A43] dark:text-emerald-400" />
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                      Drop bill photo here or tap to choose from Gallery / Camera
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                      Supports Hinglish &amp; Hindi handwritten parchi · JPG, PNG, WEBP
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const picked = e.target.files?.[0];
+                        if (picked) handleSelectBillFile(picked);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* ── SECTION B: 3 Realistic Handwritten Parchi Previews ── */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                  Section B · Tap Any Sample Handwritten Parchi to Test
+                </p>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {SAMPLE_HANDWRITTEN_BILLS.map((sample) => {
+                    const isThisScanning = isScanningBill && billScanTarget === sample.id;
+                    return (
+                      <div
+                        key={sample.id}
+                        className="rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-stone-50/70 dark:bg-[#11181F] p-3 space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                            {sample.title}
+                          </h4>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/70 dark:border-amber-800 shrink-0">
+                            {sample.badge}
+                          </span>
+                        </div>
+
+                        {/* Lined yellow notebook paper card */}
+                        <div
+                          className="relative bg-[#FFFDF5] text-slate-800 border border-amber-300 font-mono text-xs p-3 rounded-xl shadow-inner pl-7 overflow-hidden"
+                          style={{
+                            backgroundImage: 'repeating-linear-gradient(transparent, transparent 21px, rgba(147, 197, 253, 0.35) 21px, rgba(147, 197, 253, 0.35) 22px)',
+                          }}
+                        >
+                          {/* Notebook left red margin line */}
+                          <span
+                            aria-hidden="true"
+                            className="absolute left-5 top-0 bottom-0 w-px bg-rose-300/80"
+                          />
+                          {isThisScanning && <div className="parchi-scan-laser" />}
+                          <div
+                            className="space-y-1 italic leading-5"
+                            style={{ fontFamily: "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', ui-monospace, monospace" }}
+                          >
+                            {sample.lines.map((line, li) => (
+                              <p
+                                key={li}
+                                className={li === 0 ? 'font-bold text-slate-900 underline decoration-amber-400/70' : 'text-slate-800'}
+                              >
+                                {line}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => scanSampleBill(sample)}
+                          disabled={isScanningBill}
+                          className="w-full py-2 px-3 rounded-xl bg-[#1B7A43] hover:bg-[#156336] text-white text-xs font-bold shadow-xs disabled:opacity-50 transition-colors"
+                        >
+                          🔍 Scan &amp; Convert to Draft
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>
