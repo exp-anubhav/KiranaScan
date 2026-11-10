@@ -5,7 +5,7 @@ import { prepareLedgerImageForOcr } from '../utils/bahiKhataOcr.js';
 import { DEMO_CHIPS, SAMPLE_HANDWRITTEN_BILLS } from '../data/seedData.js';
 import {
   Mic, Send, Plus, Minus, Edit3, Check, X,
-  AlertTriangle, ChevronDown, MessageCircle, Copy, Undo2, User, Phone, Zap,
+  AlertTriangle, MessageCircle, Copy, Undo2, User, Phone, Zap,
   Camera, Upload, Sparkles, ArrowRight
 } from 'lucide-react';
 
@@ -928,36 +928,16 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
   const savedGeminiKey = Boolean((localStorage.getItem('kiranascan_gemini_key') || '').trim());
 
-  // ── Unified Text/Voice Input bar ──
+  // ── Unified Gemini-Style Composer ──
   const renderInputBar = (compact = false) => (
-    <div className={`w-full bg-[#FAF6F0]/70 dark:bg-[#11181F] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-xs p-1.5 sm:p-2 flex items-center gap-1.5 sm:gap-2 ${compact ? 'bg-white dark:bg-[#16202A] mb-1' : 'mt-2.5'}`}>
-      <button
-        onClick={isListening ? stopListening : startListening}
-        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-          isListening
-            ? 'bg-red-600 text-white animate-pulse'
-            : 'bg-emerald-100 dark:bg-emerald-950/60 text-[#1B7A43] dark:text-emerald-400 hover:bg-[#1B7A43] hover:text-white'
-        }`}
-        title={isListening ? 'Stop Mic' : 'Start Mic'}
-      >
-        <Mic size={20} />
-      </button>
-
-      <button
-        type="button"
-        onClick={openBillModal}
-        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-[#E2D9C8] dark:border-[#2A3644] transition-colors"
-        title="Scan Handwritten Bill / Parchi"
-        aria-label="Scan Handwritten Bill / Parchi"
-      >
-        <Camera className="w-4 h-4" />
-      </button>
-
+    <div className={`w-full rounded-2xl sm:rounded-3xl border border-[#E2D9C8] dark:border-[#2A3644] focus-within:border-[#1B7A43] dark:focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-[#1B7A43]/15 shadow-xs transition-all ${
+      compact
+        ? 'bg-white dark:bg-[#16202A] px-3 pt-2.5 pb-2'
+        : 'bg-[#FAF6F0]/75 dark:bg-[#11181F] px-3.5 pt-3 pb-2.5'
+    }`}>
       <textarea
-        rows={!isMobileFrame || compact || transcript.length > 32 ? 2 : 1}
-        className={`flex-1 min-w-0 px-2 py-1.5 text-sm bg-transparent border-0 focus:outline-none resize-none leading-snug text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
-          !isMobileFrame || compact || transcript.length > 32 ? '' : 'whitespace-nowrap overflow-hidden'
-        }`}
+        rows={compact ? 1 : 2}
+        className="w-full min-w-0 px-0.5 py-0.5 text-sm bg-transparent border-0 focus:outline-none resize-none leading-relaxed text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
         value={transcript}
         onChange={e => setTranscript(e.target.value)}
         onKeyDown={e => {
@@ -966,70 +946,104 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
             doParse(transcript);
           }
         }}
-        placeholder={isListening ? 'Listening… Items bolein' : 'Type: 2kg aata, 1kg chini...'}
+        placeholder={isListening
+          ? (lang === 'hi' ? 'सुन रहे हैं… सभी आइटम बोलें' : 'Listening… Sabhi items ek saath bolein')
+          : (lang === 'hi' ? 'यहाँ बोलें या लिखें: रमेश 2kg आटा, 1kg चीनी...' : 'Type or speak bill: e.g. Ramesh 2kg aata, 1kg chini udhaar...')}
       />
 
-      {transcript && (
-        <button
-          onClick={() => {
-            latestTranscriptRef.current = '';
-            setTranscript('');
-          }}
-          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 shrink-0"
-        >
-          <X size={16} />
-        </button>
-      )}
+      <div className="flex items-center justify-between gap-2 pt-2 mt-1 border-t border-[#ECE4D6]/80 dark:border-[#222D38]">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={isListening ? stopListening : startListening}
+            className={`h-9 px-2.5 rounded-full flex items-center justify-center gap-1.5 text-xs font-semibold shrink-0 transition-all ${
+              isListening
+                ? 'bg-red-600 text-white animate-pulse'
+                : 'bg-emerald-50 dark:bg-emerald-950/60 text-[#1B7A43] dark:text-emerald-400 hover:bg-[#1B7A43] hover:text-white border border-emerald-200/80 dark:border-emerald-800/70'
+            }`}
+            title={isListening ? 'Stop Mic' : 'Start Mic'}
+          >
+            <Mic size={15} />
+            <span>{isListening ? (lang === 'hi' ? 'रुकें' : 'Stop') : (lang === 'hi' ? 'बोलें' : 'Mic')}</span>
+          </button>
 
-      <button
-        onClick={() => doParse(transcript)}
-        disabled={!transcript.trim()}
-        className="bg-[#1B7A43] hover:bg-[#156336] text-white p-2 rounded-xl shrink-0 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 flex items-center justify-center w-10 h-10"
-        title="Parse / Process"
-      >
-        <Send size={18} />
-      </button>
+          <button
+            type="button"
+            onClick={openBillModal}
+            className="h-9 px-2.5 rounded-full flex items-center justify-center gap-1.5 text-xs font-medium shrink-0 bg-white dark:bg-[#16202A] hover:bg-stone-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-[#E2D9C8] dark:border-[#2A3644] transition-colors"
+            title="Scan Handwritten Bill / Parchi"
+            aria-label="Scan Handwritten Bill / Parchi"
+          >
+            <Camera className="w-4 h-4 text-[#1B7A43] dark:text-emerald-400" />
+            <span className="hidden xs:inline sm:inline">{lang === 'hi' ? 'पर्ची' : 'Parchi'}</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {transcript && (
+            <button
+              type="button"
+              onClick={() => {
+                latestTranscriptRef.current = '';
+                setTranscript('');
+              }}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-stone-200/60 dark:hover:bg-slate-800 transition-colors shrink-0"
+              title="Clear text"
+            >
+              <X size={15} />
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => doParse(transcript)}
+            disabled={!transcript.trim()}
+            className="w-9 h-9 rounded-full bg-[#1B7A43] hover:bg-[#156336] text-white shrink-0 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xs active:scale-95 flex items-center justify-center"
+            title="Parse / Process"
+          >
+            <Send size={16} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 
   // ─────────────────────────────── RENDER ───────────────────────────
   return (
     <div className={`flex-1 flex flex-col ${draft && !confirmedTxn ? 'space-y-3 pb-6' : 'pb-1'}`}>
-      {/* ── STATE 1: NO DRAFT OPEN -> STRUCTURED VOICE COUNTER + EXTENDED COMMANDS DIRECTORY ── */}
+      {/* ── STATE 1: NO DRAFT OPEN -> EXTENDED GEMINI-STYLE WORKSPACE + SINGLE TEST CASES OPTION ── */}
       {(!draft || confirmedTxn) && (
-        <div className={!isMobileFrame ? 'flex-1 grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch fade-in' : 'flex-1 flex flex-col gap-2.5 fade-in'}>
-          {/* ── PANEL 1: VOICE & BILL CAPTURE DESK ── */}
-          <section className={`${!isMobileFrame ? 'md:col-span-7 flex flex-col justify-between p-5' : 'flex flex-col p-3.5'} bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-2xl shadow-xs`}>
-            {/* Top Desk Status Strip */}
-            <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#F0E9DC] dark:border-[#222D38] text-[11px]">
+        <div className={`flex-1 flex flex-col justify-between gap-3 fade-in ${!isMobileFrame ? 'max-w-3xl w-full mx-auto py-1' : ''}`}>
+          {/* ── MAIN EXTENDED GEMINI-STYLE VOICE & BILL SURFACE ── */}
+          <section className="flex-1 flex flex-col justify-between bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-3xl shadow-xs p-4 sm:p-6">
+            {/* Minimal Top Status Row */}
+            <div className="flex items-center justify-between gap-2 text-[11px]">
               <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#1B7A43] dark:text-emerald-400">
                 <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-red-500 animate-ping' : 'bg-emerald-500'}`} />
                 {isListening
                   ? (lang === 'hi' ? 'सुन रहे हैं…' : 'Listening Live')
                   : (lang === 'hi' ? 'वॉयस और बिल डेस्क' : 'Voice & Bill Desk')}
               </span>
-              <span className="font-semibold text-slate-600 dark:text-slate-300 bg-[#FAF6F0] dark:bg-[#11181F] px-2.5 py-0.5 rounded-full border border-[#E2D9C8] dark:border-[#2A3644]">
+              <span className="font-semibold text-slate-600 dark:text-slate-300 bg-[#FAF6F0] dark:bg-[#11181F] px-2.5 py-1 rounded-full border border-[#E2D9C8] dark:border-[#2A3644]">
                 {lang === 'hi' ? `आज: ${fmt(todaySalesTotal)}` : `Today: ${fmt(todaySalesTotal)}`} · {todayBillsCount > 0 ? `${todayBillsCount} New` : `${customerCount} Khata`}
               </span>
             </div>
 
-            {/* Hero Mic + Title + Parchi OCR CTA */}
-            <div className={`flex flex-col items-center justify-center text-center my-auto ${!isMobileFrame ? 'py-5' : 'py-2.5'}`}>
-              <div className={`relative flex items-center justify-center ${!isMobileFrame ? 'mb-3.5' : 'mb-2.5'}`}>
+            {/* Spacious Centered Gemini Hero Stage */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-6 sm:py-10">
+              <div className="relative flex items-center justify-center mb-5">
                 {isListening ? (
                   <>
-                    <div className={`absolute rounded-full bg-red-500/20 animate-ping ${!isMobileFrame ? 'w-32 h-32' : 'w-28 h-28'}`} />
-                    <div className={`absolute rounded-full bg-red-500/10 animate-pulse ${!isMobileFrame ? 'w-40 h-40' : 'w-34 h-34'}`} />
+                    <div className="absolute w-36 h-36 rounded-full bg-red-500/20 animate-ping" />
+                    <div className="absolute w-44 h-44 rounded-full bg-red-500/10 animate-pulse" />
                   </>
                 ) : (
-                  <div className={`absolute rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 animate-pulse ${!isMobileFrame ? 'w-28 h-28' : 'w-24 h-24'}`} />
+                  <div className="absolute w-32 h-32 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 animate-pulse" />
                 )}
 
                 <button
                   onClick={isListening ? stopListening : startListening}
-                  className={`relative rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
-                    !isMobileFrame ? 'w-24 h-24' : 'w-20 h-20'
-                  } ${
+                  className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
                     isListening
                       ? 'bg-red-600 text-white mic-pulse ring-4 ring-red-300 dark:ring-red-900'
                       : 'bg-[#1B7A43] text-white hover:bg-[#156336] hover:scale-105 active:scale-95 ring-4 ring-emerald-100 dark:ring-emerald-950/40'
@@ -1037,7 +1051,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                   aria-label={isListening ? 'Stop recording' : 'Start recording'}
                 >
                   {isListening ? (
-                    <div className="flex items-center gap-1 h-8">
+                    <div className="flex items-center gap-1 h-9">
                       {[0, 1, 2, 3, 4, 5].map(i => (
                         <span
                           key={i}
@@ -1047,42 +1061,42 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                       ))}
                     </div>
                   ) : (
-                    <Mic size={!isMobileFrame ? 38 : 34} />
+                    <Mic size={40} />
                   )}
                 </button>
               </div>
 
-              <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+              <h3 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
                 {isListening
-                  ? '🔴 Listening… Sabhi Items Ek Saath Bolein'
-                  : (lang === 'hi' ? 'बोल कर लिखें (टैप करें)' : 'Bol Kar Likhein (Tap to Speak)')}
+                  ? 'Listening… Sabhi Items Ek Saath Bolein'
+                  : (lang === 'hi' ? 'बोल कर लिखें (टैप करें)' : 'Bol Kar Likhein')}
               </h3>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs leading-snug mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xs sm:max-w-md leading-relaxed mt-1.5">
                 {isListening
-                  ? 'Bolne ke baad 2 sec rukhein ya laal Mic dabakar bill banayein'
+                  ? 'Bolne ke baad 2 sec rukhein ya Stop dabakar bill banayein'
                   : (lang === 'hi'
-                    ? 'हिंदी या हिंग्लिश में एक साथ कई आइटम बोलें — बिल तुरंत बनेगा'
-                    : 'Hinglish ya Hindi mein ek saath multiple items bolein — bill turant draft ho jayega')}
+                    ? 'हिंदी या हिंग्लिश में एक साथ कई आइटम बोलें — बिल तुरंत तैयार होगा'
+                    : 'Tap mic & speak items in Hinglish or Hindi — bill drafts instantly')}
               </p>
 
               <button
                 type="button"
                 onClick={openBillModal}
-                className="px-3.5 py-2 rounded-xl bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-stone-300 dark:border-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-2 mx-auto mt-2.5 transition-colors shadow-xs active:scale-[0.99]"
+                className="px-4 py-2 rounded-full bg-[#FAF6F0] dark:bg-[#11181F] hover:bg-stone-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 border border-[#E2D9C8] dark:border-[#2A3644] font-semibold text-xs sm:text-sm flex items-center gap-2 mx-auto mt-5 transition-colors shadow-xs active:scale-[0.99]"
               >
                 <Camera className="w-4 h-4 text-[#1B7A43] dark:text-emerald-400" />
                 <span>Scan Handwritten Bill / Parchi</span>
               </button>
 
               {speechNotice && (
-                <div className="mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800 animate-fade-in max-w-xs">
+                <div className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800 animate-fade-in max-w-xs">
                   ℹ️ {speechNotice}
                 </div>
               )}
 
               {parseTimeMs !== null && (
-                <div className="mt-2">
+                <div className="mt-3">
                   <span className="text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                     ⚡ Parsed in {parseTimeMs}ms
                   </span>
@@ -1090,102 +1104,66 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               )}
             </div>
 
-            {/* Unified Input bar docked cleanly inside desk */}
-            {renderInputBar(false)}
+            {/* Bottom Gemini-Style Composer + Subtle Syntax Whisper */}
+            <div className="w-full max-w-2xl mx-auto">
+              {renderInputBar(false)}
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center mt-2">
+                {lang === 'hi'
+                  ? 'मात्रा: आधा, ढाई, kg, g, L, pkt · भुगतान: Cash · UPI · Udhaar · Jama'
+                  : 'Qty: aadha, dhai, kg, g, L, pkt · Modes: Cash · UPI · Udhaar · Jama'}
+              </p>
+            </div>
           </section>
 
-          {/* ── PANEL 2: STRUCTURED VOICE COMMANDS DIRECTORY (EXTENDS TO BOTTOM) ── */}
-          <section className={`${!isMobileFrame ? 'md:col-span-5 p-4' : 'p-3'} flex-1 flex flex-col justify-between bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-2xl shadow-xs`}>
-            {/* Structured Section Header */}
-            <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#F0E9DC] dark:border-[#222D38]">
+          {/* ── SINGLE MINIMAL TEST CASES OPTION (OPENS FORMATTED SHEET) ── */}
+          <button
+            type="button"
+            onClick={() => setShowChips(true)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] hover:border-[#1B7A43]/70 dark:hover:border-emerald-600/70 shadow-xs transition-all group active:scale-[0.995]"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-7 h-7 rounded-lg bg-amber-100/90 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Zap className="w-4 h-4" />
+              </span>
               <div className="flex items-center gap-2 min-w-0">
-                <span className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                  <Zap className="w-4 h-4" />
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {lang === 'hi' ? 'टेस्ट केस (Test Cases)' : 'Test Cases'}
                 </span>
-                <div className="min-w-0">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-                    {lang === 'hi' ? 'नमूना वॉयस कमांड' : 'Sample Voice Commands'}
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    {lang === 'hi' ? 'बिल बनाने के लिए टैप करें' : 'Tap any format below to auto-draft bill'}
-                  </p>
-                </div>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  · {DEMO_CHIPS.length} sample voice bills
+                </span>
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-[#1B7A43] dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 shrink-0">
-                {DEMO_CHIPS.length} Presets
-              </span>
             </div>
 
-            {/* Proportional Structured Command Grid */}
-            <div className={`flex-1 grid ${!isMobileFrame ? 'grid-cols-1 gap-2 py-2.5' : 'grid-cols-2 gap-1.5 auto-rows-fr py-2'}`}>
-              {DEMO_CHIPS.map((chip, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => onChipClick(chip)}
-                  className={`group text-left rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-[#FAF6F0]/75 dark:bg-[#11181F] hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 hover:border-[#1B7A43] dark:hover:border-emerald-600 transition-all active:scale-[0.98] flex flex-col justify-between ${
-                    !isMobileFrame ? 'p-2.5' : 'p-2 min-h-[50px]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1 w-full">
-                    <span className={`${!isMobileFrame ? 'text-xs' : 'text-[11px]'} font-bold text-slate-900 dark:text-white truncate flex items-center gap-1`}>
-                      <span aria-hidden="true">{chip.emoji}</span>
-                      <span className="truncate">{chip.label}</span>
-                    </span>
-                    <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-[#1B7A43] dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </div>
-                  <p className={`text-[11px] text-slate-600 dark:text-slate-400 leading-tight mt-0.5 ${!isMobileFrame ? 'line-clamp-2' : 'line-clamp-1'}`}>
-                    “{chip.text}”
-                  </p>
-                </button>
-              ))}
-            </div>
-
-            {/* Supported Syntax Reference Footer */}
-            <div className="pt-2 border-t border-[#F0E9DC] dark:border-[#222D38] flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-              <span>
-                <strong className="text-slate-700 dark:text-slate-300">Qty:</strong> aadha, dhai, kg, g, L, pkt
-              </span>
-              <span>
-                <strong className="text-slate-700 dark:text-slate-300">Modes:</strong> Cash · UPI · Udhaar · Jama
-              </span>
-            </div>
-          </section>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B7A43] dark:text-emerald-400 shrink-0">
+              <span>{lang === 'hi' ? 'देखें' : 'View All'}</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </button>
         </div>
       )}
 
-      {/* ── STATE 2: DRAFT IS OPEN -> COLLAPSIBLE COMMANDS + COMPACT INPUT BAR + APPROVAL CARD ── */}
+      {/* ── STATE 2: DRAFT IS OPEN -> COMPACT COMPOSER + TEST CASES OPTION + APPROVAL CARD ── */}
       {draft && !confirmedTxn && (
-        <div className="space-y-3">
-          {/* Quick Voice Switcher (Collapsible when reviewing a draft) */}
-          <div>
+        <div className={`space-y-3 ${!isMobileFrame ? 'max-w-3xl w-full mx-auto' : ''}`}>
+          {/* Top bar: Compact Test Cases pill */}
+          <div className="flex items-center justify-between gap-2">
             <button
-              onClick={() => setShowChips(prev => !prev)}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-stone-200 dark:hover:bg-[#1E293B] transition-colors"
+              type="button"
+              onClick={() => setShowChips(true)}
+              className="flex items-center justify-between w-full px-3.5 py-2.5 rounded-2xl bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] hover:border-[#1B7A43] text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-xs"
             >
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-                {labels?.demoChips || 'Sample Voice Commands (Tap to Test)'}
+                <span>{lang === 'hi' ? 'टेस्ट केस (Test Cases)' : 'Test Cases'}</span>
+                <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                  · {DEMO_CHIPS.length} presets
+                </span>
               </span>
-              <ChevronDown size={14} className={`transform transition-transform duration-200 ${showChips ? 'rotate-180' : ''}`} />
+              <span className="inline-flex items-center gap-1 text-[#1B7A43] dark:text-emerald-400">
+                View All <ArrowRight size={13} />
+              </span>
             </button>
-
-            {showChips && (
-              <div className="flex gap-2 overflow-x-auto pb-2 pt-2 scrollbar-hide animate-fade-in">
-                {DEMO_CHIPS.map((chip, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      onChipClick(chip);
-                      setShowChips(false);
-                    }}
-                    className="shrink-0 px-3 py-1.5 rounded-full bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-[#1B7A43] transition-all shadow-xs whitespace-nowrap active:scale-95"
-                  >
-                    {chip.emoji} {chip.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Compact Input bar at top */}
@@ -1943,6 +1921,90 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                   })}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 7. VOICE TEST CASES SHEET / MODAL ───────────── */}
+      {showChips && (
+        <div
+          className="fixed inset-0 z-50 bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-xs"
+          onClick={() => setShowChips(false)}
+        >
+          <div
+            className="bg-white dark:bg-[#16202A] text-slate-900 dark:text-slate-100 border border-[#E2D9C8] dark:border-[#2A3644] rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Mobile drag handle */}
+            <div className="sm:hidden pt-2.5 flex justify-center shrink-0">
+              <span className="w-10 h-1 rounded-full bg-stone-300 dark:bg-slate-600" />
+            </div>
+
+            {/* Modal Header */}
+            <div className="px-4 sm:px-5 py-3.5 border-b border-[#E2D9C8] dark:border-[#2A3644] flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Zap className="w-4 h-4" />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                      {lang === 'hi' ? 'टेस्ट केस (Test Cases)' : 'Test Cases'}
+                    </h3>
+                    <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-[#1B7A43] dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 shrink-0">
+                      {DEMO_CHIPS.length} Presets
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    {lang === 'hi' ? 'बिल तुरंत ड्राफ्ट करने के लिए किसी भी केस पर टैप करें' : 'Tap any formatted scenario below to load into Draft'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowChips(false)}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-[#1E293B] transition-colors shrink-0"
+                title="Close"
+                aria-label="Close Test Cases"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Clean Formatted Test Case List */}
+            <div className="p-3.5 sm:p-4 overflow-y-auto space-y-2">
+              {DEMO_CHIPS.map((chip, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setShowChips(false);
+                    onChipClick(chip);
+                  }}
+                  className="w-full text-left p-3 sm:p-3.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-[#FAF6F0]/70 dark:bg-[#11181F] hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 hover:border-[#1B7A43] dark:hover:border-emerald-600 transition-all group active:scale-[0.99] flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tabular-nums shrink-0">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span className="text-sm leading-none shrink-0" aria-hidden="true">{chip.emoji}</span>
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                        {chip.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-5">
+                      “{chip.text}”
+                    </p>
+                  </div>
+
+                  <span className="w-7 h-7 rounded-full bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] group-hover:border-[#1B7A43] group-hover:bg-[#1B7A43] group-hover:text-white text-slate-400 flex items-center justify-center shrink-0 transition-colors">
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
