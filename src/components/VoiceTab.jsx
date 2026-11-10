@@ -3,8 +3,8 @@ import { parseHinglishTransaction } from '../utils/hinglishParser.js';
 import { hindiToHinglish } from '../utils/devanagariTransliterator.js';
 import { DEMO_CHIPS } from '../data/seedData.js';
 import {
-  Mic, MicOff, Send, Plus, Minus, Edit3, Check, X,
-  AlertTriangle, ChevronDown, MessageCircle, Copy, Undo2, Volume2, User, Phone, Zap
+  Mic, Send, Plus, Minus, Edit3, Check, X,
+  AlertTriangle, ChevronDown, MessageCircle, Copy, Undo2, User, Phone, Zap
 } from 'lucide-react';
 
 // ─── helpers ────────────────────────────────────────────────────
@@ -64,9 +64,28 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   const [customPrices, setCustomPrices] = useState({});          // idx -> string
 
   const recognitionRef = useRef(null);
+  const silenceTimerRef = useRef(null);
+  const latestTranscriptRef = useRef('');
+  const parsedSessionRef = useRef(false);
+  const doParseRef = useRef(null);
   const undoTimerRef = useRef(null);
 
   const [speechNotice, setSpeechNotice] = useState('');
+
+  const clearSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  }, []);
+
+  const finalizeSpeechParse = useCallback(() => {
+    clearSilenceTimer();
+    if (!parsedSessionRef.current && latestTranscriptRef.current.trim()) {
+      parsedSessionRef.current = true;
+      doParseRef.current?.(latestTranscriptRef.current);
+    }
+  }, [clearSilenceTimer]);
 
   // ──── speech recognition ────────
   const startListening = useCallback(() => {
@@ -77,49 +96,90 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
       return;
     }
     try {
+      clearSilenceTimer();
+      try { recognitionRef.current?.abort(); } catch { /* ignore */ }
+
+      latestTranscriptRef.current = '';
+      parsedSessionRef.current = false;
+      setTranscript('');
+
       const rec = new SR();
       rec.lang = 'hi-IN';
-      rec.continuous = false;
+      rec.continuous = true;
       rec.interimResults = true;
 
       rec.onresult = (e) => {
-        let interim = '';
-        let final = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
-          if (e.results[i].isFinal) final += t;
-          else interim += t;
-        }
-        const spoken = final || interim;
-        if (spoken) {
-          const hinglish = hindiToHinglish(spoken);
-          setTranscript(hinglish);
-          if (final) {
-            setTimeout(() => doParse(hinglish), 60);
+        let combinedRaw = '';
+        for (let i = 0; i < e.results.length; i++) {
+          const chunk = (e.results[i][0]?.transcript || '').trim();
+          if (!chunk) continue;
+          if (!combinedRaw) {
+            combinedRaw = chunk;
+          } else if (chunk.toLowerCase().startsWith(combinedRaw.toLowerCase())) {
+            combinedRaw = chunk;
+          } else {
+            combinedRaw += ' ' + chunk;
           }
         }
+
+        if (combinedRaw) {
+          const hinglish = hindiToHinglish(combinedRaw);
+          latestTranscriptRef.current = hinglish;
+          setTranscript(hinglish);
+
+          // Reset auto-stop silence timer so user can list multiple items with brief pauses
+          clearSilenceTimer();
+          silenceTimerRef.current = setTimeout(() => {
+            try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+          }, 2200);
+        }
       };
-      rec.onend = () => setIsListening(false);
-      rec.onerror = () => setIsListening(false);
+
+      rec.onend = () => {
+        clearSilenceTimer();
+        setIsListening(false);
+        finalizeSpeechParse();
+      };
+
+      rec.onerror = (e) => {
+        clearSilenceTimer();
+        setIsListening(false);
+        if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
+          setSpeechNotice('Microphone permission denied. Please allow mic access in browser settings.');
+          setTimeout(() => setSpeechNotice(''), 4000);
+        } else if (e?.error === 'no-speech' && !latestTranscriptRef.current.trim()) {
+          setSpeechNotice('Koi aawaz nahi sunai di. Kripya dubara bolein.');
+          setTimeout(() => setSpeechNotice(''), 3000);
+        } else {
+          finalizeSpeechParse();
+        }
+      };
+
       rec.start();
       recognitionRef.current = rec;
       setIsListening(true);
-    } catch (err) {
+    } catch {
       setIsListening(false);
       setSpeechNotice('Microphone permission needed or busy.');
       setTimeout(() => setSpeechNotice(''), 3000);
     }
-  }, []);
+  }, [clearSilenceTimer, finalizeSpeechParse]);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
+    clearSilenceTimer();
+    try {
+      recognitionRef.current?.stop();
+    } catch { /* ignore */ }
     setIsListening(false);
-  }, []);
+    setTimeout(() => finalizeSpeechParse(), 120);
+  }, [clearSilenceTimer, finalizeSpeechParse]);
 
   // ──── parse ─────────────────────
   const doParse = useCallback((text) => {
     if (!text.trim()) return;
     const result = parseHinglishTransaction(text.trim(), store.catalogue, store.customers);
+    setConfirmedTxn(null);
+    setShowReceipt(false);
     setDraft(result);
     setParseTimeMs(result.parseTimeMs);
     setWasEdited(false);
@@ -135,6 +195,10 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
       setNcOpenBal('');
     }
   }, [store.catalogue, store.customers]);
+
+  useEffect(() => {
+    doParseRef.current = doParse;
+  }, [doParse]);
 
   // ──── chip click ────────────────
   const onChipClick = useCallback((chip) => {
@@ -286,6 +350,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
       }
       const utt = new SpeechSynthesisUtterance(speechText);
       utt.lang = 'hi-IN';
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utt);
     }
 
@@ -314,6 +379,9 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   }, [store]);
 
   const resetAll = useCallback(() => {
+    clearSilenceTimer();
+    latestTranscriptRef.current = '';
+    parsedSessionRef.current = false;
     setDraft(null);
     setTranscript('');
     setParseTimeMs(null);
@@ -323,10 +391,14 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
     setEntryStartMs(null);
     setShowCustomPrice({});
     setCustomPrices({});
-  }, []);
+  }, [clearSilenceTimer]);
 
   // Cleanup
-  useEffect(() => () => clearInterval(undoTimerRef.current), []);
+  useEffect(() => () => {
+    clearInterval(undoTimerRef.current);
+    clearSilenceTimer();
+    try { recognitionRef.current?.abort(); } catch { /* ignore */ }
+  }, [clearSilenceTimer]);
 
   // ──── computed ──────────────────
   const customer = draft?.customer;
@@ -368,20 +440,26 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
         <Mic size={20} />
       </button>
 
-      <input
-        type="text"
-        className="flex-1 px-2.5 py-2 text-sm bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+      <textarea
+        rows={2}
+        className="flex-1 px-2.5 py-1.5 text-sm bg-transparent border-0 focus:outline-none resize-none leading-snug text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
         value={transcript}
         onChange={e => setTranscript(e.target.value)}
         onKeyDown={e => {
-          if (e.key === 'Enter') doParse(transcript);
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            doParse(transcript);
+          }
         }}
-        placeholder={isListening ? 'Listening… (speak in Hindi or Hinglish)' : 'Type or speak: e.g. Ramesh ko 2kg aata udhaar...'}
+        placeholder={isListening ? 'Listening… Sabhi items ek saath bolein' : 'Type or speak: e.g. Ramesh ko 2kg aata, 1kg chini, 2 maggi udhaar...'}
       />
 
       {transcript && (
         <button
-          onClick={() => setTranscript('')}
+          onClick={() => {
+            latestTranscriptRef.current = '';
+            setTranscript('');
+          }}
           className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 shrink-0"
         >
           <X size={16} />
@@ -474,13 +552,13 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
           </div>
 
           <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-            {isListening ? '🔴 Listening… Bolna Shuru Karein' : 'Bol Kar Likhein (Tap to Speak)'}
+            {isListening ? '🔴 Listening… Sabhi Items Ek Saath Bolein' : 'Bol Kar Likhein (Tap to Speak)'}
           </h3>
 
           <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs leading-relaxed">
             {isListening
-              ? 'Hindi ya Hinglish mein bolein, jaise: "Ramesh ko 2 kilo aata aur 1 soap udhaar"'
-              : 'Hinglish ya Hindi mein bolein — bill turant draft ho jayega'}
+              ? 'Bolne ke baad 2 sec rukhein ya laal Mic dabakar bill banayein'
+              : 'Hinglish ya Hindi mein ek saath multiple items bolein — bill turant draft ho jayega'}
           </p>
 
           {speechNotice && (

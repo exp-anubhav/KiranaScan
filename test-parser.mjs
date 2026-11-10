@@ -1,10 +1,12 @@
+import assert from 'node:assert/strict';
 import { parseHinglishTransaction } from './src/utils/hinglishParser.js';
+import { hindiToHinglish } from './src/utils/devanagariTransliterator.js';
 import { SEED_CATALOGUE, SEED_CUSTOMERS, DEMO_CHIPS } from './src/data/seedData.js';
 
 console.log('--- Testing Hinglish NLP Parser Core Scenarios ---');
 DEMO_CHIPS.forEach((chip, i) => {
   const res = parseHinglishTransaction(chip.text, SEED_CATALOGUE, SEED_CUSTOMERS);
-  console.log(`\n=== Scenario ${i+1}: ${chip.label} ===`);
+  console.log(`\n=== Scenario ${i + 1}: ${chip.label} ===`);
   console.log(`Text: "${chip.text}"`);
   console.log(`Customer: ${res.customer?.name} (New: ${res.isNewCustomer}, Ambiguous: ${res.customerAmbiguous})`);
   console.log(`Type: ${res.type}, Mode: ${res.mode}, NeedsModeConfirm: ${res.needsModeConfirmation}`);
@@ -12,3 +14,194 @@ DEMO_CHIPS.forEach((chip, i) => {
   console.log(`Total: ₹${res.total}`);
 });
 
+console.log('\n--- Running Automated Assertions (Core + Multi-Item Edge Cases) ---');
+
+const checks = [
+  {
+    name: 'Core 1: Udhaar multi-item',
+    input: DEMO_CHIPS[0].text,
+    verify: (r) => {
+      assert.equal(r.type, 'SALE');
+      assert.equal(r.mode, 'UDHAAR');
+      assert.equal(r.items.length, 2);
+      assert.equal(r.total, 130);
+    },
+  },
+  {
+    name: 'Core 2: Reversed order price override',
+    input: DEMO_CHIPS[1].text,
+    verify: (r) => {
+      assert.equal(r.type, 'SALE');
+      assert.equal(r.needsModeConfirmation, true);
+      assert.equal(r.items.length, 1);
+      assert.equal(r.items[0].unitPrice, 40);
+      assert.equal(r.total, 40);
+    },
+  },
+  {
+    name: 'Core 3: Desi fractions + UPI',
+    input: DEMO_CHIPS[2].text,
+    verify: (r) => {
+      assert.equal(r.mode, 'UPI');
+      assert.equal(r.customer?.name, 'Sunita Devi');
+      assert.equal(r.items.length, 2);
+      assert.equal(r.items[0].qty, 2.5);
+      assert.equal(r.items[1].qty, 0.5);
+      assert.equal(r.total, 190);
+    },
+  },
+  {
+    name: 'Multi-item 1: 4 comma + aur separated items',
+    input: 'Ramesh ko 2 kilo aata, 1 kilo chini, 1 soap aur 2 maggi udhaar mein diya',
+    verify: (r) => {
+      assert.equal(r.items.length, 4);
+      assert.equal(r.total, 202);
+    },
+  },
+  {
+    name: 'Multi-item 2: Space-separated without commas or aur',
+    input: 'Ramesh ko 2 doodh 1 bread 2 ande udhaar',
+    verify: (r) => {
+      assert.equal(r.type, 'SALE');
+      assert.equal(r.items.length, 3);
+      assert.deepEqual(r.items.map(i => [i.name, i.qty]), [
+        ['Amul Milk', 2],
+        ['Bread', 1],
+        ['Eggs (Ande)', 2],
+      ]);
+      assert.equal(r.total, 120);
+    },
+  },
+  {
+    name: 'Multi-item 3: Pure item names without quantities',
+    input: 'Ramesh ko aata chini chawal aur dal udhaar likho',
+    verify: (r) => {
+      assert.equal(r.items.length, 4);
+      assert.equal(r.total, 289);
+    },
+  },
+  {
+    name: 'Multi-item 4: 5 items in Devanagari Hindi (Google ASR)',
+    input: 'रमेश को 2 किलो आटा 1 किलो चीनी 1 साबुन 2 मैगी और 1 ब्रेड उधार दिया',
+    verify: (r) => {
+      assert.equal(r.items.length, 5);
+      assert.equal(r.total, 242);
+    },
+  },
+  {
+    name: 'Multi-item 5: Fractions + grams + price override + cash',
+    input: 'Sunita ko do kilo aata, aadha liter tel, 250 gram dal aur 40 ka sabun cash diya',
+    verify: (r) => {
+      assert.equal(r.mode, 'CASH');
+      assert.equal(r.items.length, 4);
+      assert.equal(r.items[0].qty, 2);
+      assert.equal(r.items[1].qty, 0.5);
+      assert.equal(r.items[2].qty, 0.25);
+      assert.equal(r.items[3].unitPrice, 40);
+      assert.equal(r.total, 245);
+    },
+  },
+  {
+    name: 'Multi-item 6: Post-modifier item order',
+    input: 'Ramesh ko aata 2 kilo chini 1 kilo tel 500 ml UPI se diya',
+    verify: (r) => {
+      assert.equal(r.mode, 'UPI');
+      assert.equal(r.items.length, 3);
+      assert.deepEqual(r.items.map(i => [i.qty, i.unit]), [
+        [2, 'kg'],
+        [1, 'kg'],
+        [0.5, 'L'],
+      ]);
+      assert.equal(r.total, 214);
+    },
+  },
+  {
+    name: 'Multi-item 7: Decimal quantities + attached units + false wasooli guard (diye)',
+    input: 'Mohan ko 2.5 kilo aata 1.5kg chini 500gm chawal 500ml tel cash diye',
+    verify: (r) => {
+      assert.equal(r.type, 'SALE');
+      assert.equal(r.mode, 'CASH');
+      assert.equal(r.items.length, 4);
+      assert.deepEqual(r.items.map(i => [i.qty, i.unit]), [
+        [2.5, 'kg'],
+        [1.5, 'kg'],
+        [0.5, 'kg'],
+        [0.5, 'L'],
+      ]);
+      assert.equal(r.total, 288.5);
+    },
+  },
+  {
+    name: 'Multi-item 8: Mixed brands including Parle G biscuit',
+    input: 'Ramesh ko 2 dettol 1 lifebuoy aur 2 parle g biscuit udhaar diya',
+    verify: (r) => {
+      assert.equal(r.items.length, 3);
+      assert.deepEqual(r.items.map(i => [i.name, i.qty, i.total]), [
+        ['Dettol Soap', 2, 90],
+        ['Lifebuoy Soap', 1, 36],
+        ['Parle-G Biscuit', 2, 20],
+      ]);
+      assert.equal(r.total, 146);
+    },
+  },
+  {
+    name: 'Multi-item 9: Devanagari decimal + attached units + रु. + currency override',
+    input: 'रमेश को 2.5 किलो आटा, 500ग्राम चीनी, रु. 40 का साबुन, 500ml तेल और 2 ब्रेड उधार दिया।',
+    verify: (r) => {
+      const h = hindiToHinglish('रमेश को 2.5 किलो आटा, 500ग्राम चीनी, रु. 40 का साबुन, 500ml तेल और 2 ब्रेड उधार दिया।');
+      assert.ok(h.includes('2.5 kilo aata'));
+      assert.equal(r.items.length, 5);
+      assert.equal(r.items[0].qty, 2.5);
+      assert.equal(r.items[1].qty, 0.5);
+      assert.equal(r.items[2].unitPrice, 40);
+      assert.equal(r.items[3].qty, 0.5);
+      assert.equal(r.items[4].qty, 2);
+      assert.equal(r.total, 334.5);
+    },
+  },
+  {
+    name: 'Multi-item 10: Dozen + mixed kg-gram + trailing verb "do"',
+    input: 'रमेश को 1 दर्जन अंडे और 2 किलो 500 ग्राम चावल दे दो',
+    verify: (r) => {
+      assert.equal(r.items.length, 2);
+      assert.equal(r.items[0].qty, 12);
+      assert.equal(r.items[1].qty, 2.5);
+      assert.equal(r.total, 234);
+    },
+  },
+  {
+    name: 'Wasooli with trailing verb "kar do" does not overwrite amount',
+    input: 'Ramesh ke 500 rupaye jama kar do',
+    verify: (r) => {
+      assert.equal(r.type, 'WASOOLI');
+      assert.equal(r.total, 500);
+    },
+  },
+  {
+    name: '10 items in a single breath without commas or aur',
+    input: 'Sunita ko aata chini dal chawal tel doodh maggi bread ande soap udhaar',
+    verify: (r) => {
+      assert.equal(r.customer?.name, 'Sunita Devi');
+      assert.equal(r.items.length, 10);
+      assert.equal(r.mode, 'UDHAAR');
+    },
+  },
+  {
+    name: '6 items with customer at the very end',
+    input: '2 kilo aata 1 kilo chini 1 kilo dal 1 liter tel 1 bread 6 ande cash diya Ramesh ko',
+    verify: (r) => {
+      assert.equal(r.customer?.name, 'Ramesh Kumar');
+      assert.equal(r.mode, 'CASH');
+      assert.equal(r.items.length, 6);
+      assert.deepEqual(r.items.map(i => i.qty), [2, 1, 1, 1, 1, 6]);
+    },
+  },
+];
+
+for (const tc of checks) {
+  const res = parseHinglishTransaction(tc.input, SEED_CATALOGUE, SEED_CUSTOMERS);
+  tc.verify(res);
+  console.log(`PASS: ${tc.name}`);
+}
+
+console.log(`\nAll ${checks.length} automated assertions passed!`);

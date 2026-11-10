@@ -28,13 +28,14 @@ const HINDI_DICTIONARY = {
   'आटा': 'aata',
   'आटे': 'aate',
   'गेहूं': 'gehu',
+  'गेंहू': 'gehu',
   'चीनी': 'chini',
   'चीनि': 'chini',
   'शक्कर': 'shakkar',
-  'दाल': 'toor dal',
-  'दाळ': 'toor dal',
-  'अरहर': 'toor dal',
-  'तूर': 'toor dal',
+  'दाल': 'dal',
+  'दाळ': 'dal',
+  'अरहर': 'arhar',
+  'तूर': 'toor',
   'चावल': 'chawal',
   'बासमती': 'basmati',
   'तेल': 'tel',
@@ -42,31 +43,32 @@ const HINDI_DICTIONARY = {
   'रिफाइंड': 'refined oil',
   'दूध': 'doodh',
   'दुध': 'doodh',
-  'अमुल': 'Amul Milk',
-  'अमूल': 'Amul Milk',
+  'अमुल': 'Amul',
+  'अमूल': 'Amul',
   'मैगी': 'maggi',
   'मैग्गी': 'maggi',
   'नूडल्स': 'noodles',
   'ब्रेड': 'bread',
-  'पाव': 'pav',
+  'डबलरोटी': 'bread',
   'अंडा': 'anda',
   'अंडे': 'ande',
-  'अण्ड': 'ande',
+  'अण्डे': 'ande',
+  'अण्डा': 'anda',
   'साबुन': 'sabun',
   'सोप': 'soap',
-  'डेटॉल': 'Dettol Soap',
-  'डेटोल': 'Dettol Soap',
-  'लाइफबॉय': 'Lifebuoy Soap',
-  'लाइफ़बॉय': 'Lifebuoy Soap',
+  'डेटॉल': 'Dettol',
+  'डेटोल': 'Dettol',
+  'लाइफबॉय': 'Lifebuoy',
+  'लाइफ़बॉय': 'Lifebuoy',
   'बिस्कुट': 'biscuit',
   'बिस्किट': 'biscuit',
-  'पारले': 'Parle-G Biscuit',
-  'पारले-जी': 'Parle-G Biscuit',
+  'पारले': 'Parle',
+  'पारले-जी': 'Parle-G',
   'गुडडे': 'GoodDay',
   'नमकीन': 'namkeen',
   'भुजिया': 'bhujia',
-  'हल्दीराम': 'Haldiram Bhujia',
-  'हल्दीराम्स': 'Haldiram Bhujia',
+  'हल्दीराम': 'Haldiram',
+  'हल्दीराम्स': 'Haldiram',
   'नमक': 'namak',
   'टाटा': 'Tata',
   'चाय': 'chai',
@@ -75,10 +77,35 @@ const HINDI_DICTIONARY = {
   'मसाला': 'masala',
   'हल्दी': 'haldi',
   'मिर्च': 'mirch',
+  'मिर्ची': 'mirch',
+  'धनिया': 'dhaniya',
+  'जीरा': 'jeera',
+  'प्याज': 'pyaaz',
+  'आलू': 'aloo',
+  'टमाटर': 'tamatar',
+  'मटर': 'matar',
+  'लहसुन': 'lehsun',
+  'अदरक': 'adrak',
+  'दही': 'dahi',
+  'पनीर': 'paneer',
+  'मक्खन': 'butter',
+  'गुड़': 'gud',
+  'मूंग': 'moong',
+  'चना': 'chana',
+  'उड़द': 'urad',
+  'मसूर': 'masoor',
+  'सोया': 'soya',
+  'बेसन': 'besan',
+  'मैदा': 'maida',
+  'सूजी': 'suji',
+  'पोहा': 'poha',
+  'कॉफी': 'coffee',
+  'पापड़': 'papad',
+  'अचार': 'achar',
 
-  // Numbers in Devanagari
+  // Numbers in Devanagari ('दो' stays 'do' so both "do kilo" = 2kg and "aata de do" = give work cleanly)
   'एक': '1',
-  'दो': '2',
+  'दो': 'do',
   'तीन': '3',
   'चार': '4',
   'पाँच': '5',
@@ -115,8 +142,10 @@ const HINDI_DICTIONARY = {
   // Fractions
   'आधा': 'aadha',
   'अधा': 'aadha',
+  'पाव': 'paav',
   'पाओ': 'paav',
   'पौने': 'paune',
+  'पौना': 'paune',
   'सवा': 'sawa',
   'डेढ़': 'dedh',
   'ढाई': 'dhai',
@@ -126,14 +155,19 @@ const HINDI_DICTIONARY = {
   'किलो': 'kilo',
   'किलोग्राम': 'kg',
   'किग्रा': 'kg',
+  'केजी': 'kg',
   'ग्राम': 'gram',
+  'मिलीलीटर': 'ml',
+  'एमएल': 'ml',
   'लीटर': 'liter',
   'लिटर': 'liter',
   'पैकेट': 'packet',
   'पॉकेट': 'packet',
+  'थैली': 'packet',
   'नग': 'pc',
   'पीस': 'pc',
   'दाना': 'pc',
+  'दर्जन': 'dozen',
 
   // Grammar & Actions
   'ने': 'ne',
@@ -146,8 +180,16 @@ const HINDI_DICTIONARY = {
   'से': 'se',
   'और': 'aur',
   'तथा': 'aur',
+  'एवं': 'aur',
   'भी': 'bhi',
   'प्लस': 'plus',
+  'दे': 'de',
+  'दें': 'de',
+  'कर': 'kar',
+  'करो': 'karo',
+  'करें': 'karen',
+  'ले': 'le',
+  'लो': 'lo',
   'दिया': 'diya',
   'दिए': 'diye',
   'दी': 'di',
@@ -167,12 +209,17 @@ const HINDI_DICTIONARY = {
   'खातेदार': 'khatedar',
   'लिखो': 'likho',
   'लिख': 'likh',
+  'लिखिए': 'likho',
+  'लिखें': 'likho',
   'डालो': 'likho',
   'चढ़ाओ': 'likho',
+  'जोड़ो': 'likho',
+  'जोड़ें': 'likho',
   'जमा': 'jama',
   'किए': 'kiye',
   'किया': 'kiya',
   'वसूली': 'wasooli',
+  'वापस': 'wapas',
   'नकद': 'cash',
   'कैश': 'cash',
   'नगद': 'cash',
@@ -180,6 +227,8 @@ const HINDI_DICTIONARY = {
   'ऑनलाइन': 'online',
   'पेटीएम': 'Paytm',
   'गूगलपे': 'GPay',
+  'गूगल': 'Google',
+  'पे': 'Pay',
   'फोनपे': 'PhonePe',
   'रुपये': 'rupaye',
   'रुपया': 'rupaye',
@@ -193,6 +242,9 @@ const HINDI_DICTIONARY = {
   'हैं': 'hai',
   'था': 'tha',
   'थी': 'thi',
+  'मुझे': 'mujhe',
+  'कल': 'kal',
+  'आज': 'aaj',
 };
 
 // Convert Devanagari digits to standard digits (०-९ -> 0-9)
@@ -275,25 +327,41 @@ export function hindiToHinglish(text) {
   const hasDevanagari = /[\u0900-\u097F]/.test(text);
   if (!hasDevanagari) return text;
 
-  // First convert Devanagari digits to 0-9
+  // 1. Convert Devanagari digits to 0-9
   let normalized = convertDevanagariDigits(text);
 
-  // Normalize punctuation spacing
+  // 2. Replace standalone "रु." / "रु" currency prefix cleanly before dot/comma splitting
+  normalized = normalized.replace(/(^|[\s,;])रु\.?(?=\s|\d|$)/g, '$1 ₹ ');
+
+  // 3. Remove thousands commas inside numbers (e.g. "1,200" -> "1200")
+  normalized = normalized.replace(/(\d),(?=\d{3}(?!\d))/g, '$1');
+
+  // 4. Protect decimal dots inside numbers (e.g. "2.5" -> "2\uE0005")
+  normalized = normalized.replace(/(\d)\.(\d)/g, '$1\uE000$2');
+
+  // 5. Separate digits attached to Devanagari or Latin units/currency (e.g. "2किलो" -> "2 किलो", "₹20" -> "₹ 20")
+  normalized = normalized
+    .replace(/(\d)([\u0900-\u097Fa-zA-Z₹])/g, '$1 $2')
+    .replace(/([\u0900-\u097Fa-zA-Z₹])(\d)/g, '$1 $2');
+
+  // 6. Normalize punctuation spacing while preserving list commas
   normalized = normalized
     .replace(/₹/g, ' ₹ ')
-    .replace(/।/g, ' ')
-    .replace(/[,\.:!?]/g, ' $& ')
+    .replace(/[।|;]+/g, ' , ')
+    .replace(/,/g, ' , ')
+    .replace(/[.!?]+/g, ' , ')
+    .replace(/[:'"()]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Split into tokens
+  // 7. Split into tokens and transliterate
   const tokens = normalized.split(' ');
   const transliteratedTokens = tokens.map((token) => {
     if (!token) return '';
-    // If token is punctuation or pure number, keep as is
-    if (/^[\d.,!?₹]+$/.test(token)) return token;
+    // Keep commas, currency symbol, punctuation, or pure numbers (including protected decimals)
+    if (token === ',' || /^[\d\uE000.,!?₹]+$/.test(token)) return token;
 
-    // Check dictionary
+    // Check dictionary (exact match, preserves hyphenated words like "पारले-जी")
     if (HINDI_DICTIONARY[token]) {
       return HINDI_DICTIONARY[token];
     }
@@ -312,5 +380,13 @@ export function hindiToHinglish(text) {
     return token;
   });
 
-  return transliteratedTokens.join(' ').replace(/\s+/g, ' ').trim();
+  return transliteratedTokens
+    .join(' ')
+    .replace(/\uE000/g, '.')
+    .replace(/₹\s+(\d)/g, '₹$1')
+    .replace(/\s*,\s*/g, ', ')
+    .replace(/(?:,\s*){2,}/g, ', ')
+    .replace(/^,\s*|\s*,\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
