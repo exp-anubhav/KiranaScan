@@ -98,24 +98,27 @@ function buildNewMerchantSeedState(merchant) {
 
 function loadShopState(shopId, merchants) {
   const merchant = merchants.find(m => m.shopId === shopId);
+  const fallback = shopId === 'shop_gupta' ? buildGuptaSeedState() : buildNewMerchantSeedState(merchant);
   try {
     const raw = localStorage.getItem(getShopStorageKey(shopId));
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed) return parsed;
+      if (parsed && typeof parsed === 'object') {
+        return {
+          ...fallback,
+          ...parsed,
+          customers: Array.isArray(parsed.customers) ? parsed.customers : fallback.customers,
+          catalogue: Array.isArray(parsed.catalogue) && parsed.catalogue.length > 0 ? parsed.catalogue : fallback.catalogue,
+          dailyHisab: { ...fallback.dailyHisab, ...(parsed.dailyHisab || {}) },
+          syncQueue: Array.isArray(parsed.syncQueue) ? parsed.syncQueue : [],
+          sessionStats: { ...fallback.sessionStats, ...(parsed.sessionStats || {}) },
+        };
+      }
     }
   } catch (e) { /* ignore */ }
 
-  // If not stored yet, create initial seed
-  if (shopId === 'shop_gupta') {
-    const seed = buildGuptaSeedState();
-    localStorage.setItem(getShopStorageKey(shopId), JSON.stringify(seed));
-    return seed;
-  }
-
-  const newSeed = buildNewMerchantSeedState(merchant);
-  localStorage.setItem(getShopStorageKey(shopId), JSON.stringify(newSeed));
-  return newSeed;
+  localStorage.setItem(getShopStorageKey(shopId), JSON.stringify(fallback));
+  return fallback;
 }
 
 export function useStore() {
