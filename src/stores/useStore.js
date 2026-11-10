@@ -558,6 +558,7 @@ export function useStore() {
           updated[idx] = {
             ...updated[idx],
             pehchan: oc.pehchan || updated[idx].pehchan,
+            phone: oc.phone || updated[idx].phone,
             balance: (Number(oc.balance) || 0) + (updated[idx].balance || 0),
           };
         } else {

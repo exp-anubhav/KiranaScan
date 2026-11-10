@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { parseHinglishTransaction } from './src/utils/hinglishParser.js';
 import { hindiToHinglish } from './src/utils/devanagariTransliterator.js';
+import { parseBahiKhataOcrText } from './src/utils/bahiKhataOcr.js';
 import { SEED_CATALOGUE, SEED_CUSTOMERS, DEMO_CHIPS } from './src/data/seedData.js';
 
 console.log('--- Testing Hinglish NLP Parser Core Scenarios ---');
@@ -28,10 +29,11 @@ const checks = [
     },
   },
   {
-    name: 'Core 2: Reversed order price override',
+    name: 'Core 2: Reversed order defaults to CASH',
     input: DEMO_CHIPS[1].text,
     verify: (r) => {
       assert.equal(r.type, 'SALE');
+      assert.equal(r.mode, 'CASH');
       assert.equal(r.needsModeConfirmation, true);
       assert.equal(r.items.length, 1);
       assert.equal(r.items[0].unitPrice, 40);
@@ -196,6 +198,27 @@ const checks = [
       assert.deepEqual(r.items.map(i => i.qty), [2, 1, 1, 1, 1, 6]);
     },
   },
+  {
+    name: 'Default payment mode is CASH when listing items without mode word or customer',
+    input: '2 kilo aata, 1 kilo chini aur 2 maggi',
+    verify: (r) => {
+      assert.equal(r.type, 'SALE');
+      assert.equal(r.mode, 'CASH');
+      assert.equal(r.needsModeConfirmation, true);
+      assert.equal(r.items.length, 3);
+      assert.equal(r.total, 162);
+    },
+  },
+  {
+    name: 'Bare "likho" without udhaar/khata stays default CASH',
+    input: 'Ramesh ko 2 kilo aata aur 1 bread likho',
+    verify: (r) => {
+      assert.equal(r.type, 'SALE');
+      assert.equal(r.mode, 'CASH');
+      assert.equal(r.items.length, 2);
+      assert.equal(r.total, 130);
+    },
+  },
 ];
 
 for (const tc of checks) {
@@ -204,4 +227,29 @@ for (const tc of checks) {
   console.log(`PASS: ${tc.name}`);
 }
 
-console.log(`\nAll ${checks.length} automated assertions passed!`);
+console.log('\n--- Running Bahi-Khata OCR Text Parser Assertions ---');
+const ocrRawSample = [
+  'Name   Pehchan   Balance',
+  '1. Ramesh Kumar - Gali 4 (10/11/2026) - Rs. 1,420/-',
+  '2) Sunita Devi | Dairy Wali Gali | 9822233344 | ₹34O',
+  '3. सुरेश - चाय वाला - पुराना बाकी ₹340',
+  'Mohan Lal',
+  '₹890',
+  '4. Anita (Makan No. 8) Rs I50',
+  '5. Deepa Joshi (9876543210) - र310',
+  '6. Vinod - घर 8 - ¥215',
+  'Total 3140',
+].join('\n');
+
+const ocrParsed = parseBahiKhataOcrText(ocrRawSample);
+assert.equal(ocrParsed.length, 7);
+assert.deepEqual(ocrParsed[0], { name: 'Ramesh Kumar', pehchan: 'Gali 4', phone: '', balance: 1420 });
+assert.deepEqual(ocrParsed[1], { name: 'Sunita Devi', pehchan: 'Dairy Wali Gali', phone: '9822233344', balance: 340 });
+assert.deepEqual(ocrParsed[2], { name: 'Suresh', pehchan: 'चाय वाला', phone: '', balance: 340 });
+assert.deepEqual(ocrParsed[3], { name: 'Mohan Lal', pehchan: '', phone: '', balance: 890 });
+assert.deepEqual(ocrParsed[4], { name: 'Anita', pehchan: 'Makan No. 8', phone: '', balance: 150 });
+assert.deepEqual(ocrParsed[5], { name: 'Deepa Joshi', pehchan: '', phone: '9876543210', balance: 310 });
+assert.deepEqual(ocrParsed[6], { name: 'Vinod', pehchan: 'घर 8', phone: '', balance: 215 });
+console.log('PASS: Bahi-Khata OCR multi-format parsing (phones, dates, address numbers, OCR digit typos, Devanagari, headers)');
+
+console.log(`\nAll ${checks.length} voice parser + OCR parser assertions passed!`);

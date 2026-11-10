@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kiranascan-v2';
+const CACHE_NAME = 'kiranascan-v3';
 const PRECACHE_ASSETS = [
   '/manifest.json',
   '/favicon.svg',

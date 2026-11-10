@@ -284,21 +284,24 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   };
 
   // ──── confirm ───────────────────
+  const requiresNamedCustomer = Boolean(draft && (draft.type === 'WASOOLI' || draft.mode === 'UDHAAR'));
+  const hasMissingPrices = Boolean(draft && draft.type === 'SALE' && draft.items.some(it => it.needsPriceSelection));
+
   const canConfirm = useMemo(() => {
     if (!draft) return false;
-    // Items resolved?
-    if (draft.type === 'SALE' && draft.items.some(it => it.needsPriceSelection)) return false;
-    // Customer must be known or new-customer name provided
+    if (draft.type === 'SALE' && (draft.items.length === 0 || hasMissingPrices)) return false;
     if (draft.isNewCustomer) {
       if (!ncName.trim()) return false;
-    } else if (!draft.customer) return false;
+    } else if (!draft.customer && requiresNamedCustomer) {
+      return false;
+    }
     return true;
-  }, [draft, ncName]);
+  }, [draft, ncName, hasMissingPrices, requiresNamedCustomer]);
 
   const needsClarification = useMemo(() => {
     if (!draft) return false;
-    return draft.items?.some(it => it.needsPriceSelection) || draft.isNewCustomer || draft.needsModeConfirmation;
-  }, [draft]);
+    return hasMissingPrices || draft.isNewCustomer || (!draft.customer && requiresNamedCustomer);
+  }, [draft, hasMissingPrices, requiresNamedCustomer]);
 
   const handleConfirm = useCallback(() => {
     if (!draft || !canConfirm) return;
@@ -354,7 +357,12 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
       window.speechSynthesis.speak(utt);
     }
 
-    setConfirmedTxn({ ...result, draft: finalDraft, oldBal, newBal });
+    setConfirmedTxn({
+      ...result,
+      draft: finalDraft,
+      oldBal: finalDraft.customer ? oldBal : undefined,
+      newBal: finalDraft.customer ? newBal : undefined,
+    });
     setShowReceipt(true);
 
     // Undo countdown
@@ -667,6 +675,44 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                 </div>
               )}
 
+              {/* ── a2. Walk-in / Unselected Customer Card ── */}
+              {!customer && !draft.isNewCustomer && (
+                <div className={`rounded-xl p-3 border space-y-2 ${
+                  requiresNamedCustomer
+                    ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500/40'
+                    : 'bg-[#F4EFE6] dark:bg-[#1E293B] border-[#E2D9C8] dark:border-[#2A3644]'
+                }`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-[#1B7A43]" />
+                      {requiresNamedCustomer ? 'Customer Required (Grahak Chunein)' : 'Walk-in Customer'}
+                    </span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-white/80 dark:bg-[#16202A] text-slate-600 dark:text-slate-300 border border-[#E2D9C8] dark:border-[#2A3644]">
+                      {requiresNamedCustomer ? 'Required for Udhaar / Wasooli' : 'Optional for Cash / UPI'}
+                    </span>
+                  </div>
+                  {(store.customers || []).length > 0 && (
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const chosen = store.customers.find(c => c.id === e.target.value);
+                        if (chosen) setSelectedCustomer(chosen);
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
+                    >
+                      <option value="">
+                        {requiresNamedCustomer ? '— Select customer from Bahi-Khata —' : '— Optional: Link a Bahi-Khata customer —'}
+                      </option>
+                      {store.customers.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}{c.pehchan ? ` (${c.pehchan})` : ''} · Baaki {fmt(c.balance || 0)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
               {/* ── b. New customer inline form ── */}
               {draft.isNewCustomer && (
                 <div className="bg-amber-500/10 dark:bg-amber-950/30 rounded-xl p-3 border border-amber-500/30">
@@ -714,10 +760,15 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
               {/* ── c. Payment mode selector in strict order ──── */}
               <div>
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Payment Mode</p>
-                <div className={`grid grid-cols-4 gap-1.5 ${
-                  draft.needsModeConfirmation ? 'p-1 rounded-xl ring-2 ring-amber-500 ring-offset-1 animate-pulse' : ''
-                }`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Payment Mode</p>
+                  {draft.needsModeConfirmation && (
+                    <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                      Default: Cash · tap to switch
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
                   {paymentModes.map(pm => {
                     const isActive = (draft.type === 'WASOOLI' && pm.key === 'WASOOLI') ||
                                      (draft.type !== 'WASOOLI' && draft.mode === pm.key && pm.key !== 'WASOOLI');
@@ -904,7 +955,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               )}
 
               {/* ── f. Balance impact preview ── */}
-              {customer && (
+              {(customer || draft.type === 'SALE') && (
                 <div
                   className={`rounded-xl px-3.5 py-2.5 text-xs font-medium balance-flash border ${
                     draft.type === 'WASOOLI'
@@ -921,11 +972,17 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                     </span>
                   ) : draft.mode === 'UDHAAR' ? (
                     <span>
-                      Customer Balance: {fmt(oldBal)} → <strong>{fmt(newBal)}</strong>{' '}
-                      <span className="text-amber-600 dark:text-amber-400 font-bold">(+{fmt(draft.total)} Udhaar)</span>
+                      {customer ? (
+                        <>
+                          Customer Balance: {fmt(oldBal)} → <strong>{fmt(newBal)}</strong>{' '}
+                          <span className="text-amber-600 dark:text-amber-400 font-bold">(+{fmt(draft.total)} Udhaar)</span>
+                        </>
+                      ) : (
+                        <span>Select a customer above to record {fmt(draft.total)} Udhaar</span>
+                      )}
                     </span>
                   ) : (
-                    <span>{fmt(draft.total)} {draft.mode} Sale — No credit impact</span>
+                    <span>{fmt(draft.total)} {draft.mode} Sale{customer ? '' : ' (Walk-in)'} — No credit impact</span>
                   )}
                 </div>
               )}
@@ -942,7 +999,9 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               >
                 {canConfirm
                   ? (labels?.confirm || '✓ Confirm Karein (Ledger Mein Save)')
-                  : (labels?.pendingConfirm || '⚠️ Select Missing Price Above to Confirm')}
+                  : !hasMissingPrices && requiresNamedCustomer && !draft.customer && !draft.isNewCustomer
+                    ? '⚠️ Select Customer Above for Udhaar / Wasooli'
+                    : (labels?.pendingConfirm || '⚠️ Select Missing Price Above to Confirm')}
               </button>
             </div>
           </div>

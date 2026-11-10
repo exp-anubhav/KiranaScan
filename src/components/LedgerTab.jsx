@@ -1,10 +1,26 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search, Plus, Camera, User, Phone, MapPin,
   ChevronRight, ChevronDown, Clock, Hash,
-  ArrowDownCircle, ArrowUpCircle, MessageCircle,
-  ExternalLink, X, Check, Edit3, Eye, Copy
+  ArrowDownCircle, MessageCircle, Trash2, RefreshCw, Sparkles, FileText,
+  ExternalLink, X, Check, Edit3, Eye, Copy, Upload, AlertCircle
 } from 'lucide-react';
+import {
+  scanBahiKhataImage,
+  parseBahiKhataOcrText,
+  createSampleNotebookImageFile,
+} from '../utils/bahiKhataOcr.js';
+
+function Backdrop({ children, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#16202A] text-slate-900 dark:text-white rounded-2xl shadow-2xl border border-[#E2D9C8] dark:border-[#2A3644]"
+           onClick={e => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 /* ───── scan-line keyframe (injected once) ───── */
 const SCAN_STYLE_ID = 'ledger-scan-style';
@@ -13,9 +29,8 @@ if (typeof document !== 'undefined' && !document.getElementById(SCAN_STYLE_ID)) 
   style.id = SCAN_STYLE_ID;
   style.textContent = `
     @keyframes scanLine {
-      0%   { top: 0; opacity: 1; }
-      90%  { top: calc(100% - 4px); opacity: 1; }
-      100% { top: calc(100% - 4px); opacity: 0; }
+      0%   { top: 4px; opacity: 0.95; }
+      100% { top: calc(100% - 6px); opacity: 0.95; }
     }
     .scan-line {
       position: absolute;
@@ -23,7 +38,7 @@ if (typeof document !== 'undefined' && !document.getElementById(SCAN_STYLE_ID)) 
       height: 3px;
       background: linear-gradient(90deg, transparent 0%, #22c55e 20%, #16a34a 50%, #22c55e 80%, transparent 100%);
       box-shadow: 0 0 12px 3px rgba(34,197,94,0.5);
-      animation: scanLine 1.2s ease-in-out forwards;
+      animation: scanLine 1.5s ease-in-out infinite alternate;
       z-index: 10;
       border-radius: 2px;
     }
@@ -54,14 +69,28 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
   const [wasooliAmt, setWasooliAmt] = useState('');
   const [wasooliMode, setWasooliMode] = useState('CASH');
 
-  // OCR state
+  // OCR state (populated strictly from user's uploaded photo)
   const [ocrStage, setOcrStage] = useState('idle'); // idle | scanning | review
   const [ocrImageFile, setOcrImageFile] = useState(null);
-  const [ocrData, setOcrData] = useState([
-    { name: 'Suresh', pehchan: 'चाय वाला', balance: 340 },
-    { name: 'Anita',  pehchan: 'मकान 8',   balance: 620 },
-    { name: 'Raju',   pehchan: 'नाई',      balance: 180 },
-  ]);
+  const [ocrPreviewUrl, setOcrPreviewUrl] = useState('');
+  const [ocrData, setOcrData] = useState([]);
+  const [ocrRawText, setOcrRawText] = useState('');
+  const [ocrProgress, setOcrProgress] = useState({ progress: 0, status: '' });
+  const [ocrEngineUsed, setOcrEngineUsed] = useState('');
+  const [ocrNotice, setOcrNotice] = useState('');
+  const [ocrLang, setOcrLang] = useState('eng+hin');
+  const [showRawText, setShowRawText] = useState(false);
+  const [showPhotoZoom, setShowPhotoZoom] = useState(false);
+  const [showGeminiConfig, setShowGeminiConfig] = useState(false);
+  const [geminiKeyDraft, setGeminiKeyDraft] = useState(() => localStorage.getItem('kiranascan_gemini_key') || '');
+  const ocrScanIdRef = useRef(0);
+
+  // Clean up Object URLs on change / unmount
+  useEffect(() => {
+    return () => {
+      if (ocrPreviewUrl) URL.revokeObjectURL(ocrPreviewUrl);
+    };
+  }, [ocrPreviewUrl]);
 
   // WhatsApp tone
   const [whatsappTone, setWhatsappTone] = useState('polite');
@@ -119,16 +148,115 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
     setWasooliAmt(''); setWasooliMode('CASH'); setShowWasooli(null);
   };
 
-  const startOCRScan = () => {
-    setOcrStage('scanning');
-    setTimeout(() => setOcrStage('review'), 1300);
+  const handleSelectOcrFile = (file) => {
+    if (!file) return;
+    setOcrPreviewUrl(URL.createObjectURL(file));
+    setOcrImageFile(file);
+    setOcrData([]);
+    setOcrRawText('');
+    setOcrNotice('');
+    setOcrEngineUsed('');
+    setShowRawText(false);
+    setShowPhotoZoom(false);
+    setOcrStage('idle');
   };
 
-  const handleOCRImport = () => {
-    store.importOCRCustomers(ocrData.filter(d => d.name.trim()));
+  const resetOcrModal = () => {
+    ocrScanIdRef.current += 1;
     setShowOCR(false);
     setOcrStage('idle');
     setOcrImageFile(null);
+    setOcrPreviewUrl('');
+    setOcrData([]);
+    setOcrRawText('');
+    setOcrNotice('');
+    setOcrProgress({ progress: 0, status: '' });
+    setShowRawText(false);
+    setShowPhotoZoom(false);
+  };
+
+  const startOCRScan = async (fileOverride = null) => {
+    const targetFile = fileOverride || ocrImageFile;
+    if (!targetFile) {
+      setOcrNotice('Kripya pehle Gallery se ya Camera se apna Bahi-Khata photo chunein.');
+      return;
+    }
+
+    const scanId = ++ocrScanIdRef.current;
+    setOcrStage('scanning');
+    setOcrNotice('');
+    setOcrProgress({ progress: 5, status: 'Preparing your uploaded image...' });
+
+    try {
+      const apiKey = (localStorage.getItem('kiranascan_gemini_key') || geminiKeyDraft || '').trim();
+      const result = await scanBahiKhataImage(targetFile, {
+        geminiApiKey: apiKey,
+        ocrLang,
+        onProgress: (info) => {
+          if (ocrScanIdRef.current === scanId) {
+            setOcrProgress({ progress: info.progress || 0, status: info.status || 'Scanning...' });
+          }
+        },
+      });
+
+      if (ocrScanIdRef.current !== scanId) return;
+
+      setOcrRawText(result.rawText || '');
+      setOcrData(result.entries || []);
+      setOcrEngineUsed(result.engine || '');
+      if (result.warning) {
+        setOcrNotice(result.warning);
+      } else if ((result.entries || []).length === 0) {
+        setOcrNotice(
+          result.rawText
+            ? 'Text padha gaya par clear Name + ₹ Balance rows nahi bane. Neeche Raw Text dekhein ya manual rows jodein.'
+            : 'Is photo se clear text nahi mil paya (blur ya handwriting ho sakti hai). Neeche manual rows jodein ya Gemini Key lagakar AI scan karein.'
+        );
+        setShowRawText(Boolean(result.rawText));
+      }
+      setOcrStage('review');
+    } catch (err) {
+      if (ocrScanIdRef.current !== scanId) return;
+      setOcrStage('idle');
+      setOcrNotice(err?.message || 'Image scan nahi ho paya. Kripya clear photo dubara chunein.');
+    }
+  };
+
+  const handleLoadSamplePhoto = async () => {
+    try {
+      const sampleFile = await createSampleNotebookImageFile();
+      handleSelectOcrFile(sampleFile);
+    } catch (err) {
+      setOcrNotice(err?.message || 'Sample photo create nahi ho paya.');
+    }
+  };
+
+  const handleReparseRawText = () => {
+    const parsed = parseBahiKhataOcrText(ocrRawText);
+    setOcrData(parsed);
+    if (parsed.length === 0) {
+      setOcrNotice('Har line mein "Naam - Pehchan - ₹Balance" likh kar dubara Re-parse karein.');
+    } else {
+      setOcrNotice('');
+    }
+  };
+
+  const handleSaveGeminiKeyInline = () => {
+    const trimmed = geminiKeyDraft.trim();
+    if (trimmed) {
+      localStorage.setItem('kiranascan_gemini_key', trimmed);
+      setOcrNotice('Gemini Vision key saved! Ab Scan dabayein.');
+    } else {
+      localStorage.removeItem('kiranascan_gemini_key');
+    }
+    setShowGeminiConfig(false);
+  };
+
+  const handleOCRImport = () => {
+    const validRows = ocrData.filter((d) => (d.name || '').trim());
+    if (validRows.length === 0) return;
+    store.importOCRCustomers(validRows);
+    resetOcrModal();
   };
 
   const getWhatsAppMsg = (cust, tone) => {
@@ -150,16 +278,6 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
   const waLink = (phone, msg) =>
     `https://wa.me/${phone ? '91' + phone.replace(/\D/g, '') : ''}?text=${encodeURIComponent(msg)}`;
-
-  /* ───── Backdrop ───── */
-  const Backdrop = ({ children, onClose }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#16202A] text-slate-900 dark:text-white rounded-2xl shadow-2xl border border-[#E2D9C8] dark:border-[#2A3644]"
-           onClick={e => e.stopPropagation()}>
-        {children}
-      </div>
-    </div>
-  );
 
   /* ═══════════════════ RENDER ═══════════════════ */
   return (
@@ -188,7 +306,10 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
             <Plus className="w-4 h-4 shrink-0" /> {L.newCustomer}
           </button>
           <button
-            onClick={() => setShowOCR(true)}
+            onClick={() => {
+              setGeminiKeyDraft(localStorage.getItem('kiranascan_gemini_key') || '');
+              setShowOCR(true);
+            }}
             className="text-xs sm:text-sm font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B] shadow-sm transition-all active:scale-[0.98]"
           >
             <Camera className="w-4 h-4 shrink-0" /> {L.scanOCR}
@@ -217,7 +338,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
               >
                 {/* Avatar */}
                 <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm bg-[#1B7A43]">
-                  {cust.name.charAt(0)}
+                  {(cust.name || 'G').charAt(0)}
                 </div>
 
                 <div className="flex-1 min-w-0 space-y-1">
@@ -437,153 +558,356 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
       {/* ── OCR Import Modal ── */}
       {showOCR && (
-        <Backdrop onClose={() => { setShowOCR(false); setOcrStage('idle'); setOcrImageFile(null); }}>
+        <Backdrop onClose={resetOcrModal}>
           <div className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                 <Camera className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 Bahi-Khata Photo OCR
               </h3>
-              <button onClick={() => { setShowOCR(false); setOcrStage('idle'); setOcrImageFile(null); }}>
+              <button onClick={resetOcrModal} title="Close OCR">
                 <X className="w-5 h-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" />
               </button>
             </div>
 
-            {/* Notebook mockup */}
-            <div className="relative rounded-lg overflow-hidden bg-[#FEF9E7] dark:bg-[#1f2620] border-2 border-[#D4C9A8] dark:border-[#384838]">
-              {/* Ruled lines + handwriting */}
-              <div className="p-4 space-y-0 relative">
-                {/* Red margin line */}
-                <div className="absolute top-0 bottom-0 left-10 border-l-2 border-[#E8B4B4] dark:border-rose-900/60" />
-
-                {[
-                  '1. सुरेश (Suresh) - चाय वाला - पुराना बाकी ₹340',
-                  '2. अनीता (Anita) - मकान 8 - बाकी ₹620',
-                  '3. राजू (Raju) - नाई - बाकी ₹180',
-                ].map((line, i) => (
-                  <div key={i} className="pl-8 py-2 border-b border-[#C9D6E3] dark:border-slate-700/60 text-[#1a3760] dark:text-emerald-200 font-serif"
-                       style={{
-                         fontFamily: "'Caveat', 'Segoe Script', 'Comic Sans MS', cursive",
-                         fontSize: '15px',
-                         transform: `rotate(${i % 2 === 0 ? '-0.4' : '0.3'}deg)`,
-                         fontStyle: 'italic',
-                       }}>
-                    {line}
-                  </div>
-                ))}
-
-                {/* Scan line animation */}
+            {/* Uploaded Image Preview OR Empty Upload Dropzone (No hardcoded fake notebook!) */}
+            {ocrPreviewUrl && ocrStage !== 'review' && (
+              <div className="relative rounded-xl overflow-hidden border-2 border-[#E2D9C8] dark:border-[#2A3644] bg-stone-100 dark:bg-[#11181F]">
+                <img
+                  src={ocrPreviewUrl}
+                  alt="Uploaded Bahi-Khata page"
+                  className="w-full max-h-64 object-contain mx-auto block"
+                />
                 {ocrStage === 'scanning' && <div className="scan-line" />}
+                {ocrStage === 'idle' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOcrImageFile(null);
+                      setOcrPreviewUrl('');
+                      setOcrNotice('');
+                    }}
+                    className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/85 text-white text-[11px] font-semibold flex items-center gap-1 shadow"
+                  >
+                    <X className="w-3.5 h-3.5" /> Remove
+                  </button>
+                )}
               </div>
+            )}
 
-              {/* Spiral holes decoration */}
-              <div className="absolute top-0 left-1 bottom-0 flex flex-col justify-around py-3">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="w-3 h-3 rounded-full border-2 border-[#B0A080] dark:border-slate-600 bg-[#F5EDD6] dark:bg-[#16202A]" />
-                ))}
-              </div>
-            </div>
-
-            {/* Upload area */}
+            {/* Idle Stage */}
             {ocrStage === 'idle' && (
-              <>
-                <div className="border-2 border-dashed border-[#E2D9C8] dark:border-[#2A3644] hover:border-emerald-500 rounded-xl p-4 text-center cursor-pointer transition-colors">
-                  <label className="cursor-pointer block">
-                    <Camera className="w-8 h-8 mx-auto mb-2 text-slate-500 dark:text-slate-400" />
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Upload Your Image</p>
-                    <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">Photo of your handwritten bahi-khata page</p>
-                    <input type="file" accept="image/*" className="hidden"
-                           onChange={e => {
-                             if (e.target.files?.[0]) setOcrImageFile(e.target.files[0]);
-                           }} />
-                  </label>
+              <div className="space-y-3">
+                <label className="border-2 border-dashed border-[#E2D9C8] dark:border-[#2A3644] hover:border-[#1B7A43] rounded-xl p-5 text-center cursor-pointer transition-colors block bg-[#FAF6F0]/60 dark:bg-[#11181F]/60">
+                  <Upload className="w-7 h-7 mx-auto mb-2 text-[#1B7A43] dark:text-emerald-400" />
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {ocrImageFile ? 'Choose a Different Photo from Gallery' : 'Upload Photo from Gallery or Camera'}
+                  </p>
+                  <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">
+                    JPG, PNG, WEBP · Clear photo of your Bahi-Khata / register page
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const picked = e.target.files?.[0];
+                      if (picked) handleSelectOcrFile(picked);
+                      e.target.value = '';
+                    }}
+                  />
                   {ocrImageFile && (
-                    <div className="mt-3 flex items-center justify-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      <Check className="w-4 h-4" /> {ocrImageFile.name}
+                    <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-xs font-semibold text-emerald-700 dark:text-emerald-300 max-w-full">
+                      <Check className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{ocrImageFile.name}</span>
                     </div>
                   )}
+                </label>
+
+                {/* Language & AI Engine Bar */}
+                <div className="flex items-center justify-between gap-2 flex-wrap text-xs px-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-600 dark:text-slate-400 font-medium">Script:</span>
+                    {[
+                      { id: 'eng+hin', label: 'Hindi + Eng' },
+                      { id: 'eng', label: 'Fast Eng' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setOcrLang(opt.id)}
+                        className={`px-2 py-0.5 rounded-md font-semibold border transition-colors ${
+                          ocrLang === opt.id
+                            ? 'bg-[#1B7A43] text-white border-[#1B7A43]'
+                            : 'bg-stone-100 dark:bg-[#11181F] text-slate-600 dark:text-slate-300 border-[#E2D9C8] dark:border-[#2A3644]'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowGeminiConfig((v) => !v)}
+                    className="text-[11px] font-semibold text-[#1B7A43] dark:text-emerald-400 hover:underline flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {geminiKeyDraft.trim() ? 'Gemini AI Active ✓' : '+ AI Handwriting Boost'}
+                  </button>
                 </div>
 
-                <button onClick={startOCRScan}
-                        className="w-full py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] transition-colors shadow-sm">
-                  <Eye className="w-4 h-4" /> Run OCR & Extract Balances
-                </button>
-              </>
-            )}
+                {showGeminiConfig && (
+                  <div className="p-3 rounded-xl bg-stone-50 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] space-y-2">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                      Optional: Built-in OCR works without any key. Add a Gemini API key if your page has messy cursive handwriting.
+                    </p>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="password"
+                        value={geminiKeyDraft}
+                        onChange={(e) => setGeminiKeyDraft(e.target.value)}
+                        placeholder="Paste Gemini API Key (optional)"
+                        className="flex-1 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveGeminiKeyInline}
+                        className="px-3 py-1.5 rounded-lg bg-[#1B7A43] text-white text-xs font-semibold"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-            {/* Scanning state */}
-            {ocrStage === 'scanning' && (
-              <div className="text-center py-4 space-y-2">
-                <div className="w-8 h-8 mx-auto border-3 rounded-full animate-spin border-emerald-100 dark:border-emerald-950/60 border-t-emerald-600" />
-                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Scanning & extracting text...</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">AI is reading your bahi-khata page</p>
+                {ocrNotice && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{ocrNotice}</span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => startOCRScan()}
+                  disabled={!ocrImageFile}
+                  className="w-full py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                >
+                  <Eye className="w-4 h-4" /> Scan Uploaded Photo & Extract Balances
+                </button>
+
+                {!ocrImageFile && (
+                  <button
+                    type="button"
+                    onClick={handleLoadSamplePhoto}
+                    className="w-full py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1B7A43] dark:hover:text-emerald-400 transition-colors"
+                  >
+                    No photo right now? Generate a Sample Notebook Image to test OCR →
+                  </button>
+                )}
               </div>
             )}
 
-            {/* Review stage */}
+            {/* Scanning Stage */}
+            {ocrStage === 'scanning' && (
+              <div className="text-center py-3 space-y-2.5">
+                <div className="w-full h-2 rounded-full bg-stone-200 dark:bg-[#11181F] overflow-hidden">
+                  <div
+                    className="h-full bg-[#1B7A43] transition-all duration-200"
+                    style={{ width: `${Math.max(8, ocrProgress.progress)}%` }}
+                  />
+                </div>
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                  {ocrProgress.status || 'Reading your Bahi-Khata image...'}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  First scan may take a few seconds to load OCR language data
+                </p>
+              </div>
+            )}
+
+            {/* Review Stage */}
             {ocrStage === 'review' && (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60">
-                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                    3 entries extracted successfully!
-                  </span>
+                <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 truncate">
+                      {ocrData.length} {ocrData.length === 1 ? 'entry' : 'entries'} extracted
+                      {ocrEngineUsed === 'gemini' ? ' · Gemini AI' : ' · Browser OCR'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {ocrPreviewUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPhotoZoom((v) => !v)}
+                        className="text-[11px] font-semibold text-[#1B7A43] dark:text-emerald-400 hover:underline"
+                      >
+                        {showPhotoZoom ? 'Hide Photo' : 'View Photo'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowRawText((v) => !v)}
+                      className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:underline flex items-center gap-0.5"
+                    >
+                      <FileText className="w-3 h-3" /> Raw Text
+                    </button>
+                  </div>
                 </div>
 
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  <Edit3 className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />
-                  Review & Edit Before Import
-                </p>
+                {showPhotoZoom && ocrPreviewUrl && (
+                  <div className="rounded-xl overflow-hidden border border-[#E2D9C8] dark:border-[#2A3644] bg-stone-100 dark:bg-[#11181F]">
+                    <img
+                      src={ocrPreviewUrl}
+                      alt="Uploaded reference"
+                      className="w-full max-h-56 object-contain mx-auto block"
+                    />
+                  </div>
+                )}
 
-                <div className="rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] overflow-hidden">
+                {ocrNotice && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{ocrNotice}</span>
+                  </div>
+                )}
+
+                {showRawText && (
+                  <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                        Extracted Raw Text (edit any typo & click Re-parse):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleReparseRawText}
+                        className="px-2 py-0.5 rounded bg-[#1B7A43] text-white text-[11px] font-semibold flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Re-parse
+                      </button>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={ocrRawText}
+                      onChange={(e) => setOcrRawText(e.target.value)}
+                      placeholder="1. Ramesh - Gali 4 - 450"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    <Edit3 className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />
+                    Review & Edit Before Import
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setOcrData([...ocrData, { name: '', pehchan: '', phone: '', balance: 0 }])}
+                    className="text-xs font-semibold text-[#1B7A43] dark:text-emerald-400 hover:underline flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Row
+                  </button>
+                </div>
+
+                <div className="rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-slate-50 dark:bg-[#11181F]">
-                        <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Name</th>
-                        <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Pehchan</th>
-                        <th className="text-right px-3 py-2 font-semibold text-slate-600 dark:text-slate-400">Balance</th>
+                        <th className="text-left px-2.5 py-2 font-semibold text-slate-600 dark:text-slate-400">Name *</th>
+                        <th className="text-left px-2.5 py-2 font-semibold text-slate-600 dark:text-slate-400">Pehchan</th>
+                        <th className="text-right px-2.5 py-2 font-semibold text-slate-600 dark:text-slate-400 w-24">Balance ₹</th>
+                        <th className="w-8" />
                       </tr>
                     </thead>
                     <tbody>
-                      {ocrData.map((row, idx) => (
-                        <tr key={idx} className="border-t border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A]">
-                          <td className="px-2 py-1.5">
-                            <input value={row.name}
-                                   onChange={e => {
-                                     const copy = [...ocrData];
-                                     copy[idx] = { ...copy[idx], name: e.target.value };
-                                     setOcrData(copy);
-                                   }}
-                                   className="w-full px-2 py-1 rounded border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input value={row.pehchan}
-                                   onChange={e => {
-                                     const copy = [...ocrData];
-                                     copy[idx] = { ...copy[idx], pehchan: e.target.value };
-                                     setOcrData(copy);
-                                   }}
-                                   className="w-full px-2 py-1 rounded border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input type="number" value={row.balance}
-                                   onChange={e => {
-                                     const copy = [...ocrData];
-                                     copy[idx] = { ...copy[idx], balance: Number(e.target.value) || 0 };
-                                     setOcrData(copy);
-                                   }}
-                                   className="w-full px-2 py-1 rounded border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs text-right focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                      {ocrData.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-3 py-5 text-center text-xs text-slate-500 dark:text-slate-400">
+                            No rows parsed automatically. Tap <strong>+ Add Row</strong> above or edit <strong>Raw Text</strong>.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        ocrData.map((row, idx) => (
+                          <tr key={idx} className="border-t border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A]">
+                            <td className="px-1.5 py-1.5">
+                              <input
+                                value={row.name}
+                                placeholder="Customer name"
+                                onChange={(e) => {
+                                  const copy = [...ocrData];
+                                  copy[idx] = { ...copy[idx], name: e.target.value };
+                                  setOcrData(copy);
+                                }}
+                                className="w-full px-2 py-1 rounded border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </td>
+                            <td className="px-1.5 py-1.5">
+                              <input
+                                value={row.pehchan || ''}
+                                placeholder="Tag / landmark"
+                                onChange={(e) => {
+                                  const copy = [...ocrData];
+                                  copy[idx] = { ...copy[idx], pehchan: e.target.value };
+                                  setOcrData(copy);
+                                }}
+                                className="w-full px-2 py-1 rounded border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                              {row.phone && (
+                                <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                                  <Phone className="w-2.5 h-2.5" /> {row.phone}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-1.5 py-1.5">
+                              <input
+                                type="number"
+                                value={row.balance}
+                                onChange={(e) => {
+                                  const copy = [...ocrData];
+                                  copy[idx] = { ...copy[idx], balance: Number(e.target.value) || 0 };
+                                  setOcrData(copy);
+                                }}
+                                className="w-full px-2 py-1 rounded border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs text-right focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </td>
+                            <td className="px-1 py-1.5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setOcrData(ocrData.filter((_, i) => i !== idx))}
+                                className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                title="Remove Row"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
 
-                <button onClick={handleOCRImport}
-                        className="w-full py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] transition-colors shadow-sm">
-                  <Check className="w-4 h-4" /> Approve & Import to Ledger
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOcrStage('idle')}
+                    className="px-3.5 py-2.5 rounded-xl text-xs font-bold border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-700 dark:text-slate-200 hover:bg-stone-50 dark:hover:bg-[#1E293B]"
+                  >
+                    Scan Another
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOCRImport}
+                    disabled={!ocrData.some((d) => (d.name || '').trim())}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  >
+                    <Check className="w-4 h-4" /> Approve & Import to Ledger
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -608,7 +932,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
               <div className="flex items-center gap-3 p-3 rounded-lg bg-stone-100 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644]">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 bg-[#1B7A43]">
-                  {cust.name.charAt(0)}
+                  {(cust.name || 'G').charAt(0)}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">{cust.name}</p>
@@ -686,7 +1010,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
             {/* Customer info */}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-stone-100 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644]">
               <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 bg-[#1B7A43]">
-                {showWhatsApp.name.charAt(0)}
+                {(showWhatsApp.name || 'G').charAt(0)}
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">{showWhatsApp.name}</p>

@@ -47,7 +47,7 @@ const SINGLE_CHAR_UNITS = new Set(['g', 'l']);
 const CURRENCY_WORDS = new Set(['₹', 'rs', 'rupaye', 'rupaya', 'rupaiye', 'rupye', 'rupees', 'rupee']);
 const PRICE_MARKERS = ['wala', 'wali', 'wale', 'ka', 'ke', 'ki', 'rupaye', 'rupaya', 'rs', '₹', 'rupaiye', 'rupye', 'rupees', 'rupee'];
 
-const UDHAAR_WORDS = ['udhaar', 'udhar', 'udhari', 'khate', 'khata', 'baaki', 'baki', 'credit', 'likho', 'likh'];
+const UDHAAR_WORDS = ['udhaar', 'udhar', 'udhari', 'khate', 'khata', 'baaki', 'baki', 'credit'];
 const CASH_WORDS = ['cash', 'nagad', 'naqad', 'nakad'];
 const UPI_WORDS = ['upi', 'online', 'gpay', 'phonepe', 'paytm', 'bhim', 'google pay'];
 
@@ -151,6 +151,7 @@ function isReservedWord(word, catalogue = []) {
     ...CUSTOMER_MARKERS_KNOWN, ...UNKNOWN_ITEM_STOPWORDS,
     'h', 'hai', 'the', 'tha', 'thi', 'hain', 'mein', 'me', 'se',
     'diya', 'diye', 'di', 'de', 'dijiye', 'den', 'liya', 'liye', 'le', 'lo',
+    'likho', 'likh',
     'kharida', 'kharidi', 'kharide', 'kar', 'karo', 'karen', 'kiya', 'kiye',
     'google', 'pay', 'for', 'to', 'and', 'plus', 'or',
   ]);
@@ -363,14 +364,14 @@ function detectPaymentMode(tokens, { allowWasooli = false } = {}) {
   for (const w of UDHAAR_WORDS) {
     if (tokenSet.has(w)) return { mode: 'UDHAAR', needsModeConfirmation: false };
   }
-  return { mode: 'UDHAAR', needsModeConfirmation: true };
+  return { mode: 'CASH', needsModeConfirmation: true };
 }
 
 function removePaymentTokens(tokens) {
   const paymentWords = new Set([
     ...UDHAAR_WORDS, ...CASH_WORDS, ...UPI_WORDS.filter(u => !u.includes(' ')),
     ...STRONG_WASOOLI_WORDS, ...SOFT_WASOOLI_WORDS, 'clear', 'chukta', 'hisab',
-    'diya', 'di', 'de', 'dijiye', 'den', 'liya', 'liye', 'le', 'lo',
+    'likho', 'likh', 'diya', 'di', 'de', 'dijiye', 'den', 'liya', 'liye', 'le', 'lo',
     'kharida', 'kharidi', 'kharide', 'kar', 'karo', 'karen', 'kiya', 'kiye',
     'h', 'hai', 'hain', 'tha', 'thi', 'the', 'mein', 'me', 'se',
     'mujhe', 'please', 'plz', 'kal', 'aaj', 'abhi', 'par', 'pe',
