@@ -352,7 +352,7 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════
   const renderTabContent = () => {
     switch (activeTab) {
-      case 0: return <VoiceTab store={store} isOnline={isOnline} soundboxEnabled={soundboxEnabled} lang={lang} labels={labels} />;
+      case 0: return <VoiceTab store={store} isOnline={isOnline} soundboxEnabled={soundboxEnabled} lang={lang} labels={labels} isMobileFrame={isMobileFrame} />;
       case 1: return <LedgerTab store={store} isOnline={isOnline} lang={lang} labels={labels} />;
       case 2: return <DailyHisabTab store={store} lang={lang} labels={labels} />;
       case 3: return <CatalogueTab store={store} isOnline={isOnline} lang={lang} labels={labels} />;
@@ -531,7 +531,7 @@ export default function App() {
       </header>
 
       {/* Tab Content */}
-      <main className={`flex-1 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-3.5 pb-24' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
+      <main className={`flex-1 flex flex-col ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-3.5 pb-20' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
         {renderTabContent()}
       </main>
 

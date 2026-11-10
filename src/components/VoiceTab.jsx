@@ -6,7 +6,7 @@ import { DEMO_CHIPS, SAMPLE_HANDWRITTEN_BILLS } from '../data/seedData.js';
 import {
   Mic, Send, Plus, Minus, Edit3, Check, X,
   AlertTriangle, ChevronDown, MessageCircle, Copy, Undo2, User, Phone, Zap,
-  Camera, Upload, Sparkles
+  Camera, Upload, Sparkles, ArrowRight
 } from 'lucide-react';
 
 // ─── helpers ────────────────────────────────────────────────────
@@ -361,7 +361,7 @@ function buildReceiptText(shopName, txnId, timestamp, items, total, oldBal, newB
 }
 
 // ─── COMPONENT ──────────────────────────────────────────────────
-export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, labels }) {
+export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, labels, isMobileFrame = true }) {
   // ──── state ─────────────────────
   const [transcript, setTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -770,6 +770,10 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   }, [draft, oldBal]);
 
   const shopName = store?.shopName || labels?.appName || 'Gupta Kirana & General Store';
+  const hisabSnapshot = store?.dailyHisab || {};
+  const todaySalesTotal = (Number(hisabSnapshot.cashSales) || 0) + (Number(hisabSnapshot.upiSales) || 0) + (Number(hisabSnapshot.creditIssued) || 0);
+  const todayBillsCount = store?.todayTransactions?.length || 0;
+  const customerCount = store?.customers?.length || 0;
 
   // ── payment pills config in strict order: Cash, UPI, Udhaar, Wasooli ──
   const paymentModes = [
@@ -926,7 +930,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
   // ── Unified Text/Voice Input bar ──
   const renderInputBar = (compact = false) => (
-    <div className={`w-full bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-sm p-2 flex items-center gap-1.5 sm:gap-2 ${compact ? 'mb-1' : 'mt-4'}`}>
+    <div className={`w-full bg-[#FAF6F0]/70 dark:bg-[#11181F] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] shadow-xs p-1.5 sm:p-2 flex items-center gap-1.5 sm:gap-2 ${compact ? 'bg-white dark:bg-[#16202A] mb-1' : 'mt-2.5'}`}>
       <button
         onClick={isListening ? stopListening : startListening}
         className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
@@ -950,8 +954,10 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
       </button>
 
       <textarea
-        rows={2}
-        className="flex-1 min-w-0 px-2 py-1.5 text-sm bg-transparent border-0 focus:outline-none resize-none leading-snug text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+        rows={!isMobileFrame || compact || transcript.length > 32 ? 2 : 1}
+        className={`flex-1 min-w-0 px-2 py-1.5 text-sm bg-transparent border-0 focus:outline-none resize-none leading-snug text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
+          !isMobileFrame || compact || transcript.length > 32 ? '' : 'whitespace-nowrap overflow-hidden'
+        }`}
         value={transcript}
         onChange={e => setTranscript(e.target.value)}
         onKeyDown={e => {
@@ -960,7 +966,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
             doParse(transcript);
           }
         }}
-        placeholder={isListening ? 'Listening… Sabhi items bolein' : 'Type or speak: 2kg aata, 1kg chini...'}
+        placeholder={isListening ? 'Listening… Items bolein' : 'Type: 2kg aata, 1kg chini...'}
       />
 
       {transcript && (
@@ -988,118 +994,200 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
   // ─────────────────────────────── RENDER ───────────────────────────
   return (
-    <div className="space-y-3 pb-6">
-      {/* ── TOP SECTION: SAMPLE VOICE CHIPS (COLLAPSIBLE ACCORDION) ── */}
-      <div>
-        <button
-          onClick={() => setShowChips(prev => !prev)}
-          className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-stone-200 dark:hover:bg-[#1E293B] transition-colors"
-        >
-          <span className="flex items-center gap-1.5">
-            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-            {labels?.demoChips || 'Sample Voice Commands (Tap to Test)'}
-          </span>
-          <ChevronDown size={14} className={`transform transition-transform duration-200 ${showChips ? 'rotate-180' : ''}`} />
-        </button>
-
-        {showChips && (
-          <div className="flex gap-2 overflow-x-auto pb-2 pt-2 scrollbar-hide animate-fade-in">
-            {DEMO_CHIPS.map((chip, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  onChipClick(chip);
-                  setShowChips(false);
-                }}
-                className="shrink-0 px-3 py-1.5 rounded-full bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-[#1B7A43] transition-all shadow-xs whitespace-nowrap active:scale-95"
-              >
-                {chip.emoji} {chip.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── STATE 1: NO DRAFT OPEN -> HERO CENTER MIC + INPUT BAR ── */}
+    <div className={`flex-1 flex flex-col ${draft && !confirmedTxn ? 'space-y-3 pb-6' : 'pb-1'}`}>
+      {/* ── STATE 1: NO DRAFT OPEN -> STRUCTURED VOICE COUNTER + EXTENDED COMMANDS DIRECTORY ── */}
       {(!draft || confirmedTxn) && (
-        <div className="flex flex-col items-center justify-center py-6 px-4 text-center bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-2xl shadow-xs fade-in">
-          {/* Ripple rings around mic */}
-          <div className="relative flex items-center justify-center mb-5">
-            {isListening && (
-              <>
-                <div className="absolute w-36 h-36 rounded-full bg-red-500/20 animate-ping" />
-                <div className="absolute w-44 h-44 rounded-full bg-red-500/10 animate-pulse" />
-              </>
-            )}
-            {!isListening && (
-              <div className="absolute w-32 h-32 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 animate-pulse" />
-            )}
-
-            <button
-              onClick={isListening ? stopListening : startListening}
-              className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
-                isListening
-                  ? 'bg-red-600 text-white mic-pulse ring-4 ring-red-300 dark:ring-red-900'
-                  : 'bg-[#1B7A43] text-white hover:bg-[#156336] hover:scale-105 active:scale-95 ring-4 ring-emerald-100 dark:ring-emerald-950/40'
-              }`}
-              aria-label={isListening ? 'Stop recording' : 'Start recording'}
-            >
-              {isListening ? (
-                <div className="flex items-center gap-1 h-10">
-                  {[0, 1, 2, 3, 4, 5].map(i => (
-                    <span
-                      key={i}
-                      className="wave-bar w-1.5 rounded-full bg-white inline-block"
-                      style={{ animationDelay: `${i * 0.12}s` }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Mic size={44} />
-              )}
-            </button>
-          </div>
-
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-            {isListening ? '🔴 Listening… Sabhi Items Ek Saath Bolein' : 'Bol Kar Likhein (Tap to Speak)'}
-          </h3>
-
-          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs leading-relaxed">
-            {isListening
-              ? 'Bolne ke baad 2 sec rukhein ya laal Mic dabakar bill banayein'
-              : 'Hinglish ya Hindi mein ek saath multiple items bolein — bill turant draft ho jayega'}
-          </p>
-
-          <button
-            type="button"
-            onClick={openBillModal}
-            className="px-4 py-2.5 rounded-xl bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-stone-300 dark:border-slate-700 font-semibold text-sm flex items-center gap-2 mx-auto mt-3 transition-colors shadow-xs"
-          >
-            <Camera className="w-4 h-4" /> Scan Handwritten Bill / Parchi
-          </button>
-
-          {speechNotice && (
-            <div className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-800 animate-fade-in max-w-xs">
-              ℹ️ {speechNotice}
-            </div>
-          )}
-
-          {parseTimeMs !== null && (
-            <div className="mt-3">
-              <span className="text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-                ⚡ Parsed in {parseTimeMs}ms
+        <div className={!isMobileFrame ? 'flex-1 grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch fade-in' : 'flex-1 flex flex-col gap-2.5 fade-in'}>
+          {/* ── PANEL 1: VOICE & BILL CAPTURE DESK ── */}
+          <section className={`${!isMobileFrame ? 'md:col-span-7 flex flex-col justify-between p-5' : 'flex flex-col p-3.5'} bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-2xl shadow-xs`}>
+            {/* Top Desk Status Strip */}
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#F0E9DC] dark:border-[#222D38] text-[11px]">
+              <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#1B7A43] dark:text-emerald-400">
+                <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-red-500 animate-ping' : 'bg-emerald-500'}`} />
+                {isListening
+                  ? (lang === 'hi' ? 'सुन रहे हैं…' : 'Listening Live')
+                  : (lang === 'hi' ? 'वॉयस और बिल डेस्क' : 'Voice & Bill Desk')}
+              </span>
+              <span className="font-semibold text-slate-600 dark:text-slate-300 bg-[#FAF6F0] dark:bg-[#11181F] px-2.5 py-0.5 rounded-full border border-[#E2D9C8] dark:border-[#2A3644]">
+                {lang === 'hi' ? `आज: ${fmt(todaySalesTotal)}` : `Today: ${fmt(todaySalesTotal)}`} · {todayBillsCount > 0 ? `${todayBillsCount} New` : `${customerCount} Khata`}
               </span>
             </div>
-          )}
 
-          {/* Unified Input bar directly below the mic card */}
-          {renderInputBar(false)}
+            {/* Hero Mic + Title + Parchi OCR CTA */}
+            <div className={`flex flex-col items-center justify-center text-center my-auto ${!isMobileFrame ? 'py-5' : 'py-2.5'}`}>
+              <div className={`relative flex items-center justify-center ${!isMobileFrame ? 'mb-3.5' : 'mb-2.5'}`}>
+                {isListening ? (
+                  <>
+                    <div className={`absolute rounded-full bg-red-500/20 animate-ping ${!isMobileFrame ? 'w-32 h-32' : 'w-28 h-28'}`} />
+                    <div className={`absolute rounded-full bg-red-500/10 animate-pulse ${!isMobileFrame ? 'w-40 h-40' : 'w-34 h-34'}`} />
+                  </>
+                ) : (
+                  <div className={`absolute rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 animate-pulse ${!isMobileFrame ? 'w-28 h-28' : 'w-24 h-24'}`} />
+                )}
+
+                <button
+                  onClick={isListening ? stopListening : startListening}
+                  className={`relative rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
+                    !isMobileFrame ? 'w-24 h-24' : 'w-20 h-20'
+                  } ${
+                    isListening
+                      ? 'bg-red-600 text-white mic-pulse ring-4 ring-red-300 dark:ring-red-900'
+                      : 'bg-[#1B7A43] text-white hover:bg-[#156336] hover:scale-105 active:scale-95 ring-4 ring-emerald-100 dark:ring-emerald-950/40'
+                  }`}
+                  aria-label={isListening ? 'Stop recording' : 'Start recording'}
+                >
+                  {isListening ? (
+                    <div className="flex items-center gap-1 h-8">
+                      {[0, 1, 2, 3, 4, 5].map(i => (
+                        <span
+                          key={i}
+                          className="wave-bar w-1.5 rounded-full bg-white inline-block"
+                          style={{ animationDelay: `${i * 0.12}s` }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <Mic size={!isMobileFrame ? 38 : 34} />
+                  )}
+                </button>
+              </div>
+
+              <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                {isListening
+                  ? '🔴 Listening… Sabhi Items Ek Saath Bolein'
+                  : (lang === 'hi' ? 'बोल कर लिखें (टैप करें)' : 'Bol Kar Likhein (Tap to Speak)')}
+              </h3>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xs leading-snug mt-0.5">
+                {isListening
+                  ? 'Bolne ke baad 2 sec rukhein ya laal Mic dabakar bill banayein'
+                  : (lang === 'hi'
+                    ? 'हिंदी या हिंग्लिश में एक साथ कई आइटम बोलें — बिल तुरंत बनेगा'
+                    : 'Hinglish ya Hindi mein ek saath multiple items bolein — bill turant draft ho jayega')}
+              </p>
+
+              <button
+                type="button"
+                onClick={openBillModal}
+                className="px-3.5 py-2 rounded-xl bg-stone-100 dark:bg-slate-800 hover:bg-stone-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-stone-300 dark:border-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-2 mx-auto mt-2.5 transition-colors shadow-xs active:scale-[0.99]"
+              >
+                <Camera className="w-4 h-4 text-[#1B7A43] dark:text-emerald-400" />
+                <span>Scan Handwritten Bill / Parchi</span>
+              </button>
+
+              {speechNotice && (
+                <div className="mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800 animate-fade-in max-w-xs">
+                  ℹ️ {speechNotice}
+                </div>
+              )}
+
+              {parseTimeMs !== null && (
+                <div className="mt-2">
+                  <span className="text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                    ⚡ Parsed in {parseTimeMs}ms
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Unified Input bar docked cleanly inside desk */}
+            {renderInputBar(false)}
+          </section>
+
+          {/* ── PANEL 2: STRUCTURED VOICE COMMANDS DIRECTORY (EXTENDS TO BOTTOM) ── */}
+          <section className={`${!isMobileFrame ? 'md:col-span-5 p-4' : 'p-3'} flex-1 flex flex-col justify-between bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded-2xl shadow-xs`}>
+            {/* Structured Section Header */}
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#F0E9DC] dark:border-[#222D38]">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Zap className="w-4 h-4" />
+                </span>
+                <div className="min-w-0">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {lang === 'hi' ? 'नमूना वॉयस कमांड' : 'Sample Voice Commands'}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {lang === 'hi' ? 'बिल बनाने के लिए टैप करें' : 'Tap any format below to auto-draft bill'}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-[#1B7A43] dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 shrink-0">
+                {DEMO_CHIPS.length} Presets
+              </span>
+            </div>
+
+            {/* Proportional Structured Command Grid */}
+            <div className={`flex-1 grid ${!isMobileFrame ? 'grid-cols-1 gap-2 py-2.5' : 'grid-cols-2 gap-1.5 auto-rows-fr py-2'}`}>
+              {DEMO_CHIPS.map((chip, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onChipClick(chip)}
+                  className={`group text-left rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-[#FAF6F0]/75 dark:bg-[#11181F] hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 hover:border-[#1B7A43] dark:hover:border-emerald-600 transition-all active:scale-[0.98] flex flex-col justify-between ${
+                    !isMobileFrame ? 'p-2.5' : 'p-2 min-h-[50px]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span className={`${!isMobileFrame ? 'text-xs' : 'text-[11px]'} font-bold text-slate-900 dark:text-white truncate flex items-center gap-1`}>
+                      <span aria-hidden="true">{chip.emoji}</span>
+                      <span className="truncate">{chip.label}</span>
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-[#1B7A43] dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </div>
+                  <p className={`text-[11px] text-slate-600 dark:text-slate-400 leading-tight mt-0.5 ${!isMobileFrame ? 'line-clamp-2' : 'line-clamp-1'}`}>
+                    “{chip.text}”
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            {/* Supported Syntax Reference Footer */}
+            <div className="pt-2 border-t border-[#F0E9DC] dark:border-[#222D38] flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <span>
+                <strong className="text-slate-700 dark:text-slate-300">Qty:</strong> aadha, dhai, kg, g, L, pkt
+              </span>
+              <span>
+                <strong className="text-slate-700 dark:text-slate-300">Modes:</strong> Cash · UPI · Udhaar · Jama
+              </span>
+            </div>
+          </section>
         </div>
       )}
 
-      {/* ── STATE 2: DRAFT IS OPEN -> COMPACT TOP INPUT BAR + APPROVAL CARD ── */}
+      {/* ── STATE 2: DRAFT IS OPEN -> COLLAPSIBLE COMMANDS + COMPACT INPUT BAR + APPROVAL CARD ── */}
       {draft && !confirmedTxn && (
         <div className="space-y-3">
+          {/* Quick Voice Switcher (Collapsible when reviewing a draft) */}
+          <div>
+            <button
+              onClick={() => setShowChips(prev => !prev)}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-stone-200 dark:hover:bg-[#1E293B] transition-colors"
+            >
+              <span className="flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                {labels?.demoChips || 'Sample Voice Commands (Tap to Test)'}
+              </span>
+              <ChevronDown size={14} className={`transform transition-transform duration-200 ${showChips ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showChips && (
+              <div className="flex gap-2 overflow-x-auto pb-2 pt-2 scrollbar-hide animate-fade-in">
+                {DEMO_CHIPS.map((chip, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      onChipClick(chip);
+                      setShowChips(false);
+                    }}
+                    className="shrink-0 px-3 py-1.5 rounded-full bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-[#1B7A43] transition-all shadow-xs whitespace-nowrap active:scale-95"
+                  >
+                    {chip.emoji} {chip.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Compact Input bar at top */}
           {renderInputBar(true)}
 
