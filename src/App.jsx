@@ -453,11 +453,11 @@ export default function App() {
           </div>
 
           {/* Row 2: Single-Line Control Strip */}
-          <div className="flex items-center justify-between gap-1.5 mt-2 pt-2 border-t border-white/15 text-xs">
+          <div className="flex items-center justify-between gap-1 sm:gap-1.5 mt-2 pt-2 border-t border-white/15 text-[11px] sm:text-xs">
             {/* Online/Offline Pill */}
             <button
               onClick={() => setIsOnline(!isOnline)}
-              className="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium flex items-center gap-1 transition-colors"
+              className="px-2 sm:px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
               title="Toggle Online / Offline Mode"
             >
               {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-300" /> : <WifiOff className="w-3.5 h-3.5 text-amber-300" />}
@@ -465,7 +465,7 @@ export default function App() {
             </button>
 
             {/* Language Segmented Pill */}
-            <div className="flex bg-black/20 rounded-full p-0.5">
+            <div className="flex bg-black/20 rounded-full p-0.5 shrink-0">
               {[
                 { key: 'hinglish', label: 'Hinglish' },
                 { key: 'hi', label: 'हिंदी' },
@@ -474,7 +474,7 @@ export default function App() {
                 <button
                   key={l.key}
                   onClick={() => setLang(l.key)}
-                  className={`text-xs transition-all ${lang === l.key
+                  className={`text-[11px] sm:text-xs whitespace-nowrap transition-all ${lang === l.key
                     ? 'bg-white text-[#1B7A43] font-bold px-2 py-0.5 rounded-full shadow-xs'
                     : 'text-emerald-100 hover:text-white px-1.5 py-0.5'
                     }`}
@@ -487,21 +487,21 @@ export default function App() {
             {/* Audio Toggle Pill */}
             <button
               onClick={() => setSoundboxEnabled(!soundboxEnabled)}
-              className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 transition-colors"
+              className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
               title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
             >
               {soundboxEnabled ? <Volume2 className="w-3.5 h-3.5 text-yellow-300" /> : <VolumeX className="w-3.5 h-3.5 text-white/60" />}
-              <span>{soundboxEnabled ? '🔊 Audio' : '🔇 Mute'}</span>
+              <span>{soundboxEnabled ? 'Audio' : 'Mute'}</span>
             </button>
 
             {/* View Toggle Pill */}
             <button
               onClick={() => setIsMobileFrame(!isMobileFrame)}
-              className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 transition-colors"
+              className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
               title="Toggle Phone Frame vs Full Screen"
             >
               {isMobileFrame ? <Smartphone className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
-              <span>{isMobileFrame ? '📱 430px' : '🖥️ Full'}</span>
+              <span>{isMobileFrame ? '430px' : 'Full'}</span>
             </button>
           </div>
 
@@ -531,7 +531,7 @@ export default function App() {
       </header>
 
       {/* Tab Content */}
-      <main className={`flex-1 flex flex-col ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-3.5 pb-20' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
+      <main className={`flex-1 flex flex-col ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-3 pb-[72px]' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
         {renderTabContent()}
       </main>
 
