@@ -159,11 +159,11 @@ export function parseBahiKhataOcrText(rawText) {
 
     if (!line || line.length < 2) continue;
 
-    // Normalize common Devanagari/OCR rupee symbol variants (Tesseract hin often reads ₹ as र/रू/¥)
+    // Normalize common Devanagari/OCR rupee symbol variants (Tesseract hin often reads ₹ as र/रं/र₹/रू/¥)
     line = line
       .replace(/(^|[\s,;:=\-–—(])(?:रु\.?|रू\.?|¥)\s*(?=[0-9oOiIlLsS])/gi, '$1₹')
-      .replace(/(^|[\s,;:=\-–—(])र\.?(?=[0-9oOiIlLsS])/g, '$1₹')
-      .replace(/(^|[\s,;:=\-–—(])र\.?\s+(?=\d{2,})/g, '$1₹')
+      .replace(/(^|[\s,;:=\-–—(])र[\u0900-\u0903\u093C\u094D]*₹?\.?(?=[0-9oOiIlLsS])/g, '$1₹')
+      .replace(/(^|[\s,;:=\-–—(])र[\u0900-\u0903\u093C\u094D]*\.?\s+(?=\d{2,})/g, '$1₹')
       .replace(/(^|[\s,;:=-])रु\.?\s*/g, '$1₹')
       .replace(/\s+/g, ' ')
       .trim();
@@ -188,15 +188,17 @@ export function parseBahiKhataOcrText(rawText) {
 
     // Strategy A: Explicit currency / baaki marker (supports OCR digit fixes like ₹34O)
     const explicitPatterns = [
-      /(?:₹|\brs\.?|\binr\b|\brupaye\b|\brupaya\b|\bbaaki\b|\bbaki\b|\bdue\b|\bdues\b|\bbalance\b|बाकी|बकाया)\s*[:=-]?\s*([0-9oOiIlLsS,]+(?:\.\d{1,2})?)(?:\s*\/-)?/gi,
-      /\b([0-9oOiIlLsS,]+(?:\.\d{1,2})?)\s*(?:\/-|₹|rs\.?|rupaye|rupees|baaki|baki|बाकी)(?=$|[\s.,;])/gi,
+      { re: /(?:₹|\brs\.?|\binr\b|\brupaye\b|\brupaya\b|\bbaaki\b|\bbaki\b|\bdue\b|\bdues\b|\bbalance\b|बाकी|बकाया)\s*[:=-]?\s*([0-9oOiIlLsS,]+(?:\.\d{1,2})?)(?:\s*(?:\/-|₹|rs\.?|rx|rz|r5|k5|दा))?/gi, allowAlpha: true },
+      { re: /\b([0-9oOiIlLsS,]+(?:\.\d{1,2})?)\s*(?:\/-|₹|rs\.?|rupaye|rupees|baaki|baki|बाकी)(?=$|[\s.,;])/gi, allowAlpha: true },
+      // Pure digits followed by common handwritten Rs OCR confusions (Rx, K5, R5, Rz, दा)
+      { re: /\b(\d{2,6}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:rx|rz|r5|k5|दा)\.?(?=$|[\s.,;])/gi, allowAlpha: false },
     ];
 
-    for (const pattern of explicitPatterns) {
+    for (const { re, allowAlpha } of explicitPatterns) {
       let match;
       let lastValidMatch = null;
-      while ((match = pattern.exec(work)) !== null) {
-        const parsedVal = normalizeOcrDigits(match[1], { allowAlphaDigits: true });
+      while ((match = re.exec(work)) !== null) {
+        const parsedVal = normalizeOcrDigits(match[1], { allowAlphaDigits: allowAlpha });
         if (parsedVal !== null) {
           lastValidMatch = {
             val: parsedVal,
@@ -293,92 +295,63 @@ function clampByte(v) {
 }
 
 /**
- * Scans the image row-by-row and returns the fraction [0,1] at which
- * a persistent dark shadow begins (meanLum of a row drops below threshold).
- * Returns 1.0 if no significant shadow is found.
+ * 1D sliding-window extremum (max or min) filter in O(n) via monotonic deque.
+ * Used as separable building block for morphological closing on uneven shadows.
  */
-function detectShadowStartFraction(lum, w, h, threshold = 145) {
-  // Sample every 4th row for speed
-  const CONSEC_ROWS_NEEDED = Math.max(2, Math.round(h * 0.03)); // 3% of height
-  let darkCount = 0;
-  for (let row = 0; row < h; row += 4) {
-    let rowSum = 0;
-    const rowOff = row * w;
-    for (let col = Math.round(w * 0.1); col < Math.round(w * 0.9); col++) {
-      rowSum += lum[rowOff + col];
-    }
-    const usedCols = Math.round(w * 0.8);
-    const rowMean = rowSum / Math.max(1, usedCols);
-    if (rowMean < threshold) {
-      darkCount++;
-      if (darkCount >= CONSEC_ROWS_NEEDED) {
-        return Math.max(0.05, (row - CONSEC_ROWS_NEEDED * 4) / h);
+function extremumFilter1D(arr, len, radius, isMax) {
+  const out = new Float32Array(len);
+  const dq = new Int32Array(len);
+  let head = 0;
+  let tail = 0;
+  for (let i = 0; i < len + radius; i++) {
+    if (i < len) {
+      while (tail > head && (isMax ? arr[dq[tail - 1]] <= arr[i] : arr[dq[tail - 1]] >= arr[i])) {
+        tail--;
       }
-    } else {
-      darkCount = 0;
+      dq[tail++] = i;
+    }
+    const winStart = i - 2 * radius;
+    if (head < tail && dq[head] < winStart) head++;
+    const outIdx = i - radius;
+    if (outIdx >= 0 && outIdx < len) {
+      out[outIdx] = arr[dq[head]];
     }
   }
-  return 1.0;
+  return out;
+}
+
+function morph2D(src, w, h, radius, isMax) {
+  const tmp = new Float32Array(w * h);
+  const rowBuf = new Float32Array(w);
+  for (let y = 0; y < h; y++) {
+    const off = y * w;
+    rowBuf.set(src.subarray(off, off + w));
+    tmp.set(extremumFilter1D(rowBuf, w, radius, isMax), off);
+  }
+  const dst = new Float32Array(w * h);
+  const colBuf = new Float32Array(h);
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) colBuf[y] = tmp[y * w + x];
+    const colRes = extremumFilter1D(colBuf, h, radius, isMax);
+    for (let y = 0; y < h; y++) dst[y * w + x] = colRes[y];
+  }
+  return dst;
 }
 
 /**
- * Scans the image column-by-column and returns the fraction [0,1] at which
- * a persistent dark shadow begins from the left or right side.
- * Returns { leftFrac: 0, rightFrac: 1 } if no significant column shadow is found.
+ * Separable 2D morphological closing (dilation followed by erosion of the same radius).
+ * Erases thin dark ink strokes to estimate true local paper brightness while restoring
+ * sharp shadow boundaries with zero dark boundary halos.
  */
-function detectColumnShadow(lum, w, h, threshold = 145) {
-  const CONSEC_COLS = Math.max(2, Math.round(w * 0.03));
-  let leftFrac = 0;
-  let darkCount = 0;
-  // Scan from left → right
-  for (let col = 0; col < w; col++) {
-    let colSum = 0;
-    for (let row = Math.round(h * 0.1); row < Math.round(h * 0.9); row += 4) {
-      colSum += lum[row * w + col];
-    }
-    const usedRows = Math.round(h * 0.8 / 4);
-    const colMean = colSum / Math.max(1, usedRows);
-    if (colMean < threshold) {
-      darkCount++;
-      if (darkCount >= CONSEC_COLS) {
-        leftFrac = Math.max(0, (col - CONSEC_COLS) / w);
-        break;
-      }
-    } else {
-      darkCount = 0;
-    }
-  }
-
-  let rightFrac = 1.0;
-  darkCount = 0;
-  // Scan from right → left
-  for (let col = w - 1; col >= 0; col--) {
-    let colSum = 0;
-    for (let row = Math.round(h * 0.1); row < Math.round(h * 0.9); row += 4) {
-      colSum += lum[row * w + col];
-    }
-    const usedRows = Math.round(h * 0.8 / 4);
-    const colMean = colSum / Math.max(1, usedRows);
-    if (colMean < threshold) {
-      darkCount++;
-      if (darkCount >= CONSEC_COLS) {
-        rightFrac = Math.min(1, (col + CONSEC_COLS) / w);
-        break;
-      }
-    } else {
-      darkCount = 0;
-    }
-  }
-
-  return { leftFrac, rightFrac };
+function computeLocalPaperBackground(srcLum, w, h, radius) {
+  const dilated = morph2D(srcLum, w, h, radius, true);
+  return morph2D(dilated, w, h, radius, false);
 }
 
 /**
  * Resizes and preprocesses a ledger/notebook image for optimal Gemini Vision & Tesseract OCR.
- * Key upgrades:
- *  - Detects large camera-shadow zones (row & column) and crops to the bright text region only
- *  - Applies aggressive local illumination normalization on the cropped region
- *  - Returns the shadow crop metrics so the UI can warn the user if heavy crop was applied
+ * Uses Retinex local paper estimation + reflectance bleed-through gating + blue-ink boost
+ * so angled shadows & reverse-page show-through are stripped without cropping any text.
  */
 export async function prepareLedgerImageForOcr(file) {
   const objectUrl = URL.createObjectURL(file);
@@ -387,7 +360,7 @@ export async function prepareLedgerImageForOcr(file) {
     const srcW = img.naturalWidth || img.width || 1200;
     const srcH = img.naturalHeight || img.height || 900;
 
-    // 1. Compressed natural color JPEG for Gemini Vision & fast preview (full image, no crop)
+    // 1. Compressed natural color JPEG for Gemini Vision & fallback OCR
     const aiScale = Math.min(1, 1600 / Math.max(srcW, srcH));
     const aiW = Math.max(1, Math.round(srcW * aiScale));
     const aiH = Math.max(1, Math.round(srcH * aiScale));
@@ -398,142 +371,68 @@ export async function prepareLedgerImageForOcr(file) {
     const geminiDataUrl = aiCanvas.toDataURL('image/jpeg', 0.88);
     const geminiBase64 = geminiDataUrl.split(',')[1] || '';
 
-    // 2. Build an intermediate full-size canvas to compute luminance for shadow detection
-    const detScale = Math.min(1, 1200 / Math.max(srcW, srcH));
-    const detW = Math.max(1, Math.round(srcW * detScale));
-    const detH = Math.max(1, Math.round(srcH * detScale));
-    const detCanvas = document.createElement('canvas');
-    detCanvas.width = detW;
-    detCanvas.height = detH;
-    const detCtx = detCanvas.getContext('2d', { willReadFrequently: true });
-    detCtx.drawImage(img, 0, 0, detW, detH);
-    const detData = detCtx.getImageData(0, 0, detW, detH).data;
-    const detLum = new Float32Array(detW * detH);
-    for (let p = 0, i = 0; i < detW * detH; p += 4, i++) {
-      detLum[i] = 0.299 * detData[p] + 0.587 * detData[p + 1] + 0.114 * detData[p + 2];
-    }
-
-    // 3. Detect shadow boundaries
-    const meanLumFull = detLum.reduce((s, v) => s + v, 0) / detLum.length;
-    const isDarkBg = meanLumFull < 110;
-    if (isDarkBg) {
-      for (let i = 0; i < detLum.length; i++) detLum[i] = 255 - detLum[i];
-    }
-    // Shadow threshold: regions whose mean is 60% below global median are considered shadow
-    const shadowThreshold = Math.min(170, Math.max(100, meanLumFull * 0.75));
-    const rowShadowFrac = detectShadowStartFraction(detLum, detW, detH, shadowThreshold);
-    const { leftFrac, rightFrac } = detectColumnShadow(detLum, detW, detH, shadowThreshold);
-
-    // 4. Determine crop rectangle in source image coordinates
-    // Only apply crop if shadow is significant (shadow covers >15% of image)
-    const hasRowShadow = rowShadowFrac < 0.85;
-    const hasColShadowRight = rightFrac < 0.85;
-    const hasColShadowLeft = leftFrac > 0.15;
-    const cropY1 = hasRowShadow ? Math.min(rowShadowFrac, 0.95) : 1.0;
-    const cropX0 = hasColShadowLeft ? leftFrac : 0;
-    const cropX1 = hasColShadowRight ? rightFrac : 1.0;
-    const cropApplied = hasRowShadow || hasColShadowRight || hasColShadowLeft;
-    // Ensure we keep at least 20% of the image
-    const usableFrac = (cropX1 - cropX0) * cropY1;
-    const finalCropY1 = usableFrac < 0.2 ? 1.0 : cropY1;
-    const finalCropX0 = usableFrac < 0.2 ? 0 : cropX0;
-    const finalCropX1 = usableFrac < 0.2 ? 1.0 : cropX1;
-
-    // 5. OCR canvas: render only the bright (non-shadow) region
-    const srcCropX = Math.round(srcW * finalCropX0);
-    const srcCropY = 0;
-    const srcCropW = Math.max(1, Math.round(srcW * (finalCropX1 - finalCropX0)));
-    const srcCropH = Math.max(1, Math.round(srcH * finalCropY1));
-
-    const targetScale = srcCropW < 800 ? Math.min(2.5, 1400 / srcCropW) : Math.min(1.5, 2000 / Math.max(srcCropW, srcCropH));
-    const ocrW = Math.max(1, Math.round(srcCropW * targetScale));
-    const ocrH = Math.max(1, Math.round(srcCropH * targetScale));
+    // 2. OCR canvas: upscale small photos for stroke clarity, cap huge photos at 2000px
+    const targetScale = srcW < 900 ? Math.min(2.2, 1400 / srcW) : Math.min(1, 2000 / Math.max(srcW, srcH));
+    const ocrW = Math.max(1, Math.round(srcW * targetScale));
+    const ocrH = Math.max(1, Math.round(srcH * targetScale));
 
     const ocrCanvas = document.createElement('canvas');
     ocrCanvas.width = ocrW;
     ocrCanvas.height = ocrH;
     const ctx = ocrCanvas.getContext('2d', { willReadFrequently: true });
-    // Draw the bright crop region scaled up
-    ctx.drawImage(img, srcCropX, srcCropY, srcCropW, srcCropH, 0, 0, ocrW, ocrH);
+    ctx.drawImage(img, 0, 0, ocrW, ocrH);
 
     const imgData = ctx.getImageData(0, 0, ocrW, ocrH);
     const pixels = imgData.data;
     const totalPx = ocrW * ocrH;
-    const lum = new Float32Array(totalPx);
+    const stdLum = new Float32Array(totalPx);
 
     let sumLum = 0;
     for (let p = 0, idx = 0; idx < totalPx; p += 4, idx++) {
       const y = 0.299 * pixels[p] + 0.587 * pixels[p + 1] + 0.114 * pixels[p + 2];
-      lum[idx] = y;
+      stdLum[idx] = y;
       sumLum += y;
     }
 
     const isDarkBackground = sumLum / Math.max(1, totalPx) < 110;
-    if (isDarkBackground) {
-      for (let i = 0; i < totalPx; i++) lum[i] = 255 - lum[i];
-    }
+    const lum = new Float32Array(totalPx);
 
-    // 6. Finer illumination grid on cropped region (32×32 for better local contrast)
-    const gridCols = 32;
-    const gridRows = 32;
-    const cellW = Math.max(1, Math.ceil(ocrW / gridCols));
-    const cellH = Math.max(1, Math.ceil(ocrH / gridRows));
-    const bgGrid = new Float32Array(gridCols * gridRows);
-
-    for (let gy = 0; gy < gridRows; gy++) {
-      const y0 = gy * cellH;
-      const y1 = Math.min(ocrH, y0 + cellH);
-      for (let gx = 0; gx < gridCols; gx++) {
-        const x0 = gx * cellW;
-        const x1 = Math.min(ocrW, x0 + cellW);
-        let maxBright = 100;
-        const vals = [];
-        for (let y = y0; y < y1; y += 2) {
-          const rowOff = y * ocrW;
-          for (let x = x0; x < x1; x += 2) {
-            const v = lum[rowOff + x];
-            vals.push(v);
-            if (v > maxBright) maxBright = v;
-          }
-        }
-        // Use 90th-percentile brightness as local paper estimate (more robust than max)
-        vals.sort((a, b) => a - b);
-        const p90 = vals[Math.floor(vals.length * 0.9)] ?? maxBright;
-        bgGrid[gy * gridCols + gx] = Math.max(80, p90 * 0.9 + maxBright * 0.1);
+    for (let p = 0, idx = 0; idx < totalPx; p += 4, idx++) {
+      if (isDarkBackground) {
+        lum[idx] = 255 - stdLum[idx];
+      } else {
+        // Gently enhance blue ballpoint pen ink while preserving neutral paper luminance
+        const r = pixels[p];
+        const g = pixels[p + 1];
+        const b = pixels[p + 2];
+        lum[idx] = Math.min(stdLum[idx], 0.42 * r + 0.46 * g + 0.12 * b);
       }
     }
 
-    // 7. Apply illumination-normalized contrast stretch
-    for (let y = 0; y < ocrH; y++) {
-      const gyF = Math.min(gridRows - 1.001, (y / ocrH) * gridRows);
-      const gy0 = Math.floor(gyF);
-      const gy1 = Math.min(gridRows - 1, gy0 + 1);
-      const ty = gyF - gy0;
-      const rowOff = y * ocrW;
+    // 3. Separable morphological closing background estimator (~1.1% of width radius)
+    const radius = Math.max(8, Math.min(20, Math.round(ocrW * 0.011)));
+    const localPaper = computeLocalPaperBackground(lum, ocrW, ocrH, radius);
 
-      for (let x = 0; x < ocrW; x++) {
-        const gxF = Math.min(gridCols - 1.001, (x / ocrW) * gridCols);
-        const gx0 = Math.floor(gxF);
-        const gx1 = Math.min(gridCols - 1, gx0 + 1);
-        const tx = gxF - gx0;
+    // Check coarse shadow variation (top/bottom/left/right brightness delta) for optional UI tip
+    const midY = Math.floor(ocrH * 0.5);
+    const leftLum = localPaper[midY * ocrW + Math.floor(ocrW * 0.15)] || 200;
+    const rightLum = localPaper[midY * ocrW + Math.floor(ocrW * 0.85)] || 200;
+    const topLum = localPaper[Math.floor(ocrH * 0.15) * ocrW + Math.floor(ocrW * 0.5)] || 200;
+    const botLum = localPaper[Math.floor(ocrH * 0.85) * ocrW + Math.floor(ocrW * 0.5)] || 200;
+    const bgMin = Math.min(leftLum, rightLum, topLum, botLum);
+    const bgMax = Math.max(leftLum, rightLum, topLum, botLum);
+    const hasHeavyShadow = !isDarkBackground && bgMax > 130 && bgMin / bgMax < 0.72;
 
-        const b00 = bgGrid[gy0 * gridCols + gx0];
-        const b10 = bgGrid[gy0 * gridCols + gx1];
-        const b01 = bgGrid[gy1 * gridCols + gx0];
-        const b11 = bgGrid[gy1 * gridCols + gx1];
-        const localPaper =
-          (b00 * (1 - tx) + b10 * tx) * (1 - ty) +
-          (b01 * (1 - tx) + b11 * tx) * ty;
-
-        const norm = (lum[rowOff + x] / Math.max(1, localPaper)) * 255;
-        // Aggressive paper whitening + ink darkening
-        const contrasted = norm >= 210 ? 255 : norm < 30 ? 0 : clampByte((norm - 40) * 1.6);
-        const p = (rowOff + x) * 4;
-        pixels[p] = contrasted;
-        pixels[p + 1] = contrasted;
-        pixels[p + 2] = contrasted;
-        pixels[p + 3] = 255;
-      }
+    // 4. Reflectance normalization + bleed-through suppression (ratio >= 0.86 -> pure white paper)
+    for (let i = 0, p = 0; i < totalPx; i++, p += 4) {
+      const ratio = lum[i] / Math.max(25, localPaper[i]);
+      const v = ratio >= 0.86
+        ? 255
+        : clampByte(((ratio - 0.42) / 0.44) * 255);
+      pixels[p] = v;
+      pixels[p + 1] = v;
+      pixels[p + 2] = v;
+      pixels[p + 3] = 255;
     }
     ctx.putImageData(imgData, 0, 0);
 
@@ -542,9 +441,7 @@ export async function prepareLedgerImageForOcr(file) {
       rawCanvas: aiCanvas,
       geminiBase64,
       geminiMimeType: 'image/jpeg',
-      shadowCrop: cropApplied && usableFrac >= 0.2
-        ? { rowShadowFrac, leftFrac: finalCropX0, rightFrac: finalCropX1 }
-        : null,
+      hasHeavyShadow,
     };
   } finally {
     URL.revokeObjectURL(objectUrl);
@@ -672,24 +569,23 @@ async function runTesseractOnCanvas(canvas, lang, onProgress) {
  * Uses Gemini Vision AI if configured, and always provides zero-key browser OCR via Tesseract.js.
  * Shadow-aware: auto-crops bright text region, runs multi-pass OCR with detailed warnings.
  */
-export async function scanBahiKhataImage(file, { geminiApiKey = '', ocrLang = 'eng+hin', onProgress } = {}) {
+export async function scanBahiKhataImage(
+  file,
+  { geminiApiKey = '', ocrLang = 'eng+hin', preferOffline = false, onProgress } = {}
+) {
   if (!file) {
     throw new Error('No image selected. Please upload a photo from your gallery first.');
   }
 
-  onProgress?.({ stage: 'prepare', progress: 8, status: 'Detecting shadow zones & enhancing text clarity...' });
+  onProgress?.({ stage: 'prepare', progress: 8, status: 'Normalizing shadows & enhancing ink contrast...' });
   const prepared = await prepareLedgerImageForOcr(file);
 
   let warning = '';
-  if (prepared.shadowCrop) {
-    const coverPct = Math.round((1 - (prepared.shadowCrop.rightFrac - prepared.shadowCrop.leftFrac) * prepared.shadowCrop.rowShadowFrac) * 100);
-    warning = `Shadow detected — auto-cropped to the bright text region (~${coverPct}% of image was dark). For best results, retake the photo in even lighting with shadow removed.`;
-  }
 
-  // 1. Optional Gemini Vision AI (best accuracy for messy Hindi/Hinglish handwriting + shadows)
-  const cleanKey = String(geminiApiKey || '').trim();
+  // 1. Optional Gemini Vision AI (best accuracy for messy Hindi/Hinglish handwriting + heavy shadows)
+  const cleanKey = preferOffline ? '' : String(geminiApiKey || '').trim();
   if (cleanKey) {
-    onProgress?.({ stage: 'gemini', progress: 20, status: 'Sending to Gemini Vision AI (handles shadows & cursive)...' });
+    onProgress?.({ stage: 'gemini', progress: 20, status: 'Reading handwriting with Gemini Vision AI...' });
     try {
       const gemResult = await runGeminiVisionOcr(
         prepared.geminiBase64,
@@ -702,16 +598,15 @@ export async function scanBahiKhataImage(file, { geminiApiKey = '', ocrLang = 'e
         engine: 'gemini',
         rawText: gemResult.rawText,
         entries: gemResult.entries,
-        warning,
+        warning: '',
+        hasHeavyShadow: prepared.hasHeavyShadow,
       };
     } catch (err) {
-      warning = warning
-        ? `${warning} | Gemini: ${err.message}`
-        : `Gemini AI failed (${err.message}) — using built-in OCR (may struggle with heavy shadows/cursive).`;
+      warning = `Gemini AI failed (${err.message}) — switched to built-in offline OCR.`;
     }
   }
 
-  // 2. Zero-key built-in browser OCR via Tesseract.js
+  // 2. Zero-key built-in browser OCR via Tesseract.js (Retinex normalized canvas first)
   let rawText = '';
   let engineUsed = `tesseract-${ocrLang}`;
   try {
@@ -728,9 +623,9 @@ export async function scanBahiKhataImage(file, { geminiApiKey = '', ocrLang = 'e
 
   let entries = parseBahiKhataOcrText(rawText);
 
-  // If shadow-cropped version got few entries, retry on the original natural canvas as well
-  if (entries.length === 0 || rawText.length < 15) {
-    onProgress?.({ stage: 'tesseract', progress: 86, status: 'Re-scanning original image for more text...' });
+  // Only retry rawCanvas if Retinex extracted zero entries AND almost nothing (< 10 chars)
+  if (entries.length === 0 && rawText.length < 10) {
+    onProgress?.({ stage: 'tesseract', progress: 88, status: 'Re-checking original image...' });
     try {
       const secondText = await runTesseractOnCanvas(
         prepared.rawCanvas,
@@ -738,7 +633,7 @@ export async function scanBahiKhataImage(file, { geminiApiKey = '', ocrLang = 'e
         onProgress
       );
       const secondEntries = parseBahiKhataOcrText(secondText);
-      if (secondEntries.length > entries.length || secondText.length > rawText.length) {
+      if (secondEntries.length > entries.length || secondText.length >= 10) {
         rawText = secondText;
         entries = secondEntries;
       }
@@ -747,24 +642,29 @@ export async function scanBahiKhataImage(file, { geminiApiKey = '', ocrLang = 'e
     }
   }
 
-  // Add a Gemini upsell warning when Tesseract produced little/no output
-  const tesseractFailed = entries.length === 0;
-  if (tesseractFailed) {
-    warning = [
-      warning,
-      'Built-in OCR could not read this handwriting clearly.',
-      'Tips: 📸 Retake in bright even light (no shadows), hold phone steady.',
-      'Or add a free Gemini API key (+ AI Handwriting Boost button) — Gemini Vision handles shadows & cursive handwriting much better.',
-    ].filter(Boolean).join(' ');
+  if (entries.length === 0) {
+    const parts = [];
+    if (warning) parts.push(warning);
+    if (prepared.hasHeavyShadow) {
+      parts.push('Strong camera shadow detected — offline OCR works best on evenly lit printed/block pages.');
+    }
+    if (!rawText) {
+      parts.push('No clear text could be read from this image.');
+    } else {
+      parts.push('Some text was read, but no "Name - ₹Amount" lines matched. Check Raw Text below to fix typos and tap Re-parse.');
+    }
+    warning = parts.join(' ');
+  } else if (prepared.hasHeavyShadow && !cleanKey) {
+    warning = 'Uneven lighting detected — please double-check extracted spellings & amounts below before importing.';
   }
 
-  onProgress?.({ stage: 'done', progress: 100, status: tesseractFailed ? 'Scan complete — see tips below' : 'Scan complete!' });
+  onProgress?.({ stage: 'done', progress: 100, status: 'Scan complete!' });
   return {
     engine: engineUsed,
     rawText,
     entries,
     warning,
-    shadowDetected: Boolean(prepared.shadowCrop),
+    hasHeavyShadow: prepared.hasHeavyShadow,
   };
 }
 

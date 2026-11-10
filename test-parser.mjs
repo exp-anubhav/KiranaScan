@@ -238,11 +238,13 @@ const ocrRawSample = [
   '4. Anita (Makan No. 8) Rs I50',
   '5. Deepa Joshi (9876543210) - र310',
   '6. Vinod - घर 8 - ¥215',
+  '7. सुरेश वर्मा - चाय दुकान - र₹420',
+  '8. Ramesh - baaki 2000 Rx',
   'Total 3140',
 ].join('\n');
 
 const ocrParsed = parseBahiKhataOcrText(ocrRawSample);
-assert.equal(ocrParsed.length, 7);
+assert.equal(ocrParsed.length, 9);
 assert.deepEqual(ocrParsed[0], { name: 'Ramesh Kumar', pehchan: 'Gali 4', phone: '', balance: 1420 });
 assert.deepEqual(ocrParsed[1], { name: 'Sunita Devi', pehchan: 'Dairy Wali Gali', phone: '9822233344', balance: 340 });
 assert.deepEqual(ocrParsed[2], { name: 'Suresh', pehchan: 'चाय वाला', phone: '', balance: 340 });
@@ -250,6 +252,8 @@ assert.deepEqual(ocrParsed[3], { name: 'Mohan Lal', pehchan: '', phone: '', bala
 assert.deepEqual(ocrParsed[4], { name: 'Anita', pehchan: 'Makan No. 8', phone: '', balance: 150 });
 assert.deepEqual(ocrParsed[5], { name: 'Deepa Joshi', pehchan: '', phone: '9876543210', balance: 310 });
 assert.deepEqual(ocrParsed[6], { name: 'Vinod', pehchan: 'घर 8', phone: '', balance: 215 });
+assert.deepEqual(ocrParsed[7], { name: 'Suresh Verma', pehchan: 'चाय दुकान', phone: '', balance: 420 });
+assert.deepEqual(ocrParsed[8], { name: 'Ramesh', pehchan: '', phone: '', balance: 2000 });
 console.log('PASS: Bahi-Khata OCR multi-format parsing (phones, dates, address numbers, OCR digit typos, Devanagari, headers)');
 
 console.log(`\nAll ${checks.length} voice parser + OCR parser assertions passed!`);
