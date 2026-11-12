@@ -376,6 +376,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   const [ncPehchan, setNcPehchan] = useState('');
   const [ncPhone, setNcPhone] = useState('');
   const [ncOpenBal, setNcOpenBal] = useState('');
+  const [saveNewToLedger, setSaveNewToLedger] = useState(true);
 
   // post-confirm
   const [confirmedTxn, setConfirmedTxn] = useState(null);
@@ -518,14 +519,19 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
   const doParse = useCallback((text) => {
     if (!text.trim()) return;
     const result = parseHinglishTransaction(text.trim(), store.catalogue, store.customers);
+    const enrichedResult = {
+      ...result,
+      savedMatchedCustomer: (!result.isNewCustomer && result.customer) ? result.customer : null,
+    };
     setConfirmedTxn(null);
     setShowReceipt(false);
-    setDraft(result);
+    setDraft(enrichedResult);
     setParseTimeMs(result.parseTimeMs);
     setWasEdited(false);
     setEntryStartMs(Date.now());
     setShowCustomPrice({});
     setCustomPrices({});
+    setSaveNewToLedger(true);
 
     // Pre-fill new-customer form if applicable
     if (result.isNewCustomer && result.customer) {
@@ -552,7 +558,62 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
   const setSelectedCustomer = (cust) => {
     markEdited();
-    setDraft(prev => prev ? { ...prev, customer: cust, customerAmbiguous: false } : prev);
+    setDraft(prev => prev ? {
+      ...prev,
+      customer: cust,
+      customerId: cust?.id || null,
+      customerName: cust?.name || null,
+      savedMatchedCustomer: cust || prev.savedMatchedCustomer || null,
+      isNewCustomer: false,
+      customerAmbiguous: false,
+    } : prev);
+  };
+
+  const switchToDifferentPerson = () => {
+    markEdited();
+    let nextRawName = 'Customer';
+    setDraft(prev => {
+      if (!prev) return prev;
+      const savedCustomer = prev.savedMatchedCustomer || (!prev.isNewCustomer ? prev.customer : null);
+      const fallbackFirst = (savedCustomer?.name || prev.customer?.name || '').split(/\s+/)[0];
+      nextRawName = prev.spokenRawName || fallbackFirst || 'Customer';
+      return {
+        ...prev,
+        savedMatchedCustomer: savedCustomer,
+        customerId: null,
+        customerName: nextRawName,
+        customer: { id: null, name: nextRawName, isNew: true },
+        isNewCustomer: true,
+        customerAmbiguous: false,
+      };
+    });
+    const rawName = draft?.spokenRawName || (draft?.customer?.name || '').split(/\s+/)[0] || '';
+    setNcName(rawName);
+    setNcPehchan('');
+    setNcPhone('');
+    setNcOpenBal('');
+    setSaveNewToLedger(true);
+  };
+
+  const switchBackToSavedCustomer = () => {
+    markEdited();
+    setDraft(prev => {
+      if (!prev?.savedMatchedCustomer) return prev;
+      const saved = prev.savedMatchedCustomer;
+      return {
+        ...prev,
+        customer: saved,
+        customerId: saved.id || null,
+        customerName: saved.name || null,
+        isNewCustomer: false,
+        customerAmbiguous: (prev.customerCandidates?.length || 0) > 1,
+      };
+    });
+    setNcName('');
+    setNcPehchan('');
+    setNcPhone('');
+    setNcOpenBal('');
+    setSaveNewToLedger(true);
   };
 
   const setPaymentMode = (mode) => {
@@ -653,15 +714,30 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
     // Prepare customer reference
     let finalDraft = { ...draft };
+    const shouldSaveNewCustomer = requiresNamedCustomer || saveNewToLedger;
+    let isEphemeralWalkIn = false;
 
     if (draft.isNewCustomer) {
-      const custData = {
-        name: ncName.trim(),
-        pehchan: ncPehchan.trim() || 'General Customer',
-        phone: ncPhone.trim(),
-        openingBalance: parseFloat(ncOpenBal) || 0
-      };
-      finalDraft.customer = { ...custData, id: null, isNew: true, balance: custData.openingBalance };
+      const trimmedName = ncName.trim();
+      const trimmedPehchan = ncPehchan.trim();
+      if (shouldSaveNewCustomer) {
+        const custData = {
+          name: trimmedName,
+          pehchan: trimmedPehchan || 'General Customer',
+          phone: ncPhone.trim(),
+          openingBalance: parseFloat(ncOpenBal) || 0
+        };
+        finalDraft.customer = { ...custData, id: null, isNew: true, balance: custData.openingBalance };
+      } else {
+        isEphemeralWalkIn = true;
+        finalDraft.isNewCustomer = false;
+        finalDraft.customer = null;
+        const walkInLabel = `${trimmedName || 'Customer'} (Walk-in)`;
+        finalDraft.walkInLabel = walkInLabel;
+        if (trimmedPehchan) {
+          finalDraft.walkInPehchan = trimmedPehchan;
+        }
+      }
     }
 
     finalDraft.wasEdited = wasEdited;
@@ -671,10 +747,21 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
         ? baseTranscript
         : `${baseTranscript} [Scanned via Bill OCR]`;
     }
+    if (isEphemeralWalkIn && finalDraft.walkInLabel) {
+      const walkTag = `[Walk-in: ${finalDraft.walkInLabel}${finalDraft.walkInPehchan ? ` - ${finalDraft.walkInPehchan}` : ''}]`;
+      const baseTranscript = (finalDraft.transcript || '').trim();
+      finalDraft.transcript = baseTranscript ? `${baseTranscript} ${walkTag}` : walkTag;
+    }
+
     const result = store.confirmTransaction(finalDraft, isOnline);
 
     // Compute balances for receipt
-    const cust = store.customers.find(c => c.name === (finalDraft.customer?.name));
+    const cust = !isEphemeralWalkIn
+      ? store.customers.find(c =>
+          (finalDraft.customer?.id && c.id === finalDraft.customer.id) ||
+          (finalDraft.customer?.name && c.name === finalDraft.customer.name)
+        )
+      : null;
     const oldBal = (cust?.balance || finalDraft.customer?.balance || finalDraft.customer?.openingBalance || 0);
     let newBal = oldBal;
     if (finalDraft.type === 'WASOOLI') newBal = Math.max(0, oldBal - finalDraft.total);
@@ -691,7 +778,8 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
     // Soundbox TTS - Accurate situation-aware voice feedback
     if (soundboxEnabled && window.speechSynthesis) {
-      const cName = finalDraft.customer?.name ? finalDraft.customer.name.split(' ')[0] : 'Grahak';
+      const rawCustomerName = isEphemeralWalkIn ? ncName.trim() : finalDraft.customer?.name;
+      const cName = rawCustomerName ? rawCustomerName.split(' ')[0] : 'Grahak';
       let speechText = '';
       if (finalDraft.type === 'WASOOLI' || finalDraft.mode === 'WASOOLI') {
         speechText = `${cName} ji ne ${finalDraft.total} rupaye jama kiye. Ab baaki bache ${newBal} rupaye.`;
@@ -708,11 +796,22 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
       window.speechSynthesis.speak(utt);
     }
 
+    const receiptDraft = isEphemeralWalkIn
+      ? {
+          ...finalDraft,
+          customer: {
+            id: null,
+            name: `${finalDraft.walkInLabel}${finalDraft.walkInPehchan ? ` (${finalDraft.walkInPehchan})` : ''}`,
+            isNew: false,
+          },
+        }
+      : finalDraft;
+
     setConfirmedTxn({
       ...result,
-      draft: finalDraft,
-      oldBal: finalDraft.customer ? oldBal : undefined,
-      newBal: finalDraft.customer ? newBal : undefined,
+      draft: receiptDraft,
+      oldBal: !isEphemeralWalkIn && finalDraft.customer ? oldBal : undefined,
+      newBal: !isEphemeralWalkIn && finalDraft.customer ? newBal : undefined,
     });
     setShowReceipt(true);
 
@@ -727,7 +826,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
         setUndoSecs(0);
       } else setUndoSecs(sec);
     }, 1000);
-  }, [draft, canConfirm, ncName, ncPehchan, ncPhone, ncOpenBal, wasEdited, entryStartMs, isOnline, soundboxEnabled, store]);
+  }, [draft, canConfirm, requiresNamedCustomer, saveNewToLedger, ncName, ncPehchan, ncPhone, ncOpenBal, wasEdited, entryStartMs, isOnline, soundboxEnabled, store]);
 
   const handleUndo = useCallback(() => {
     store.undoLastTransaction();
@@ -810,15 +909,21 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
   const applyScannedDraft = useCallback((built) => {
     const { draft: nextDraft, prefillName } = built;
+    const enrichedDraft = {
+      ...nextDraft,
+      savedMatchedCustomer: (!nextDraft.isNewCustomer && nextDraft.customer) ? nextDraft.customer : null,
+      spokenRawName: nextDraft.spokenRawName || (nextDraft.customer?.name ? nextDraft.customer.name.split(/\s+/)[0] : null),
+    };
     setConfirmedTxn(null);
     setShowReceipt(false);
-    setDraft(nextDraft);
+    setDraft(enrichedDraft);
     setTranscript(nextDraft.transcript || '');
     setParseTimeMs(nextDraft.parseTimeMs || null);
     setWasEdited(false);
     setEntryStartMs(Date.now());
     setShowCustomPrice({});
     setCustomPrices({});
+    setSaveNewToLedger(true);
 
     if (nextDraft.isNewCustomer) {
       setNcName(prefillName || nextDraft.customer?.name || '');
@@ -1199,68 +1304,89 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
             <div className="p-4 flex flex-col gap-4">
               {/* ── a. Customer header card ──────────── */}
-              {customer && !draft.isNewCustomer && (
-                <div className="bg-[#F4EFE6] dark:bg-[#1E293B] border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl p-3 space-y-1.5">
-                  {/* Line 1: Customer Name + Balance badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-base text-slate-900 dark:text-white truncate flex items-center gap-1.5">
-                      <User className="w-4 h-4 text-[#1B7A43] shrink-0" />
-                      {customer.name}
-                    </span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md border shrink-0 ${
-                      customer.balance > 0
-                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                        : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                    }`}>
-                      Baaki: {fmt(customer.balance || 0)}
-                    </span>
-                  </div>
-
-                  {/* Line 2: Pehchan Tag + Phone */}
-                  <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
-                    {customer.pehchan ? (
-                      <span className="bg-stone-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md truncate max-w-[200px]">
-                        {customer.pehchan}
+              {customer && !draft.isNewCustomer && (() => {
+                const rawFirstName = draft.spokenRawName || (customer.name || '').split(/\s+/)[0] || 'Customer';
+                const displayFirstName = rawFirstName.split(/\s+/)[0];
+                return (
+                  <div className="bg-[#F4EFE6] dark:bg-[#1E293B] border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl p-3 space-y-2">
+                    {/* Line 1: Customer Name + Balance badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-base text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                        <User className="w-4 h-4 text-[#1B7A43] shrink-0" />
+                        {customer.name}
                       </span>
-                    ) : (
-                      <span className="italic text-slate-400">No pehchan</span>
-                    )}
-                    {customer.phone && (
-                      <span className="flex items-center gap-1">
-                        <Phone className="w-3 h-3 text-slate-400" />
-                        {customer.phone}
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md border shrink-0 ${
+                        customer.balance > 0
+                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                          : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                      }`}>
+                        Baaki: {fmt(customer.balance || 0)}
                       </span>
-                    )}
-                  </div>
-
-                  {/* Ambiguous customer switcher */}
-                  {draft.customerAmbiguous && draft.customerCandidates?.length > 1 && (
-                    <div className="mt-2.5 pt-2 border-t border-stone-300 dark:border-slate-700 space-y-1.5">
-                      <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold block">
-                        ⚠️ Multiple matches — tap to select:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {draft.customerCandidates.map(c => {
-                          const isSelected = customer.id === c.id;
-                          return (
-                            <button
-                              key={c.id}
-                              onClick={() => setSelectedCustomer(c)}
-                              className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
-                                isSelected
-                                  ? 'bg-[#1B7A43] text-white border-[#1B7A43] font-semibold shadow-sm'
-                                  : 'bg-stone-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-stone-300 dark:border-slate-600 hover:border-[#1B7A43]'
-                              }`}
-                            >
-                              {c.name} {c.pehchan ? `(${c.pehchan})` : ''} · {fmt(c.balance || 0)}
-                            </button>
-                          );
-                        })}
-                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {/* Line 2: Pehchan Tag + Phone */}
+                    <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                      {customer.pehchan ? (
+                        <span className="bg-stone-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md truncate max-w-[220px]">
+                          📍 {customer.pehchan}
+                        </span>
+                      ) : (
+                        <span className="italic text-slate-400">No pehchan</span>
+                      )}
+                      {customer.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          {customer.phone}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Ambiguous customer switcher */}
+                    {draft.customerAmbiguous && draft.customerCandidates?.length > 1 && (
+                      <div className="pt-2 border-t border-stone-300 dark:border-slate-700 space-y-1.5">
+                        <span className="text-xs text-amber-700 dark:text-amber-400 font-semibold block">
+                          Multiple matches — tap to select:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {draft.customerCandidates.map(c => {
+                            const isSelected = customer.id === c.id;
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => setSelectedCustomer(c)}
+                                className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                                  isSelected
+                                    ? 'bg-[#1B7A43] text-white border-[#1B7A43] font-semibold shadow-sm'
+                                    : 'bg-stone-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-stone-300 dark:border-slate-600 hover:border-[#1B7A43]'
+                                }`}
+                              >
+                                {c.name} {c.pehchan ? `(${c.pehchan})` : ''} · {fmt(c.balance || 0)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action strip: 1-tap switch to Different / New Person with Same Name */}
+                    <div className="pt-2 border-t border-stone-200/80 dark:border-slate-700/80 flex flex-wrap items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={switchToDifferentPerson}
+                        className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer transition-colors"
+                      >
+                        + Alag / Naya &quot;{displayFirstName}&quot; Hai?
+                      </button>
+                      {draft.matchedByFirstNameOnly && (
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Matched via first name
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ── a2. Walk-in / Unselected Customer Card ── */}
               {!customer && !draft.isNewCustomer && (
@@ -1300,10 +1426,25 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                 </div>
               )}
 
-              {/* ── b. New customer inline form ── */}
+              {/* ── b. New / Different customer inline form ── */}
               {draft.isNewCustomer && (
-                <div className="bg-amber-500/10 dark:bg-amber-950/30 rounded-xl p-3 border border-amber-500/30">
-                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-2">🆕 New Customer — Fill Details</p>
+                <div className="bg-amber-500/10 dark:bg-amber-950/30 rounded-xl p-3 border border-amber-500/30 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                      🆕 {draft.savedMatchedCustomer ? 'Alag / Naya Customer' : 'New Customer — Fill Details'}
+                    </p>
+                    {draft.savedMatchedCustomer && (
+                      <button
+                        type="button"
+                        onClick={switchBackToSavedCustomer}
+                        className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer transition-colors"
+                      >
+                        ↩ Switch Back to Saved {draft.savedMatchedCustomer.name}
+                        {draft.savedMatchedCustomer.pehchan ? ` (${draft.savedMatchedCustomer.pehchan})` : ''}
+                      </button>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 gap-2">
                     <div className="col-span-2">
                       <label className="text-xs text-slate-600 dark:text-slate-400">Name (नाम) *</label>
@@ -1318,29 +1459,57 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                       <input
                         value={ncPehchan}
                         onChange={e => setNcPehchan(e.target.value)}
-                        placeholder="e.g. Chai wala, Gali No. 4 (optional)"
+                        placeholder="e.g. Gali No. 3, Teacher, or One-Time Walk-in"
                         className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
                       />
                     </div>
-                    <div>
-                      <label className="text-xs text-slate-600 dark:text-slate-400">WhatsApp Phone (optional)</label>
+                    {(requiresNamedCustomer || saveNewToLedger) && (
+                      <>
+                        <div>
+                          <label className="text-xs text-slate-600 dark:text-slate-400">WhatsApp Phone (optional)</label>
+                          <input
+                            value={ncPhone}
+                            onChange={e => setNcPhone(e.target.value)}
+                            placeholder="98765…"
+                            className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-600 dark:text-slate-400">Opening Balance ₹ (optional)</label>
+                          <input
+                            type="number"
+                            value={ncOpenBal}
+                            onChange={e => setNcOpenBal(e.target.value)}
+                            placeholder="0"
+                            className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Save to Bahi-Khata toggle (optional for Cash/UPI Walk-in) */}
+                  <div className="pt-1 border-t border-amber-500/20 space-y-1">
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer select-none">
                       <input
-                        value={ncPhone}
-                        onChange={e => setNcPhone(e.target.value)}
-                        placeholder="98765…"
-                        className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
+                        type="checkbox"
+                        checked={requiresNamedCustomer ? true : saveNewToLedger}
+                        disabled={requiresNamedCustomer}
+                        onChange={e => setSaveNewToLedger(e.target.checked)}
+                        className="w-4 h-4 rounded accent-[#1B7A43] cursor-pointer disabled:cursor-not-allowed"
                       />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-600 dark:text-slate-400">Opening Balance ₹ (optional)</label>
-                      <input
-                        type="number"
-                        value={ncOpenBal}
-                        onChange={e => setNcOpenBal(e.target.value)}
-                        placeholder="0"
-                        className="w-full border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg px-2.5 py-1.5 text-sm bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                      />
-                    </div>
+                      <span>Save as new customer in Bahi-Khata</span>
+                      {requiresNamedCustomer && (
+                        <span className="text-[11px] font-normal text-amber-700 dark:text-amber-300">
+                          (Required for {draft.type === 'WASOOLI' ? 'Wasooli' : 'Udhaar'})
+                        </span>
+                      )}
+                    </label>
+                    {!requiresNamedCustomer && !saveNewToLedger && (
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 pl-6">
+                        Will log as walk-in bill for <strong>{ncName.trim() || 'Customer'} (Walk-in)</strong> without adding to permanent Bahi-Khata.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1597,7 +1766,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                       )}
                     </span>
                   ) : (
-                    <span>{fmt(draft.total)} {draft.mode} Sale{customer ? '' : ' (Walk-in)'} — No credit impact</span>
+                    <span>{fmt(draft.total)} {draft.mode} Sale{customer && !(draft.isNewCustomer && !saveNewToLedger) ? '' : ' (Walk-in)'} — No credit impact</span>
                   )}
                 </div>
               )}

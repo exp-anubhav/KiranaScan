@@ -60,6 +60,7 @@ const SOFT_WASOOLI_WORDS = ['wapas', 'payment', 'diye'];
 const SOFT_WASOOLI_PHRASES = ['paise diye', 'rupaye diye', 'rupaye de diye', 'de diye'];
 
 const SPLIT_WORDS = new Set([',', 'aur', 'and', 'or', 'plus', 'bhi', 'tatha', 'evam', 'fir', 'phir']);
+const NEW_CUSTOMER_PREFIXES = new Set(['naya', 'nayi', 'naye', 'new', 'alag', 'dusra', 'dusri', 'doosra', 'doosri']);
 const CUSTOMER_MARKERS_STRONG = new Set(['ko', 'ne', 'ji']);
 const CUSTOMER_MARKERS_KNOWN = new Set(['ko', 'ne', 'ka', 'ke', 'ki', 'ji']);
 const COMMON_SURNAMES = new Set(['sharma', 'kumar', 'lal', 'devi', 'gupta', 'singh', 'verma', 'yadav', 'tiwari', 'patel', 'joshi', 'mishra', 'jain', 'agarwal']);
@@ -71,6 +72,7 @@ const UNKNOWN_ITEM_STOPWORDS = new Set([
   'khate', 'paise', 'paisa', 'ka', 'ke', 'ki', 'ko', 'ne', 'se', 'mein', 'me', 'par', 'pe',
   'for', 'to', 'naam', 'wale', 'wali', 'wala', 'ek', 'do',
   'aur', 'and', 'or', 'plus', 'bhi', 'tatha', 'evam', 'fir', 'phir',
+  'naya', 'nayi', 'naye', 'new', 'alag', 'dusra', 'dusri', 'doosra', 'doosri',
   'kharida', 'kharidi', 'kharide', 'liya', 'liye', 'diya', 'diye', 'di', 'de', 'dijiye', 'den',
   'le', 'lo', 'likho', 'likh', 'kar', 'karo', 'karen', 'kiya', 'kiye', 'h', 'hai', 'hain',
   'tha', 'thi', 'the',
@@ -224,9 +226,67 @@ function isReservedWord(word, catalogue = []) {
   return false;
 }
 
+function capitalizeNamePart(w) {
+  if (!w) return '';
+  return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
 function detectCustomer(tokens, customers, catalogue) {
   const matches = [];
   const allCustomers = customers || [];
+  const savedFirstNames = new Set(
+    allCustomers
+      .map(c => (c.name || '').trim().toLowerCase().split(/\s+/)[0])
+      .filter(fn => fn && fn.length >= 2)
+  );
+
+  // 0. Check explicit "naya / nayi / new / alag <name>" override (DO NOT match existing customer)
+  for (let i = 0; i < tokens.length - 1; i++) {
+    if (!NEW_CUSTOMER_PREFIXES.has(tokens[i])) continue;
+    const rawCandidate = tokens[i + 1];
+    if (!rawCandidate || !/^[a-z]{2,}$/.test(rawCandidate)) continue;
+    const candidate = rawCandidate.endsWith('ji') && rawCandidate.length > 3
+      ? rawCandidate.slice(0, -2)
+      : rawCandidate;
+    if (isReservedWord(candidate, catalogue)) continue;
+
+    let endIdx = i + 1;
+    const afterCandidate = tokens[endIdx + 1] || '';
+    const afterCandidate2 = tokens[endIdx + 2] || '';
+    const hasSurname = Boolean(afterCandidate && COMMON_SURNAMES.has(afterCandidate));
+    if (hasSurname) {
+      endIdx = i + 2;
+    }
+
+    const postToken = tokens[endIdx + 1] || '';
+    const postToken2 = tokens[endIdx + 2] || '';
+    const hasStrongMarker =
+      CUSTOMER_MARKERS_STRONG.has(postToken) ||
+      (postToken === 'ke' && (postToken2 === 'khate' || postToken2 === 'liye')) ||
+      (postToken === 'ka' && postToken2 === 'khata') ||
+      (postToken === 'ki' && postToken2 === 'udhari');
+
+    const prevToken = i > 0 ? tokens[i - 1] : '';
+    const prevIsQty = getStrictNumber(prevToken) !== null;
+    const isSavedCustomerName = savedFirstNames.has(candidate);
+    const validLeadOverride =
+      !prevIsQty &&
+      (i === 0 || prevToken === 'for' || prevToken === 'to' || SPLIT_WORDS.has(prevToken)) &&
+      (hasStrongMarker || isSavedCustomerName || getStrictNumber(postToken) !== null || UNIT_ALIASES[postToken]);
+
+    if (isSavedCustomerName || hasStrongMarker || validLeadOverride) {
+      const displayName = hasSurname
+        ? `${capitalizeNamePart(candidate)} ${capitalizeNamePart(afterCandidate)}`
+        : capitalizeNamePart(candidate);
+      return {
+        customer: { id: null, name: displayName, isNew: true, spanStart: i, spanEnd: endIdx },
+        ambiguous: false,
+        candidates: [],
+        matchedByFirstNameOnly: false,
+        spokenRawName: displayName,
+      };
+    }
+  }
 
   // 1. Try full name exact token sequence match
   for (const cust of allCustomers) {
@@ -250,7 +310,13 @@ function detectCustomer(tokens, customers, catalogue) {
     }
   }
   if (matches.length === 1) {
-    return { customer: matches[0], ambiguous: false, candidates: matches };
+    return {
+      customer: matches[0],
+      ambiguous: false,
+      candidates: matches,
+      matchedByFirstNameOnly: false,
+      spokenRawName: matches[0].name,
+    };
   }
 
   // 2. Try first name exact token match
@@ -285,11 +351,25 @@ function detectCustomer(tokens, customers, catalogue) {
   }
 
   if (matches.length === 1) {
-    return { customer: matches[0], ambiguous: false, candidates: matches };
+    const rawFirst = capitalizeNamePart(matches[0].matchedName || matches[0].name.split(/\s+/)[0]);
+    return {
+      customer: matches[0],
+      ambiguous: false,
+      candidates: matches,
+      matchedByFirstNameOnly: true,
+      spokenRawName: rawFirst,
+    };
   }
   if (matches.length > 1) {
     const sorted = [...matches].sort((a, b) => (b.balance || 0) - (a.balance || 0));
-    return { customer: sorted[0], ambiguous: true, candidates: sorted };
+    const rawFirst = capitalizeNamePart(sorted[0].matchedName || sorted[0].name.split(/\s+/)[0]);
+    return {
+      customer: sorted[0],
+      ambiguous: true,
+      candidates: sorted,
+      matchedByFirstNameOnly: true,
+      spokenRawName: rawFirst,
+    };
   }
 
   // 3. Detect unknown / new customer cleanly (never capture items/numbers!)
@@ -308,18 +388,20 @@ function detectCustomer(tokens, customers, catalogue) {
     if (isStrongMarker) {
       // Check optional prefix name (e.g. "Amit Sharma ko")
       let startIdx = i;
-      let fullName = t.charAt(0).toUpperCase() + t.slice(1);
+      let fullName = capitalizeNamePart(t);
       if (i > 0 && COMMON_SURNAMES.has(t)) {
         const prevWord = tokens[i - 1];
         if (/^[a-z]+$/.test(prevWord) && !isReservedWord(prevWord, catalogue)) {
           startIdx = i - 1;
-          fullName = `${prevWord.charAt(0).toUpperCase() + prevWord.slice(1)} ${fullName}`;
+          fullName = `${capitalizeNamePart(prevWord)} ${fullName}`;
         }
       }
       return {
         customer: { id: null, name: fullName, isNew: true, spanStart: startIdx, spanEnd: i },
         ambiguous: false,
         candidates: [],
+        matchedByFirstNameOnly: false,
+        spokenRawName: fullName,
       };
     }
   }
@@ -328,16 +410,24 @@ function detectCustomer(tokens, customers, catalogue) {
   for (let i = 0; i < tokens.length - 1; i++) {
     const next = tokens[i + 1];
     if ((tokens[i] === 'for' || tokens[i] === 'to') && /^[a-z]+$/.test(next) && !isReservedWord(next, catalogue)) {
-      const capitalized = next.charAt(0).toUpperCase() + next.slice(1);
+      const capitalized = capitalizeNamePart(next);
       return {
         customer: { id: null, name: capitalized, isNew: true, spanStart: i + 1, spanEnd: i + 1 },
         ambiguous: false,
         candidates: [],
+        matchedByFirstNameOnly: false,
+        spokenRawName: capitalized,
       };
     }
   }
 
-  return { customer: null, ambiguous: false, candidates: [] };
+  return {
+    customer: null,
+    ambiguous: false,
+    candidates: [],
+    matchedByFirstNameOnly: false,
+    spokenRawName: null,
+  };
 }
 
 function removeCustomerTokens(tokens, customer) {
@@ -1317,6 +1407,10 @@ export function parseHinglishTransaction(transcript, catalogue, customers) {
     result = {
       type: 'WASOOLI',
       customer: customerResult.customer,
+      customerId: customerResult.customer?.id || null,
+      customerName: customerResult.customer?.name || null,
+      matchedByFirstNameOnly: customerResult.matchedByFirstNameOnly,
+      spokenRawName: customerResult.spokenRawName,
       customerAmbiguous: customerResult.ambiguous,
       customerCandidates: customerResult.candidates,
       isNewCustomer: customerResult.customer?.isNew || false,
@@ -1334,6 +1428,10 @@ export function parseHinglishTransaction(transcript, catalogue, customers) {
     result = {
       type: 'SALE',
       customer: customerResult.customer,
+      customerId: customerResult.customer?.id || null,
+      customerName: customerResult.customer?.name || null,
+      matchedByFirstNameOnly: customerResult.matchedByFirstNameOnly,
+      spokenRawName: customerResult.spokenRawName,
       customerAmbiguous: customerResult.ambiguous,
       customerCandidates: customerResult.candidates,
       isNewCustomer: customerResult.customer?.isNew || false,
