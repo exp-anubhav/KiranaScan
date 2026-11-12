@@ -578,13 +578,18 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
     });
   };
 
-  const updateItemPrice = (idx, price) => {
+  const updateItemPrice = (idx, price, variantIdx = null) => {
     markEdited();
     setDraft(prev => {
       if (!prev) return prev;
       const items = [...prev.items];
-      const it = { ...items[idx], unitPrice: price, needsPriceSelection: false };
-      it.total = Math.round(it.qty * it.unitPrice * 100) / 100;
+      const it = {
+        ...items[idx],
+        unitPrice: price,
+        needsPriceSelection: false,
+        selectedVariantIndex: variantIdx,
+      };
+      it.total = Math.round(it.qty * (it.unitPrice || 0) * 100) / 100;
       items[idx] = it;
       return { ...prev, items, total: items.reduce((s, i) => s + i.total, 0) };
     });
@@ -1375,7 +1380,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               {needsClarification && (
                 <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 rounded-xl px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
                   <AlertTriangle size={14} className="text-amber-600 shrink-0" />
-                  <span>⚠️ Please resolve highlighted items before confirming</span>
+                  <span>Please resolve highlighted items before confirming</span>
                 </div>
               )}
 
@@ -1450,52 +1455,70 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                       </div>
 
                       {/* Price selection for multi-brand */}
-                      {item.needsPriceSelection && item.isMultiBrand && item.variants && (
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                          {item.variants.map((v, vi) => (
-                            <button
-                              key={vi}
-                              onClick={() => updateItemPrice(idx, v.price)}
-                              className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
-                                vi === item.suggestedVariantIndex
-                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 border-[#1B7A43] text-[#1B7A43] dark:text-emerald-300 font-bold'
-                                  : 'bg-white dark:bg-[#16202A] border-[#E2D9C8] dark:border-[#2A3644] text-slate-800 dark:text-slate-200 hover:border-[#1B7A43]'
-                              }`}
-                            >
-                              {v.label}
-                            </button>
-                          ))}
-                          {/* Custom price chip */}
-                          {!showCustomPrice[idx] ? (
-                            <button
-                              onClick={() => setShowCustomPrice(p => ({ ...p, [idx]: true }))}
-                              className="text-xs px-2.5 py-1 rounded-full border border-dashed border-stone-400 text-slate-600 dark:text-slate-400 hover:border-[#1B7A43] hover:text-[#1B7A43] transition-colors"
-                            >
-                              Custom ₹
-                            </button>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number"
-                                autoFocus
-                                value={customPrices[idx] || ''}
-                                onChange={e => setCustomPrices(p => ({ ...p, [idx]: e.target.value }))}
-                                placeholder="₹"
-                                className="w-16 text-xs border border-[#1B7A43] rounded-lg px-2 py-1 bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none"
-                              />
+                      {item.isMultiBrand && item.variants && (() => {
+                        const selectedIdx = item.needsPriceSelection
+                          ? -1
+                          : (item.selectedVariantIndex ?? item.variants.findIndex(v => v.price === item.unitPrice));
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            {item.needsPriceSelection && (
+                              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 w-full">
+                                Tap to select price:
+                              </span>
+                            )}
+                            {item.variants.map((v, vi) => {
+                              const isSelected = !item.needsPriceSelection && vi === selectedIdx;
+                              return (
+                                <button
+                                  key={vi}
+                                  type="button"
+                                  onClick={() => updateItemPrice(idx, v.price, vi)}
+                                  className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                                    item.needsPriceSelection
+                                      ? 'bg-white dark:bg-slate-800 border-amber-400 dark:border-amber-600 text-slate-800 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                                      : isSelected
+                                        ? 'bg-[#1B7A43] text-white border-[#1B7A43] font-bold shadow-xs'
+                                        : 'bg-white dark:bg-[#16202A] border-[#E2D9C8] dark:border-[#2A3644] text-slate-700 dark:text-slate-300 hover:border-[#1B7A43]'
+                                  }`}
+                                >
+                                  {v.label}
+                                </button>
+                              );
+                            })}
+                            {/* Custom price chip */}
+                            {!showCustomPrice[idx] ? (
                               <button
-                                onClick={() => {
-                                  updateItemPrice(idx, parseFloat(customPrices[idx]) || 0);
-                                  setShowCustomPrice(p => ({ ...p, [idx]: false }));
-                                }}
-                                className="text-[#1B7A43] hover:text-[#156336]"
+                                type="button"
+                                onClick={() => setShowCustomPrice(p => ({ ...p, [idx]: true }))}
+                                className="text-xs px-2.5 py-1 rounded-full border border-dashed border-stone-400 text-slate-600 dark:text-slate-400 hover:border-[#1B7A43] hover:text-[#1B7A43] transition-colors"
                               >
-                                <Check size={14} />
+                                Custom ₹
                               </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  autoFocus
+                                  value={customPrices[idx] || ''}
+                                  onChange={e => setCustomPrices(p => ({ ...p, [idx]: e.target.value }))}
+                                  placeholder="₹"
+                                  className="w-16 text-xs border border-[#1B7A43] rounded-lg px-2 py-1 bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    updateItemPrice(idx, parseFloat(customPrices[idx]) || 0, null);
+                                    setShowCustomPrice(p => ({ ...p, [idx]: false }));
+                                  }}
+                                  className="text-[#1B7A43] hover:text-[#156336]"
+                                >
+                                  <Check size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Editable price for non multi-brand */}
                       {!item.isMultiBrand && !item.isManual && (
@@ -1517,10 +1540,20 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                           <span className="text-xs text-slate-600 dark:text-slate-400">Price: ₹</span>
                           <input
                             type="number"
-                            value={item.unitPrice || ''}
+                            placeholder={item.needsPriceSelection ? 'Enter ₹' : '0'}
+                            value={item.unitPrice ?? ''}
                             onChange={e => updateItemPrice(idx, parseFloat(e.target.value) || 0)}
-                            className="w-20 text-xs border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                            className={`w-24 text-xs border rounded-lg px-2 py-1 bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43] ${
+                              item.needsPriceSelection
+                                ? 'border-amber-400 dark:border-amber-600'
+                                : 'border-[#E2D9C8] dark:border-[#2A3644]'
+                            }`}
                           />
+                          {item.needsPriceSelection && (
+                            <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                              Needs price
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>

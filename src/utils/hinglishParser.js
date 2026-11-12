@@ -59,7 +59,7 @@ const STRONG_WASOOLI_PHRASES = [
 const SOFT_WASOOLI_WORDS = ['wapas', 'payment', 'diye'];
 const SOFT_WASOOLI_PHRASES = ['paise diye', 'rupaye diye', 'rupaye de diye', 'de diye'];
 
-const SPLIT_WORDS = new Set([',', 'aur', 'and', 'plus', 'bhi', 'tatha', 'evam']);
+const SPLIT_WORDS = new Set([',', 'aur', 'and', 'or', 'plus', 'bhi', 'tatha', 'evam', 'fir', 'phir']);
 const CUSTOMER_MARKERS_STRONG = new Set(['ko', 'ne', 'ji']);
 const CUSTOMER_MARKERS_KNOWN = new Set(['ko', 'ne', 'ka', 'ke', 'ki', 'ji']);
 const COMMON_SURNAMES = new Set(['sharma', 'kumar', 'lal', 'devi', 'gupta', 'singh', 'verma', 'yadav', 'tiwari', 'patel', 'joshi', 'mishra', 'jain', 'agarwal']);
@@ -70,7 +70,34 @@ const UNKNOWN_ITEM_STOPWORDS = new Set([
   'apna', 'apni', 'total', 'bill', 'hisab', 'dukan', 'grahak', 'customer', 'bahi', 'khata',
   'khate', 'paise', 'paisa', 'ka', 'ke', 'ki', 'ko', 'ne', 'se', 'mein', 'me', 'par', 'pe',
   'for', 'to', 'naam', 'wale', 'wali', 'wala', 'ek', 'do',
+  'aur', 'and', 'or', 'plus', 'bhi', 'tatha', 'evam', 'fir', 'phir',
+  'kharida', 'kharidi', 'kharide', 'liya', 'liye', 'diya', 'diye', 'di', 'de', 'dijiye', 'den',
+  'le', 'lo', 'likho', 'likh', 'kar', 'karo', 'karen', 'kiya', 'kiye', 'h', 'hai', 'hain',
+  'tha', 'thi', 'the',
 ]);
+
+function normalizeFuzzyWord(word) {
+  if (!word) return '';
+  let w = String(word).toLowerCase().trim();
+  if (!/^[a-z]+$/.test(w)) return w;
+  if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) {
+    w = w.slice(0, -1);
+  }
+  if (w.length > 3 && w.endsWith('ie')) {
+    w = `${w.slice(0, -2)}i`;
+  }
+  w = w.replace(/(.)\1+/g, '$1');
+  return w;
+}
+
+function fuzzyMatchAlias(word, alias) {
+  if (!word || !alias) return false;
+  const w = String(word).toLowerCase().trim();
+  const a = String(alias).toLowerCase().trim();
+  if (w === a) return true;
+  if (!/^[a-z]{3,}$/.test(w) || !/^[a-z]{3,}$/.test(a)) return false;
+  return normalizeFuzzyWord(w) === normalizeFuzzyWord(a);
+}
 
 function normalizeText(text) {
   const transliterated = hindiToHinglish(text || '');
@@ -156,27 +183,45 @@ function isReservedWord(word, catalogue = []) {
     'google', 'pay', 'for', 'to', 'and', 'plus', 'or',
   ]);
 
+  const itemWords = new Set();
+
   for (const ba of BRAND_ALIASES) {
-    ba.brand.toLowerCase().split(/\s+/).forEach(w => w && reserved.add(w));
+    ba.brand.toLowerCase().split(/\s+/).forEach(w => {
+      if (w) { reserved.add(w); itemWords.add(w); }
+    });
     for (const al of (ba.aliases || [])) {
-      al.toLowerCase().split(/\s+/).forEach(w => w && reserved.add(w));
+      al.toLowerCase().split(/\s+/).forEach(w => {
+        if (w) { reserved.add(w); itemWords.add(w); }
+      });
     }
   }
 
   for (const item of (catalogue || [])) {
     for (const al of (item.aliases || [])) {
-      al.toLowerCase().split(/\s+/).forEach(w => w && reserved.add(w));
+      al.toLowerCase().split(/\s+/).forEach(w => {
+        if (w) { reserved.add(w); itemWords.add(w); }
+      });
     }
     (item.name || '').toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).forEach(w => {
-      if (w.length >= 2) reserved.add(w);
+      if (w.length >= 2) { reserved.add(w); itemWords.add(w); }
     });
     for (const v of (item.variants || [])) {
       const b = (v.brand || v.name || v.label || '').toLowerCase().replace(/[^a-z\s]/g, ' ');
-      b.split(/\s+/).forEach(w => w.length >= 2 && reserved.add(w));
+      b.split(/\s+/).forEach(w => {
+        if (w.length >= 2) { reserved.add(w); itemWords.add(w); }
+      });
     }
   }
 
-  return reserved.has(word);
+  if (reserved.has(word)) return true;
+
+  if (/^[a-z]{3,}$/.test(word)) {
+    for (const iw of itemWords) {
+      if (fuzzyMatchAlias(word, iw)) return true;
+    }
+  }
+
+  return false;
 }
 
 function detectCustomer(tokens, customers, catalogue) {
@@ -470,23 +515,47 @@ function buildPhraseMatchers(catalogue) {
   return entries;
 }
 
+function isPlainTokenForFuzzy(token) {
+  if (!token) return false;
+  if (getStrictNumber(token) !== null) return false;
+  if (UNIT_ALIASES[token]) return false;
+  if (PRICE_MARKERS.includes(token) || CURRENCY_WORDS.has(token)) return false;
+  if (UNKNOWN_ITEM_STOPWORDS.has(token)) return false;
+  return true;
+}
+
+function findItemMatchAt(segmentTokens, i, matchers) {
+  // Pass 1: Exact token sequence match
+  for (const m of matchers) {
+    const len = m.parts.length;
+    if (i + len > segmentTokens.length) continue;
+    let ok = true;
+    for (let j = 0; j < len; j++) {
+      if (segmentTokens[i + j] !== m.parts[j]) { ok = false; break; }
+    }
+    if (ok) return m;
+  }
+
+  // Pass 2: Fuzzy token match (handles plurals, double letters, -ie/-i typos like "maggie", "aatta", "biskut")
+  for (const m of matchers) {
+    const len = m.parts.length;
+    if (i + len > segmentTokens.length) continue;
+    if (len === 1 && !isPlainTokenForFuzzy(segmentTokens[i])) continue;
+    let ok = true;
+    for (let j = 0; j < len; j++) {
+      if (!fuzzyMatchAlias(segmentTokens[i + j], m.parts[j])) { ok = false; break; }
+    }
+    if (ok) return m;
+  }
+
+  return null;
+}
+
 function findItemMatchesInSegment(segmentTokens, matchers) {
   const rawMatches = [];
   let i = 0;
   while (i < segmentTokens.length) {
-    let found = null;
-    for (const m of matchers) {
-      const len = m.parts.length;
-      if (i + len > segmentTokens.length) continue;
-      let ok = true;
-      for (let j = 0; j < len; j++) {
-        if (segmentTokens[i + j] !== m.parts[j]) { ok = false; break; }
-      }
-      if (ok) {
-        found = m;
-        break;
-      }
-    }
+    const found = findItemMatchAt(segmentTokens, i, matchers);
     if (found) {
       rawMatches.push({
         start: i,
@@ -526,6 +595,268 @@ function findItemMatchesInSegment(segmentTokens, matchers) {
   return merged;
 }
 
+function normalizeConnectorUnits(seg) {
+  const out = [];
+  for (let i = 0; i < seg.length; i++) {
+    const t = seg[i];
+    if ((t === 'ka' || t === 'ke' || t === 'ki') && i > 0 && i + 1 < seg.length) {
+      const prev = seg[i - 1];
+      const next = seg[i + 1];
+      const isNextExplicitUnit = Boolean(UNIT_ALIASES[next] && !SINGLE_CHAR_UNITS.has(next));
+      const isPrevPriceNum =
+        getStrictNumber(prev) !== null ||
+        CURRENCY_WORDS.has(prev) ||
+        PRICE_MARKERS.includes(prev);
+      if (isNextExplicitUnit && !isPrevPriceNum) {
+        continue;
+      }
+    }
+    out.push(t);
+  }
+  return out;
+}
+
+function readPriceAt(arr, i) {
+  const t = arr[i];
+  if (!t) return null;
+
+  if (t === '₹' || t === 'rs') {
+    let priceEnd = i;
+    if (i + 2 < arr.length) {
+      const comp = wordsToNumber([arr[i + 1], arr[i + 2]]);
+      if (comp !== null && comp > 0) priceEnd = i + 2;
+    }
+    if (priceEnd === i && i + 1 < arr.length) {
+      const single = wordsToNumber([arr[i + 1]]);
+      if (single !== null && single > 0) priceEnd = i + 1;
+    }
+    if (priceEnd > i) {
+      let hasConnector = false;
+      if (priceEnd + 1 < arr.length && PRICE_MARKERS.includes(arr[priceEnd + 1]) && !getUnit(arr[priceEnd + 1], arr[priceEnd])) {
+        const m = arr[priceEnd + 1];
+        hasConnector = (m === 'ka' || m === 'ke' || m === 'ki' || m === 'wala' || m === 'wali' || m === 'wale');
+        priceEnd++;
+      }
+      return { len: priceEnd - i + 1, hasConnector, isCurrency: true };
+    }
+  }
+
+  if (i + 2 < arr.length) {
+    const comp = wordsToNumber([t, arr[i + 1]]);
+    const afterComp = arr[i + 2];
+    if (comp !== null && comp > 0 && PRICE_MARKERS.includes(afterComp) && !getUnit(afterComp, arr[i + 1])) {
+      let len = 3;
+      let hasConnector = (afterComp === 'ka' || afterComp === 'ke' || afterComp === 'ki' || afterComp === 'wala' || afterComp === 'wali' || afterComp === 'wale');
+      if (i + 3 < arr.length && ['ka', 'ke', 'ki', 'wala', 'wali', 'wale'].includes(arr[i + 3])) {
+        len = 4;
+        hasConnector = true;
+      }
+      return { len, hasConnector, isCurrency: CURRENCY_WORDS.has(afterComp) };
+    }
+  }
+
+  const num = wordsToNumber([t]);
+  if (num !== null && num > 0 && i + 1 < arr.length) {
+    const next = arr[i + 1];
+    if (PRICE_MARKERS.includes(next) && !getUnit(next, t)) {
+      let len = 2;
+      let hasConnector = (next === 'ka' || next === 'ke' || next === 'ki' || next === 'wala' || next === 'wali' || next === 'wale');
+      if (CURRENCY_WORDS.has(next) && i + 2 < arr.length && ['ka', 'ke', 'ki', 'wala', 'wali', 'wale'].includes(arr[i + 2])) {
+        len = 3;
+        hasConnector = true;
+      }
+      return { len, hasConnector, isCurrency: CURRENCY_WORDS.has(next) };
+    }
+  }
+
+  return null;
+}
+
+function readQtyAt(arr, i) {
+  if (i + 1 < arr.length) {
+    const comp = wordsToNumber([arr[i], arr[i + 1]]);
+    if (comp !== null && comp > 0) {
+      const u = i + 2 < arr.length ? getUnit(arr[i + 2], arr[i + 1]) : null;
+      return { qty: comp, unit: u, len: u ? 3 : 2 };
+    }
+  }
+  const single = wordsToNumber([arr[i]]);
+  if (single !== null && single > 0) {
+    const u = i + 1 < arr.length ? getUnit(arr[i + 1], arr[i]) : null;
+    return { qty: single, unit: u, len: u ? 2 : 1 };
+  }
+  return null;
+}
+
+function isItemNounStart(arr, i, matchers) {
+  if (i >= arr.length) return { isItem: false, len: 0 };
+  const m = findItemMatchAt(arr, i, matchers);
+  if (m) return { isItem: true, len: m.parts.length };
+  const t = arr[i];
+  if (
+    /^[a-z]{2,}$/.test(t) &&
+    getStrictNumber(t) === null &&
+    !UNIT_ALIASES[t] &&
+    !PRICE_MARKERS.includes(t) &&
+    !CURRENCY_WORDS.has(t) &&
+    !UNKNOWN_ITEM_STOPWORDS.has(t)
+  ) {
+    return { isItem: true, len: 1 };
+  }
+  return { isItem: false, len: 0 };
+}
+
+function nextItemHasOwnModifier(arr, afterIdx, matchers) {
+  let k = afterIdx;
+  if (k >= arr.length) return false;
+  const itemInfo = isItemNounStart(arr, k, matchers);
+  if (!itemInfo.isItem) return false;
+  k += itemInfo.len;
+  // Allow same-item connector words like "haldiram ki bhujia" / "parle g"
+  while (k < arr.length && (arr[k] === 'ka' || arr[k] === 'ke' || arr[k] === 'ki')) {
+    const nextInfo = isItemNounStart(arr, k + 1, matchers);
+    if (!nextInfo.isItem) break;
+    k += 1 + nextInfo.len;
+  }
+  if (k >= arr.length) return false;
+  return Boolean(readPriceAt(arr, k) || readQtyAt(arr, k));
+}
+
+function splitRunOnSegment(seg, matchers) {
+  const tokens = normalizeConnectorUnits(seg);
+  if (tokens.length <= 1) return [tokens];
+
+  const startsWithItem =
+    !readPriceAt(tokens, 0) &&
+    !readQtyAt(tokens, 0) &&
+    isItemNounStart(tokens, 0, matchers).isItem;
+
+  const segments = [];
+  let cur = [];
+  let seenItem = false;
+  let seenPreMod = false;
+  let seenPostQty = false;
+  let lastPostUnit = null;
+  let seenPrice = false;
+
+  const flush = () => {
+    if (cur.length > 0) segments.push(cur);
+    cur = [];
+    seenItem = false;
+    seenPreMod = false;
+    seenPostQty = false;
+    lastPostUnit = null;
+    seenPrice = false;
+  };
+
+  let i = 0;
+  while (i < tokens.length) {
+    const price = readPriceAt(tokens, i);
+    if (price) {
+      const afterIdx = i + price.len;
+      const introducesNextItem =
+        price.hasConnector &&
+        afterIdx < tokens.length &&
+        !readQtyAt(tokens, afterIdx) &&
+        !readPriceAt(tokens, afterIdx) &&
+        isItemNounStart(tokens, afterIdx, matchers).isItem;
+
+      if (seenItem && (seenPrice || introducesNextItem)) {
+        flush();
+      }
+      for (let k = 0; k < price.len; k++) cur.push(tokens[i + k]);
+      seenPrice = true;
+      if (!seenItem) seenPreMod = true;
+      i += price.len;
+      continue;
+    }
+
+    const qtyObj = readQtyAt(tokens, i);
+    if (qtyObj) {
+      if (seenItem) {
+        const isMixedPostUnit =
+          !seenPreMod &&
+          seenPostQty &&
+          ((lastPostUnit === 'kg' && qtyObj.unit === 'gm') || (lastPostUnit === 'L' && qtyObj.unit === 'ml'));
+
+        if (!isMixedPostUnit) {
+          if (seenPreMod || seenPostQty) {
+            flush();
+          } else {
+            const afterIdx = i + qtyObj.len;
+            const keepAsPostMod =
+              afterIdx >= tokens.length ||
+              Boolean(readPriceAt(tokens, afterIdx) || readQtyAt(tokens, afterIdx)) ||
+              (startsWithItem && nextItemHasOwnModifier(tokens, afterIdx, matchers));
+            if (!keepAsPostMod) {
+              flush();
+            }
+          }
+        }
+      }
+      for (let k = 0; k < qtyObj.len; k++) cur.push(tokens[i + k]);
+      if (seenItem) {
+        seenPostQty = true;
+        if (qtyObj.unit) lastPostUnit = qtyObj.unit;
+      } else {
+        seenPreMod = true;
+      }
+      i += qtyObj.len;
+      continue;
+    }
+
+    const loneUnit = getUnit(tokens[i], tokens[i - 1]);
+    if (loneUnit) {
+      cur.push(tokens[i]);
+      if (seenItem) {
+        seenPostQty = true;
+        lastPostUnit = loneUnit;
+      } else {
+        seenPreMod = true;
+      }
+      i++;
+      continue;
+    }
+
+    const knownMatch = findItemMatchAt(tokens, i, matchers);
+    if (knownMatch) {
+      const mLen = knownMatch.parts.length;
+      if (seenItem && (seenPostQty || seenPrice)) {
+        flush();
+      }
+      for (let k = 0; k < mLen; k++) cur.push(tokens[i + k]);
+      seenItem = true;
+      i += mLen;
+      continue;
+    }
+
+    const t = tokens[i];
+    if (
+      t === 'ka' ||
+      t === 'ke' ||
+      t === 'ki' ||
+      UNKNOWN_ITEM_STOPWORDS.has(t) ||
+      CURRENCY_WORDS.has(t) ||
+      PRICE_MARKERS.includes(t)
+    ) {
+      cur.push(t);
+      i++;
+      continue;
+    }
+
+    // Potential unknown item noun (e.g. "ball", "bat", "notebook")
+    if (seenItem && (seenPostQty || seenPrice)) {
+      flush();
+    }
+    cur.push(t);
+    seenItem = true;
+    i++;
+  }
+
+  flush();
+  return segments;
+}
+
 function hasModifier(tokens, { isTrailing = false } = {}) {
   if (!tokens || tokens.length === 0) return false;
   for (let i = 0; i < tokens.length; i++) {
@@ -546,6 +877,9 @@ function extractModifiersFromSlice(arr, state, { ignoreTrailingDo = false } = {}
     ignoreTrailingDo && arr.length > 0 && arr[arr.length - 1] === 'do'
       ? arr.length - 1
       : arr.length;
+  if (effectiveLen < arr.length) {
+    consumed.add(arr.length - 1);
+  }
 
   // Pass 1: Detect explicit price overrides ("₹40", "40 ka", "40 wala", "40 rupaye")
   for (let i = 0; i < effectiveLen; i++) {
@@ -621,11 +955,17 @@ function extractModifiersFromSlice(arr, state, { ignoreTrailingDo = false } = {}
     if (i + 1 < effectiveLen && !consumed.has(i + 1)) {
       const comp = wordsToNumber([arr[i], arr[i + 1]]);
       if (comp !== null && comp > 0) {
+        consumed.add(i);
+        consumed.add(i + 1);
         let u = null;
         if (i + 2 < effectiveLen && !consumed.has(i + 2)) {
           u = getUnit(arr[i + 2], arr[i + 1]);
-          if (u) i += 2;
-          else i += 1;
+          if (u) {
+            consumed.add(i + 2);
+            i += 2;
+          } else {
+            i += 1;
+          }
         } else {
           i += 1;
         }
@@ -636,10 +976,14 @@ function extractModifiersFromSlice(arr, state, { ignoreTrailingDo = false } = {}
 
     const num = wordsToNumber([arr[i]]);
     if (num !== null && num > 0) {
+      consumed.add(i);
       let u = null;
       if (i + 1 < effectiveLen && !consumed.has(i + 1)) {
         u = getUnit(arr[i + 1], arr[i]);
-        if (u) i++;
+        if (u) {
+          consumed.add(i + 1);
+          i++;
+        }
       }
       qtyEntries.push({ qty: num, unit: u });
       continue;
@@ -648,6 +992,7 @@ function extractModifiersFromSlice(arr, state, { ignoreTrailingDo = false } = {}
     const loneUnit = getUnit(arr[i], arr[i - 1]);
     if (loneUnit && !state.unit) {
       state.unit = loneUnit;
+      consumed.add(i);
     }
   }
 
@@ -661,13 +1006,15 @@ function extractModifiersFromSlice(arr, state, { ignoreTrailingDo = false } = {}
     state.qty = qtyEntries[0].qty;
     if (qtyEntries[0].unit) state.unit = qtyEntries[0].unit;
   }
+
+  return consumed;
 }
 
 function buildParsedItem(match, prefixTokens, suffixTokens, { isLastSegment = false } = {}) {
   const modState = { qty: null, unit: null, unitPrice: null, isPriceOverride: false };
 
-  extractModifiersFromSlice(prefixTokens, modState, { ignoreTrailingDo: false });
-  extractModifiersFromSlice(suffixTokens, modState, {
+  const prefixConsumed = extractModifiersFromSlice(prefixTokens, modState, { ignoreTrailingDo: false });
+  const suffixConsumed = extractModifiersFromSlice(suffixTokens, modState, {
     ignoreTrailingDo: isLastSegment || (modState.qty !== null || modState.isPriceOverride),
   });
 
@@ -705,17 +1052,45 @@ function buildParsedItem(match, prefixTokens, suffixTokens, { isLastSegment = fa
   const suggestedIdx = match.item.isMultiBrand ? defaultMultiIdx : null;
 
   return {
-    name: match.isBrand && match.brandName ? match.brandName : match.item.name,
-    catalogueId: match.item.id,
-    qty: Math.round(qty * 1000) / 1000,
-    unit,
-    unitPrice,
-    total: Math.round(qty * unitPrice * 100) / 100,
-    needsPriceSelection: needsPriceSelection && !modState.isPriceOverride,
-    isMultiBrand: match.item.isMultiBrand || false,
-    variants: match.item.variants || null,
-    suggestedVariantIndex: suggestedIdx,
+    item: {
+      name: match.isBrand && match.brandName ? match.brandName : match.item.name,
+      catalogueId: match.item.id,
+      qty: Math.round(qty * 1000) / 1000,
+      unit,
+      unitPrice,
+      total: Math.round(qty * unitPrice * 100) / 100,
+      needsPriceSelection: needsPriceSelection && !modState.isPriceOverride,
+      isMultiBrand: match.item.isMultiBrand || false,
+      variants: match.item.variants || null,
+      suggestedVariantIndex: suggestedIdx,
+    },
+    prefixConsumed,
+    suffixConsumed,
   };
+}
+
+function collectResidualItems(sliceTokens, consumedSet, isLastSegment) {
+  if (!sliceTokens || sliceTokens.length === 0) return [];
+  const runs = [];
+  let run = [];
+  for (let i = 0; i < sliceTokens.length; i++) {
+    if (consumedSet && consumedSet.has(i)) {
+      if (run.length > 0) {
+        runs.push(run);
+        run = [];
+      }
+    } else {
+      run.push(sliceTokens[i]);
+    }
+  }
+  if (run.length > 0) runs.push(run);
+
+  const residualItems = [];
+  for (let rIdx = 0; rIdx < runs.length; rIdx++) {
+    const manual = tryBuildUnknownItem(runs[rIdx], true, isLastSegment && rIdx === runs.length - 1);
+    if (manual) residualItems.push(manual);
+  }
+  return residualItems;
 }
 
 function tryBuildUnknownItem(segmentTokens, isMultiClause, isLastSegment) {
@@ -750,7 +1125,8 @@ function tryBuildUnknownItem(segmentTokens, isMultiClause, isLastSegment) {
     unit = 'kg';
   }
 
-  const unitPrice = modState.unitPrice || 0;
+  const unitPrice = modState.unitPrice !== null ? modState.unitPrice : null;
+  const total = unitPrice !== null ? Math.round(finalQty * unitPrice * 100) / 100 : 0;
   const displayName = nounWords
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
@@ -761,8 +1137,8 @@ function tryBuildUnknownItem(segmentTokens, isMultiClause, isLastSegment) {
     qty: Math.round(finalQty * 1000) / 1000,
     unit,
     unitPrice,
-    total: Math.round(finalQty * unitPrice * 100) / 100,
-    needsPriceSelection: unitPrice === 0,
+    total,
+    needsPriceSelection: unitPrice === null || unitPrice === 0,
     isMultiBrand: false,
     variants: null,
     suggestedVariantIndex: null,
@@ -773,7 +1149,7 @@ function tryBuildUnknownItem(segmentTokens, isMultiClause, isLastSegment) {
 function parseItemClauses(tokens, catalogue) {
   const matchers = buildPhraseMatchers(catalogue);
 
-  // Split by explicit list/conjunction markers: ',', 'aur', 'and', 'plus', 'bhi', 'tatha', 'evam'
+  // Split by explicit list/conjunction markers: ',', 'aur', 'and', 'or', 'plus', 'bhi', 'tatha', 'evam', 'fir', 'phir'
   const coarseSegments = [];
   let current = [];
   for (const t of tokens) {
@@ -786,14 +1162,23 @@ function parseItemClauses(tokens, catalogue) {
   }
   if (current.length > 0) coarseSegments.push(current);
 
+  // Pre-segment run-on clauses at quantity/number boundaries & "<item> ke/ka/ki <unit>"
+  const fineSegments = [];
+  for (const seg of coarseSegments) {
+    const subSegs = splitRunOnSegment(seg, matchers);
+    for (const s of subSegs) {
+      if (s.length > 0) fineSegments.push(s);
+    }
+  }
+
   const items = [];
-  for (let segIdx = 0; segIdx < coarseSegments.length; segIdx++) {
-    const seg = coarseSegments[segIdx];
-    const isLastSegment = segIdx === coarseSegments.length - 1;
+  for (let segIdx = 0; segIdx < fineSegments.length; segIdx++) {
+    const seg = fineSegments[segIdx];
+    const isLastSegment = segIdx === fineSegments.length - 1;
     const matches = findItemMatchesInSegment(seg, matchers);
 
     if (matches.length === 0) {
-      const manualItem = tryBuildUnknownItem(seg, coarseSegments.length > 1, isLastSegment);
+      const manualItem = tryBuildUnknownItem(seg, fineSegments.length > 1, isLastSegment);
       if (manualItem) items.push(manualItem);
       continue;
     }
@@ -802,11 +1187,17 @@ function parseItemClauses(tokens, catalogue) {
       const m = matches[0];
       const prefix = seg.slice(0, m.start);
       const suffix = seg.slice(m.end + 1);
-      items.push(buildParsedItem(m, prefix, suffix, { isLastSegment }));
+      const built = buildParsedItem(m, prefix, suffix, { isLastSegment });
+
+      const preResiduals = collectResidualItems(prefix, built.prefixConsumed, false);
+      items.push(...preResiduals);
+      items.push(built.item);
+      const postResiduals = collectResidualItems(suffix, built.suffixConsumed, isLastSegment);
+      items.push(...postResiduals);
       continue;
     }
 
-    // Multiple items found inside a single coarse segment (e.g. "2 kilo aata 1 kilo chini 1 soap 2 maggi")
+    // Multiple items found inside a single segment (e.g. "aata chini dal chawal", "aata chini ball")
     const gaps = [];
     gaps.push(seg.slice(0, matches[0].start));
     for (let j = 1; j < matches.length; j++) {
@@ -824,17 +1215,36 @@ function parseItemClauses(tokens, catalogue) {
     for (let j = 0; j < matches.length; j++) {
       let prefix = [];
       let suffix = [];
+      const isLastMatch = j === matches.length - 1;
       if (usePostOrder) {
         prefix = j === 0 ? firstGap : [];
         suffix = gaps[j + 1];
       } else {
         prefix = gaps[j];
-        // Attach trailing gap to last item if it holds leftover modifiers (e.g. price suffix "1 chini ₹40")
-        if (j === matches.length - 1 && postHasMod) {
+        if (isLastMatch && postHasMod) {
           suffix = lastGap;
         }
       }
-      items.push(buildParsedItem(matches[j], prefix, suffix, { isLastSegment: isLastSegment && j === matches.length - 1 }));
+
+      const built = buildParsedItem(matches[j], prefix, suffix, {
+        isLastSegment: isLastSegment && isLastMatch,
+      });
+
+      const preResiduals = collectResidualItems(prefix, built.prefixConsumed, false);
+      items.push(...preResiduals);
+      items.push(built.item);
+      const postResiduals = collectResidualItems(
+        suffix,
+        built.suffixConsumed,
+        isLastSegment && isLastMatch
+      );
+      items.push(...postResiduals);
+
+      // Handle unattached trailing tokens after last known match (e.g. "aata chini ball")
+      if (!usePostOrder && isLastMatch && !postHasMod && lastGap.length > 0) {
+        const trailingResiduals = collectResidualItems(lastGap, null, isLastSegment);
+        items.push(...trailingResiduals);
+      }
     }
   }
 

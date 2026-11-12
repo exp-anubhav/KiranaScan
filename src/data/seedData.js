@@ -44,17 +44,17 @@ export const SEED_CUSTOMERS = [
 ];
 
 export const SEED_CATALOGUE = [
-  { id: 'item_1', name: 'Aata (Wheat Flour)', aliases: ['aata', 'atta', 'gehu', 'flour', 'gehun'], unit: 'kg', rate: 45, isMultiBrand: false },
-  { id: 'item_2', name: 'Chini (Sugar)', aliases: ['chini', 'cheeni', 'shakkar', 'sugar'], unit: 'kg', rate: 44, isMultiBrand: false },
+  { id: 'item_1', name: 'Aata (Wheat Flour)', aliases: ['aata', 'atta', 'aatta', 'gehu', 'gehun', 'flour'], unit: 'kg', rate: 45, isMultiBrand: false },
+  { id: 'item_2', name: 'Chini (Sugar)', aliases: ['chini', 'cheeni', 'chinni', 'shakkar', 'sugar'], unit: 'kg', rate: 44, isMultiBrand: false },
   { id: 'item_3', name: 'Toor Dal', aliases: ['dal', 'daal', 'toor', 'arhar'], unit: 'kg', rate: 140, isMultiBrand: false },
-  { id: 'item_4', name: 'Chawal (Rice)', aliases: ['chawal', 'rice', 'basmati'], unit: 'kg', rate: 60, isMultiBrand: false },
+  { id: 'item_4', name: 'Chawal (Rice)', aliases: ['chawal', 'chaawal', 'rice', 'basmati'], unit: 'kg', rate: 60, isMultiBrand: false },
   { id: 'item_5', name: 'Sarson Tel (Mustard Oil)', aliases: ['tel', 'oil', 'sarson', 'mustard'], unit: 'L', rate: 160, isMultiBrand: false },
-  { id: 'item_6', name: 'Amul Milk', aliases: ['doodh', 'milk', 'amul'], unit: 'pkt', rate: 33, isMultiBrand: false },
-  { id: 'item_7', name: 'Maggi Noodles', aliases: ['maggi', 'noodles'], unit: 'pkt', rate: 14, isMultiBrand: false },
+  { id: 'item_6', name: 'Amul Milk', aliases: ['doodh', 'dudh', 'milk', 'amul'], unit: 'pkt', rate: 33, isMultiBrand: false },
+  { id: 'item_7', name: 'Maggi Noodles', aliases: ['maggi', 'maggie', 'magi', 'megi', 'noodles', 'noodle'], unit: 'pkt', rate: 14, isMultiBrand: false },
   { id: 'item_8', name: 'Bread', aliases: ['bread', 'bred'], unit: 'pkt', rate: 40, isMultiBrand: false },
-  { id: 'item_9', name: 'Eggs (Ande)', aliases: ['anda', 'ande', 'egg', 'eggs', 'anda'], unit: 'pc', rate: 7, isMultiBrand: false },
+  { id: 'item_9', name: 'Eggs (Ande)', aliases: ['anda', 'ande', 'egg', 'eggs'], unit: 'pc', rate: 7, isMultiBrand: false },
   {
-    id: 'item_10', name: 'Soap (Sabun)', aliases: ['soap', 'sabun'], unit: 'pc', isMultiBrand: true, rate: 40,
+    id: 'item_10', name: 'Soap (Sabun)', aliases: ['soap', 'soaps', 'sabun', 'saboon'], unit: 'pc', isMultiBrand: true, rate: 40,
     variants: [
       { label: '₹10 Mini', price: 10 },
       { label: 'Lifebuoy ₹36', price: 36 },
@@ -63,7 +63,7 @@ export const SEED_CATALOGUE = [
     ]
   },
   {
-    id: 'item_11', name: 'Biscuit', aliases: ['biscuit', 'biskut'], unit: 'pkt', isMultiBrand: true, rate: 10,
+    id: 'item_11', name: 'Biscuit', aliases: ['biscuit', 'biscuits', 'biskut', 'biskit'], unit: 'pkt', isMultiBrand: true, rate: 10,
     variants: [
       { label: 'Parle-G ₹10', price: 10 },
       { label: 'GoodDay ₹20', price: 20 },
@@ -71,7 +71,7 @@ export const SEED_CATALOGUE = [
     ]
   },
   {
-    id: 'item_12', name: 'Namkeen / Bhujia', aliases: ['namkeen', 'bhujia', 'chips'], unit: 'pkt', isMultiBrand: true, rate: 20,
+    id: 'item_12', name: 'Namkeen / Bhujia', aliases: ['namkeen', 'namkin', 'bhujia', 'bhujiya', 'chips', 'kurkure'], unit: 'pkt', isMultiBrand: true, rate: 20,
     variants: [
       { label: '₹10 Pack', price: 10 },
       { label: '₹20 Pack', price: 20 },
