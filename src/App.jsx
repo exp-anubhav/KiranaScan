@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useStore } from './stores/useStore.js';
 import { LABELS } from './data/seedData.js';
 import VoiceTab from './components/VoiceTab.jsx';
@@ -15,13 +15,52 @@ import './index.css';
 
 const TAB_ICONS = [Mic, BookOpen, BarChart3, StoreIcon];
 
+function detectMobileDevice() {
+  if (typeof window === 'undefined') return false;
+  const width = window.innerWidth;
+  if (width < 768) return true;
+  const ua = navigator.userAgent || '';
+  const isMobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const hasCoarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches ?? false;
+  return isMobileUA && hasCoarsePointer && width < 900;
+}
+
 export default function App() {
   const store = useStore();
   const [activeTab, setActiveTab] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [soundboxEnabled, setSoundboxEnabled] = useState(true);
   const [lang, setLang] = useState('hinglish');
-  const [isMobileFrame, setIsMobileFrame] = useState(true);
+  const [isMobileFrame, setIsMobileFrame] = useState(() => detectMobileDevice());
+  const manualViewOverrideRef = useRef(false);
+
+  // Auto-detect device & adapt layout automatically unless user manually toggled on desktop
+  useEffect(() => {
+    const syncDeviceMode = () => {
+      const detectedMobile = detectMobileDevice();
+      if (window.innerWidth < 640) {
+        manualViewOverrideRef.current = false;
+        setIsMobileFrame(true);
+        return;
+      }
+      if (!manualViewOverrideRef.current) {
+        setIsMobileFrame(detectedMobile);
+      }
+    };
+    window.addEventListener('resize', syncDeviceMode);
+    window.addEventListener('orientationchange', syncDeviceMode);
+    return () => {
+      window.removeEventListener('resize', syncDeviceMode);
+      window.removeEventListener('orientationchange', syncDeviceMode);
+    };
+  }, []);
+
+  const handleToggleViewMode = () => {
+    const nextMobile = !isMobileFrame;
+    const detectedMobile = detectMobileDevice();
+    manualViewOverrideRef.current = nextMobile !== detectedMobile;
+    setIsMobileFrame(nextMobile);
+  };
 
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -385,13 +424,13 @@ export default function App() {
 
   const appContent = (
     <div className="flex flex-col w-full flex-1 app-min-h bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors relative">
-      {/* ── 2-ROW CLEAN PROFESSIONAL MERCHANT HEADER ── */}
-      <header className="bg-[#1B7A43] text-white px-3.5 py-2.5 shadow-md sticky top-0 z-30 shrink-0 transition-all">
+      {/* ── CLEAN PROFESSIONAL MERCHANT HEADER (ADAPTIVE MOBILE + STRUCTURED FULL MODE) ── */}
+      <header className="bg-[#1B7A43] text-white px-3.5 sm:px-5 py-2.5 shadow-md sticky top-0 z-30 shrink-0 transition-all">
         <div className={isMobileFrame ? 'space-y-2' : 'max-w-5xl mx-auto space-y-2.5'}>
-          {/* Row 1: Shop Identity + Quick Icon Actions */}
-          <div className="flex items-center justify-between gap-2">
+          {/* Row 1: Shop Identity + Quick Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
             {/* Left: Store Icon + Title + Subtitle */}
-            <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
                 <StoreIcon className="w-5 h-5 text-white" />
               </div>
@@ -446,8 +485,60 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right: Quick Actions */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            {/* Right: Quick Controls (Full Mode consolidates status pills inline with actions) */}
+            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+              {!isMobileFrame && (
+                <>
+                  <button
+                    onClick={() => setIsOnline(!isOnline)}
+                    className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors"
+                    title="Toggle Online / Offline Mode"
+                  >
+                    {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-300" /> : <WifiOff className="w-3.5 h-3.5 text-amber-300" />}
+                    <span>{isOnline ? 'Online' : `Offline (${store.pendingSyncCount})`}</span>
+                  </button>
+
+                  <div className="flex bg-black/20 rounded-lg p-0.5 border border-white/10">
+                    {[
+                      { key: 'hinglish', label: 'Hinglish' },
+                      { key: 'hi', label: 'हिंदी' },
+                      { key: 'en', label: 'Eng' },
+                    ].map(l => (
+                      <button
+                        key={l.key}
+                        onClick={() => setLang(l.key)}
+                        className={`text-xs whitespace-nowrap transition-all ${lang === l.key
+                          ? 'bg-white text-[#1B7A43] font-bold px-2.5 py-1 rounded-md shadow-xs'
+                          : 'text-emerald-100 hover:text-white px-2 py-1'
+                          }`}
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setSoundboxEnabled(!soundboxEnabled)}
+                    className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors"
+                    title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
+                  >
+                    {soundboxEnabled ? <Volume2 className="w-3.5 h-3.5 text-yellow-300" /> : <VolumeX className="w-3.5 h-3.5 text-white/60" />}
+                    <span>{soundboxEnabled ? 'Audio' : 'Mute'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleToggleViewMode}
+                    className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors"
+                    title="Auto-detected Desktop View · Click to preview 430px Mobile Frame"
+                  >
+                    <Monitor className="w-3.5 h-3.5" />
+                    <span>Full</span>
+                  </button>
+
+                  <div className="w-px h-5 bg-white/20 mx-0.5 hidden sm:block" />
+                </>
+              )}
+
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
@@ -475,79 +566,86 @@ export default function App() {
             </div>
           </div>
 
-          {/* Row 2: Single-Line Control Strip */}
-          <div className="flex items-center justify-between gap-1 sm:gap-1.5 mt-2 pt-2 border-t border-white/15 text-[11px] sm:text-xs">
-            {/* Online/Offline Pill */}
-            <button
-              onClick={() => setIsOnline(!isOnline)}
-              className="px-2 sm:px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
-              title="Toggle Online / Offline Mode"
-            >
-              {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-300" /> : <WifiOff className="w-3.5 h-3.5 text-amber-300" />}
-              <span>{isOnline ? 'Online' : `Offline (${store.pendingSyncCount})`}</span>
-            </button>
+          {/* Row 2 (Mobile Frame Mode): Single-Line Control Strip */}
+          {isMobileFrame && (
+            <div className="flex items-center justify-between gap-1 sm:gap-1.5 mt-2 pt-2 border-t border-white/15 text-[11px] sm:text-xs">
+              {/* Online/Offline Pill */}
+              <button
+                onClick={() => setIsOnline(!isOnline)}
+                className="px-2 sm:px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
+                title="Toggle Online / Offline Mode"
+              >
+                {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-300" /> : <WifiOff className="w-3.5 h-3.5 text-amber-300" />}
+                <span>{isOnline ? 'Online' : `Offline (${store.pendingSyncCount})`}</span>
+              </button>
 
-            {/* Language Segmented Pill */}
-            <div className="flex bg-black/20 rounded-full p-0.5 shrink-0">
-              {[
-                { key: 'hinglish', label: 'Hinglish' },
-                { key: 'hi', label: 'हिंदी' },
-                { key: 'en', label: 'Eng' },
-              ].map(l => (
-                <button
-                  key={l.key}
-                  onClick={() => setLang(l.key)}
-                  className={`text-[11px] sm:text-xs whitespace-nowrap transition-all ${lang === l.key
-                    ? 'bg-white text-[#1B7A43] font-bold px-2 py-0.5 rounded-full shadow-xs'
-                    : 'text-emerald-100 hover:text-white px-1.5 py-0.5'
-                    }`}
-                >
-                  {l.label}
-                </button>
-              ))}
+              {/* Language Segmented Pill */}
+              <div className="flex bg-black/20 rounded-full p-0.5 shrink-0">
+                {[
+                  { key: 'hinglish', label: 'Hinglish' },
+                  { key: 'hi', label: 'हिंदी' },
+                  { key: 'en', label: 'Eng' },
+                ].map(l => (
+                  <button
+                    key={l.key}
+                    onClick={() => setLang(l.key)}
+                    className={`text-[11px] sm:text-xs whitespace-nowrap transition-all ${lang === l.key
+                      ? 'bg-white text-[#1B7A43] font-bold px-2 py-0.5 rounded-full shadow-xs'
+                      : 'text-emerald-100 hover:text-white px-1.5 py-0.5'
+                      }`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Audio Toggle Pill */}
+              <button
+                onClick={() => setSoundboxEnabled(!soundboxEnabled)}
+                className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
+                title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
+              >
+                {soundboxEnabled ? <Volume2 className="w-3.5 h-3.5 text-yellow-300" /> : <VolumeX className="w-3.5 h-3.5 text-white/60" />}
+                <span>{soundboxEnabled ? 'Audio' : 'Mute'}</span>
+              </button>
+
+              {/* View Toggle Pill */}
+              <button
+                onClick={handleToggleViewMode}
+                className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
+                title="Switch to Full Screen Mode"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>430px</span>
+              </button>
             </div>
+          )}
 
-            {/* Audio Toggle Pill */}
-            <button
-              onClick={() => setSoundboxEnabled(!soundboxEnabled)}
-              className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
-              title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
-            >
-              {soundboxEnabled ? <Volume2 className="w-3.5 h-3.5 text-yellow-300" /> : <VolumeX className="w-3.5 h-3.5 text-white/60" />}
-              <span>{soundboxEnabled ? 'Audio' : 'Mute'}</span>
-            </button>
-
-            {/* View Toggle Pill */}
-            <button
-              onClick={() => setIsMobileFrame(!isMobileFrame)}
-              className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
-              title="Toggle Phone Frame vs Full Screen"
-            >
-              {isMobileFrame ? <Smartphone className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
-              <span>{isMobileFrame ? '430px' : 'Full'}</span>
-            </button>
-          </div>
-
-          {/* Desktop Navigation Tabs for Full Screen Mode */}
+          {/* Row 2 (Full Screen Mode): Structured 4-Column Equal-Width Navigation Bar */}
           {!isMobileFrame && (
-            <nav className="flex items-center gap-1.5 bg-black/15 p-1 rounded-xl mt-2">
+            <nav
+              aria-label="Primary Navigation"
+              className="grid grid-cols-4 gap-1.5 bg-black/20 p-1.5 rounded-2xl border border-white/10"
+            >
               {tabLabels.map((label, i) => {
                 const Icon = TAB_ICONS[i];
                 const isActive = i === activeTab;
                 return (
                   <button
                     key={i}
+                    type="button"
                     onClick={() => {
                       setActiveTab(i);
                       window.scrollTo(0, 0);
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${isActive
-                      ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-emerald-400 shadow-md'
-                      : 'text-white/80 hover:text-white hover:bg-white/10'
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-[13px] transition-all cursor-pointer ${isActive
+                      ? 'bg-white dark:bg-[#11181F] text-[#1B7A43] dark:text-emerald-400 font-bold shadow-sm ring-1 ring-black/5 dark:ring-emerald-400/25'
+                      : 'text-emerald-50/90 hover:text-white hover:bg-white/10 font-semibold'
                       }`}
                   >
-                    <Icon size={16} />
-                    <span>{label}</span>
+                    <Icon size={16} className="shrink-0" />
+                    <span className="truncate">{label}</span>
                   </button>
                 );
               })}
