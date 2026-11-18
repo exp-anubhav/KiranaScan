@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { parseHinglishTransaction } from '../utils/hinglishParser.js';
 import { hindiToHinglish } from '../utils/devanagariTransliterator.js';
-import { prepareLedgerImageForOcr } from '../utils/bahiKhataOcr.js';
+import { prepareLedgerImageForOcr, compressImageForGemini, callGeminiWithFallback } from '../utils/bahiKhataOcr.js';
 import { DEMO_CHIPS, SAMPLE_HANDWRITTEN_BILLS } from '../data/seedData.js';
 import {
   Mic, Send, Plus, Minus, Edit3, Check, X,
@@ -222,7 +222,6 @@ function parseBillTextToDraft(rawText, catalogue = [], customers = []) {
 }
 
 async function runGeminiVisionBillOcr(base64Data, mimeType, apiKey, catalogue = [], customers = []) {
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'];
   const catNames = (catalogue || []).map((c) => `${c.name} (${c.unit}, ₹${c.rate})`).join(', ');
   const prompt = [
     'Read this handwritten Indian Kirana bill/parchi photo accurately.',
@@ -235,69 +234,53 @@ async function runGeminiVisionBillOcr(base64Data, mimeType, apiKey, catalogue = 
     '3. If a multi-brand item like Biscuit or Soap has no price written on the slip, set needsPriceSelection: true.',
   ].join('\n');
 
-  let lastErr = null;
-  for (const model of models) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mimeType, data: base64Data } },
-          ],
-        }],
-        generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
-      }),
-    });
+  const payload = await callGeminiWithFallback(apiKey, {
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: mimeType, data: base64Data } },
+      ],
+    }],
+    generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
+  });
 
-    if (!res.ok) {
-      lastErr = new Error(`Gemini (${res.status})`);
-      if (res.status === 404) continue;
-      throw lastErr;
-    }
+  const rawJsonText = payload?.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === 'string')?.text || '';
+  const stripped = rawJsonText.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  const parsed = JSON.parse(stripped);
 
-    const payload = await res.json();
-    const rawJsonText = payload?.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === 'string')?.text || '';
-    const stripped = rawJsonText.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(stripped);
+  const mappedItems = (Array.isArray(parsed?.items) ? parsed.items : []).map((it) => {
+    const hintParsed = parseHinglishTransaction(String(it?.name || ''), catalogue, []);
+    const catItem = hintParsed.items[0] || null;
+    const qty = Number(it?.qty) > 0 ? Number(it.qty) : (catItem?.qty || 1);
+    const rawLineTotal = Number(it?.lineTotal) > 0 ? Number(it.lineTotal) : null;
+    const rawUnitPrice = Number(it?.unitPrice) > 0 ? Number(it.unitPrice) : null;
+    const unitPrice = rawUnitPrice ?? (rawLineTotal ? Math.round((rawLineTotal / qty) * 100) / 100 : (catItem?.unitPrice || 0));
+    const total = rawLineTotal ?? Math.round(qty * unitPrice * 100) / 100;
+    const needsPriceSelection = Boolean(it?.needsPriceSelection) || (catItem?.needsPriceSelection && !rawLineTotal && !rawUnitPrice);
 
-    const mappedItems = (Array.isArray(parsed?.items) ? parsed.items : []).map((it) => {
-      const hintParsed = parseHinglishTransaction(String(it?.name || ''), catalogue, []);
-      const catItem = hintParsed.items[0] || null;
-      const qty = Number(it?.qty) > 0 ? Number(it.qty) : (catItem?.qty || 1);
-      const rawLineTotal = Number(it?.lineTotal) > 0 ? Number(it.lineTotal) : null;
-      const rawUnitPrice = Number(it?.unitPrice) > 0 ? Number(it.unitPrice) : null;
-      const unitPrice = rawUnitPrice ?? (rawLineTotal ? Math.round((rawLineTotal / qty) * 100) / 100 : (catItem?.unitPrice || 0));
-      const total = rawLineTotal ?? Math.round(qty * unitPrice * 100) / 100;
-      const needsPriceSelection = Boolean(it?.needsPriceSelection) || (catItem?.needsPriceSelection && !rawLineTotal && !rawUnitPrice);
+    return {
+      name: catItem?.name || String(it?.name || 'Item').trim(),
+      catalogueId: catItem?.catalogueId || null,
+      qty,
+      unit: it?.unit || catItem?.unit || 'pc',
+      unitPrice,
+      total,
+      needsPriceSelection: Boolean(needsPriceSelection),
+      isMultiBrand: Boolean(catItem?.isMultiBrand),
+      variants: catItem?.variants || null,
+      suggestedVariantIndex: catItem?.suggestedVariantIndex ?? null,
+      isManual: !catItem,
+    };
+  });
 
-      return {
-        name: catItem?.name || String(it?.name || 'Item').trim(),
-        catalogueId: catItem?.catalogueId || null,
-        qty,
-        unit: it?.unit || catItem?.unit || 'pc',
-        unitPrice,
-        total,
-        needsPriceSelection: Boolean(needsPriceSelection),
-        isMultiBrand: Boolean(catItem?.isMultiBrand),
-        variants: catItem?.variants || null,
-        suggestedVariantIndex: catItem?.suggestedVariantIndex ?? null,
-        isManual: !catItem,
-      };
-    });
+  if (mappedItems.length === 0) return null;
 
-    if (mappedItems.length === 0) return null;
-
-    return buildDraftFromBillPayload({
-      customerName: parsed?.customerName || '',
-      mode: parsed?.mode || 'CASH',
-      transcript: parsed?.transcript || mappedItems.map((m) => `${m.name} ${m.qty}${m.unit}`).join(', '),
-      items: mappedItems,
-    }, catalogue, customers);
-  }
-  throw lastErr || new Error('Gemini scan failed');
+  return buildDraftFromBillPayload({
+    customerName: parsed?.customerName || '',
+    mode: parsed?.mode || 'CASH',
+    transcript: parsed?.transcript || mappedItems.map((m) => `${m.name} ${m.qty}${m.unit}`).join(', '),
+    items: mappedItems,
+  }, catalogue, customers);
 }
 
 async function runOfflineBillOcrWithTimeout(canvas, catalogue = [], customers = []) {
@@ -987,12 +970,12 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
       const apiKey = (localStorage.getItem('kiranascan_gemini_key') || '').trim();
       const ocrWork = (async () => {
         try {
-          const prepared = await prepareLedgerImageForOcr(billFile);
           if (apiKey) {
             try {
+              const compressed = await compressImageForGemini(billFile, 1024, 0.8);
               const geminiResult = await runGeminiVisionBillOcr(
-                prepared.geminiBase64,
-                prepared.geminiMimeType,
+                compressed.base64,
+                compressed.mimeType,
                 apiKey,
                 store.catalogue,
                 store.customers
@@ -1002,6 +985,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               /* fallback cleanly to local OCR / intelligent draft */
             }
           }
+          const prepared = await prepareLedgerImageForOcr(billFile);
           try {
             const offlineResult = await runOfflineBillOcrWithTimeout(
               prepared.ocrCanvas,

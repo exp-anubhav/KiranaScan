@@ -348,6 +348,45 @@ function computeLocalPaperBackground(srcLum, w, h, radius) {
   return morph2D(dilated, w, h, radius, false);
 }
 
+export async function compressImageForGemini(fileOrDataUrl, maxDim = 1024, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, width);
+      canvas.height = Math.max(1, height);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      resolve({
+        base64: dataUrl.split(',')[1] || '',
+        mimeType: 'image/jpeg',
+      });
+    };
+    img.onerror = reject;
+    if (typeof fileOrDataUrl === 'string') {
+      img.src = fileOrDataUrl;
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => { img.src = e.target.result; };
+      reader.onerror = reject;
+      reader.readAsDataURL(fileOrDataUrl);
+    }
+  });
+}
+
 /**
  * Resizes and preprocesses a ledger/notebook image for optimal Gemini Vision & Tesseract OCR.
  * Uses Retinex local paper estimation + reflectance bleed-through gating + blue-ink boost
@@ -360,15 +399,18 @@ export async function prepareLedgerImageForOcr(file) {
     const srcW = img.naturalWidth || img.width || 1200;
     const srcH = img.naturalHeight || img.height || 900;
 
-    // 1. Compressed natural color JPEG for Gemini Vision & fallback OCR
-    const aiScale = Math.min(1, 1600 / Math.max(srcW, srcH));
+    // 1. Fast compressed natural color JPEG (max 1024px, 0.8 quality) for Gemini Vision & fallback OCR
+    const aiScale = Math.min(1, 1024 / Math.max(srcW, srcH));
     const aiW = Math.max(1, Math.round(srcW * aiScale));
     const aiH = Math.max(1, Math.round(srcH * aiScale));
     const aiCanvas = document.createElement('canvas');
     aiCanvas.width = aiW;
     aiCanvas.height = aiH;
-    aiCanvas.getContext('2d').drawImage(img, 0, 0, aiW, aiH);
-    const geminiDataUrl = aiCanvas.toDataURL('image/jpeg', 0.88);
+    const aiCtx = aiCanvas.getContext('2d');
+    aiCtx.fillStyle = '#FFFFFF';
+    aiCtx.fillRect(0, 0, aiW, aiH);
+    aiCtx.drawImage(img, 0, 0, aiW, aiH);
+    const geminiDataUrl = aiCanvas.toDataURL('image/jpeg', 0.8);
     const geminiBase64 = geminiDataUrl.split(',')[1] || '';
 
     // 2. OCR canvas: upscale small photos for stroke clarity, cap huge photos at 2000px
@@ -479,8 +521,87 @@ function parseGeminiJsonEntries(responseText) {
   return { entries, rawText };
 }
 
+export async function callGeminiWithFallback(apiKey, payload, onModelAttempt) {
+  const cleanKey = String(apiKey || '').trim();
+  const encodedKey = encodeURIComponent(cleanKey);
+  const candidateModels = [
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-flash-lite-latest',
+    'gemini-flash-latest',
+    'gemini-2.5-pro',
+  ];
+
+  const triedModels = new Set();
+  let lastError = null;
+
+  const tryModel = async (modelName) => {
+    const cleanName = String(modelName || '').replace(/^models\//, '').trim();
+    if (!cleanName || triedModels.has(cleanName)) return null;
+    triedModels.add(cleanName);
+
+    onModelAttempt?.(cleanName, triedModels.size - 1);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanName}:generateContent?key=${encodedKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      return await res.json();
+    }
+
+    const errData = await res.json().catch(() => ({}));
+    const msg = errData?.error?.message || `HTTP ${res.status}`;
+    lastError = msg;
+
+    // Stop immediately ONLY if the API key itself is invalid
+    if (
+      res.status === 401 ||
+      res.status === 403 ||
+      msg.toLowerCase().includes('api key not valid') ||
+      msg.toLowerCase().includes('invalid api key')
+    ) {
+      throw new Error('Invalid Gemini API Key. Please check your key.');
+    }
+
+    // For 404 (retired), 429 (quota/rate), 500, 503 (high demand/overloaded), return null to try the next model
+    return null;
+  };
+
+  // 1. Try candidate models in order
+  for (const model of candidateModels) {
+    const result = await tryModel(model);
+    if (result) return result;
+  }
+
+  // 2. Dynamic discovery: fetch all active models on this API key and try any remaining flash/gemini models
+  onModelAttempt?.('auto-discovery', triedModels.size);
+  const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodedKey}`).catch(() => null);
+  if (listRes && listRes.ok) {
+    const listData = await listRes.json().catch(() => ({}));
+    const availableModels = (listData.models || [])
+      .filter(
+        (m) =>
+          m.supportedGenerationMethods?.includes('generateContent') &&
+          (m.name?.includes('flash') || m.name?.includes('gemini')) &&
+          !m.name?.includes('embedding') &&
+          !m.name?.includes('imagen') &&
+          !m.name?.includes('tts')
+      )
+      .map((m) => m.name.replace(/^models\//, ''));
+
+    for (const dynModel of availableModels) {
+      const result = await tryModel(dynModel);
+      if (result) return result;
+    }
+  }
+
+  throw new Error(lastError || 'All Gemini vision models are currently busy.');
+}
+
 async function runGeminiVisionOcr(base64Data, mimeType, apiKey, onProgress) {
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
   const prompt = [
     'You are reading an Indian Kirana shopkeeper\'s paper Bahi-Khata (credit ledger) photo.',
     'Extract EVERY customer credit/balance line visible in the image accurately.',
@@ -493,45 +614,34 @@ async function runGeminiVisionOcr(base64Data, mimeType, apiKey, onProgress) {
     '4. If a photo has no readable ledger entries, return {"rawText":"","entries":[]}.',
   ].join('\n');
 
-  let lastError = null;
-  for (let i = 0; i < models.length; i++) {
-    const model = models[i];
-    onProgress?.({ stage: 'gemini', progress: 35 + i * 25, status: `Reading handwriting with Gemini AI (${model})...` });
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              { inline_data: { mime_type: mimeType, data: base64Data } },
-            ],
-          },
+  const requestPayload = {
+    contents: [
+      {
+        parts: [
+          { text: prompt },
+          { inline_data: { mime_type: mimeType, data: base64Data } },
         ],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        },
-      }),
-    });
+      },
+    ],
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: 'application/json',
+    },
+  };
 
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => '');
-      lastError = new Error(`Gemini API (${res.status}): ${errBody.slice(0, 140) || res.statusText}`);
-      if (res.status === 404) continue;
-      throw lastError;
-    }
+  const payload = await callGeminiWithFallback(apiKey, requestPayload, (model, idx) => {
+    const pct = Math.min(85, 30 + idx * 12);
+    const label = model === 'auto-discovery'
+      ? 'Discovering compatible Gemini Vision model...'
+      : `Reading handwriting with Gemini AI (${model})...`;
+    onProgress?.({ stage: 'gemini', progress: pct, status: label });
+  });
 
-    const payload = await res.json();
-    const textPart = payload?.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === 'string')?.text || '';
-    if (!textPart) {
-      throw new Error('Gemini returned an empty response for this image.');
-    }
-    return parseGeminiJsonEntries(textPart);
+  const textPart = payload?.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === 'string')?.text || '';
+  if (!textPart) {
+    throw new Error('Gemini returned an empty response for this image.');
   }
-  throw lastError || new Error('Gemini Vision scan failed.');
+  return parseGeminiJsonEntries(textPart);
 }
 
 async function runTesseractOnCanvas(canvas, lang, onProgress) {
@@ -577,19 +687,17 @@ export async function scanBahiKhataImage(
     throw new Error('No image selected. Please upload a photo from your gallery first.');
   }
 
-  onProgress?.({ stage: 'prepare', progress: 8, status: 'Normalizing shadows & enhancing ink contrast...' });
-  const prepared = await prepareLedgerImageForOcr(file);
-
   let warning = '';
 
   // 1. Optional Gemini Vision AI (best accuracy for messy Hindi/Hinglish handwriting + heavy shadows)
   const cleanKey = preferOffline ? '' : String(geminiApiKey || '').trim();
   if (cleanKey) {
-    onProgress?.({ stage: 'gemini', progress: 20, status: 'Reading handwriting with Gemini Vision AI...' });
+    onProgress?.({ stage: 'gemini', progress: 15, status: 'Compressing photo for Gemini Vision AI...' });
     try {
+      const compressed = await compressImageForGemini(file, 1024, 0.8);
       const gemResult = await runGeminiVisionOcr(
-        prepared.geminiBase64,
-        prepared.geminiMimeType,
+        compressed.base64,
+        compressed.mimeType,
         cleanKey,
         onProgress
       );
@@ -599,12 +707,15 @@ export async function scanBahiKhataImage(
         rawText: gemResult.rawText,
         entries: gemResult.entries,
         warning: '',
-        hasHeavyShadow: prepared.hasHeavyShadow,
+        hasHeavyShadow: false,
       };
     } catch (err) {
       warning = `Gemini AI failed (${err.message}) — switched to built-in offline OCR.`;
     }
   }
+
+  onProgress?.({ stage: 'prepare', progress: 8, status: 'Normalizing shadows & enhancing ink contrast...' });
+  const prepared = await prepareLedgerImageForOcr(file);
 
   // 2. Zero-key built-in browser OCR via Tesseract.js (Retinex normalized canvas first)
   let rawText = '';
