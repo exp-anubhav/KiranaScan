@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { parseHinglishTransaction } from '../utils/hinglishParser.js';
 import { hindiToHinglish } from '../utils/devanagariTransliterator.js';
-import { prepareLedgerImageForOcr, compressImageForGemini, callGeminiWithFallback } from '../utils/bahiKhataOcr.js';
+import { prepareLedgerImageForOcr, compressImageForGemini, callGeminiWithFallback, getActiveGeminiKey } from '../utils/bahiKhataOcr.js';
 import { DEMO_CHIPS, SAMPLE_HANDWRITTEN_BILLS } from '../data/seedData.js';
 import {
   Mic, Send, Plus, Minus, Edit3, Check, X,
@@ -967,7 +967,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
     }, 240);
 
     try {
-      const apiKey = (localStorage.getItem('kiranascan_gemini_key') || '').trim();
+      const apiKey = getActiveGeminiKey();
       const ocrWork = (async () => {
         try {
           if (apiKey) {
@@ -1020,7 +1020,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
     }
   };
 
-  const savedGeminiKey = Boolean((localStorage.getItem('kiranascan_gemini_key') || '').trim());
+  const savedGeminiKey = Boolean(getActiveGeminiKey());
 
   // ── Unified Gemini-Style Composer ──
   const renderInputBar = (compact = false) => (
@@ -1908,13 +1908,12 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border ${
+                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
                   savedGeminiKey
-                    ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
-                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-[#1B7A43] dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-[#1B7A43] dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                    : 'bg-stone-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-stone-200 dark:border-slate-700'
                 }`}>
-                  <Sparkles className="w-3 h-3" />
-                  {savedGeminiKey ? 'Gemini Vision Active' : 'Built-in Bill OCR'}
+                  {savedGeminiKey ? '✨ Gemini Vision AI Active' : 'Built-in Bill OCR'}
                 </span>
                 <button
                   type="button"

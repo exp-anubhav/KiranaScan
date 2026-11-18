@@ -9,6 +9,8 @@ import {
   scanBahiKhataImage,
   parseBahiKhataOcrText,
   createSampleNotebookImageFile,
+  getActiveGeminiKey,
+  hasBuiltInGeminiKey,
 } from '../utils/bahiKhataOcr.js';
 
 function Backdrop({ children, onClose, sizeClass = 'max-w-lg' }) {
@@ -81,13 +83,13 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
   const [ocrNotice, setOcrNotice] = useState('');
   const [ocrLang, setOcrLang] = useState('eng+hin');
   const [ocrEngineMode, setOcrEngineMode] = useState(() =>
-    localStorage.getItem('kiranascan_gemini_key')?.trim() ? 'gemini' : 'offline'
+    getActiveGeminiKey() ? 'gemini' : 'offline'
   );
   const [showRawText, setShowRawText] = useState(false);
   const [showPhotoZoom, setShowPhotoZoom] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [editingGeminiKey, setEditingGeminiKey] = useState(false);
-  const [geminiKeyDraft, setGeminiKeyDraft] = useState(() => localStorage.getItem('kiranascan_gemini_key') || '');
+  const [geminiKeyDraft, setGeminiKeyDraft] = useState('');
   const ocrScanIdRef = useRef(0);
 
   // Clean up Object URLs on change / unmount
@@ -195,10 +197,9 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
     setOcrProgress({ progress: 5, status: 'Preparing your uploaded image...' });
 
     try {
-      const savedKey = (localStorage.getItem('kiranascan_gemini_key') || '').trim();
       const draftKey = geminiKeyDraft.trim();
-      const activeKey = draftKey || savedKey;
-      if (ocrEngineMode === 'gemini' && draftKey && draftKey !== savedKey) {
+      const activeKey = draftKey || getActiveGeminiKey();
+      if (ocrEngineMode === 'gemini' && draftKey) {
         localStorage.setItem('kiranascan_gemini_key', draftKey);
       }
 
@@ -331,7 +332,10 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
           </button>
           <button
             onClick={() => {
-              setGeminiKeyDraft(localStorage.getItem('kiranascan_gemini_key') || '');
+              if (getActiveGeminiKey()) {
+                setOcrEngineMode('gemini');
+              }
+              setEditingGeminiKey(false);
               setShowOCR(true);
             }}
             className="text-xs sm:text-sm font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B] shadow-sm transition-all active:scale-[0.98]"
@@ -582,7 +586,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
       {/* ── OCR Import Modal ── */}
       {showOCR && (() => {
-        const hasSavedKey = Boolean(geminiKeyDraft.trim());
+        const hasSavedKey = Boolean(getActiveGeminiKey() || geminiKeyDraft.trim());
         const showPhotoPanelInReview = showPhotoZoom;
         return (
           <Backdrop onClose={resetOcrModal} sizeClass="max-w-lg md:max-w-3xl">
@@ -795,54 +799,53 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
                       {/* Single Contextual Config for Gemini AI */}
                       {ocrEngineMode === 'gemini' && (
-                        <div className="p-3 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 space-y-2">
-                          {hasSavedKey && !editingGeminiKey ? (
-                            <div className="flex items-center justify-between gap-2 text-xs">
-                              <span className="font-semibold text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5">
-                                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                                Gemini Vision Key Active (1,500 scans/day free)
-                              </span>
+                        hasSavedKey && !editingGeminiKey ? (
+                          <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100/90 dark:bg-emerald-900/50 text-[#1B7A43] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                              ✨ Gemini Vision AI Active
+                            </span>
+                            {!hasBuiltInGeminiKey() && (
                               <button
                                 type="button"
                                 onClick={() => setEditingGeminiKey(true)}
-                                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline shrink-0"
+                                className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0"
                               >
                                 Change / Clear
                               </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 space-y-2">
+                            <p className="text-[11px] text-indigo-900 dark:text-indigo-200 leading-relaxed">
+                              Get a free key (no credit card) at{' '}
+                              <a
+                                href="https://aistudio.google.com/apikey"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline font-bold"
+                              >
+                                aistudio.google.com/apikey
+                              </a>
+                              . Saved only in this browser.
+                            </p>
+                            <div className="flex gap-1.5">
+                              <input
+                                type="password"
+                                value={geminiKeyDraft}
+                                onChange={(e) => setGeminiKeyDraft(e.target.value)}
+                                placeholder="Paste Gemini API Key (AIza…)"
+                                className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleSaveGeminiKeyInline}
+                                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0"
+                              >
+                                {geminiKeyDraft.trim() ? 'Save' : 'Clear'}
+                              </button>
                             </div>
-                          ) : (
-                            <>
-                              <p className="text-[11px] text-indigo-900 dark:text-indigo-200 leading-relaxed">
-                                Get a free key (no credit card) at{' '}
-                                <a
-                                  href="https://aistudio.google.com/apikey"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="underline font-bold"
-                                >
-                                  aistudio.google.com/apikey
-                                </a>
-                                . Saved only in this browser.
-                              </p>
-                              <div className="flex gap-1.5">
-                                <input
-                                  type="password"
-                                  value={geminiKeyDraft}
-                                  onChange={(e) => setGeminiKeyDraft(e.target.value)}
-                                  placeholder="Paste Gemini API Key (AIza…)"
-                                  className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={handleSaveGeminiKeyInline}
-                                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0"
-                                >
-                                  {geminiKeyDraft.trim() ? 'Save' : 'Clear'}
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
+                          </div>
+                        )
                       )}
 
                       {ocrNotice && (
@@ -855,7 +858,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       <button
                         type="button"
                         onClick={() => startOCRScan()}
-                        disabled={!ocrImageFile || (ocrEngineMode === 'gemini' && !geminiKeyDraft.trim())}
+                        disabled={!ocrImageFile || (ocrEngineMode === 'gemini' && !hasSavedKey)}
                         className="w-full py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
                       >
                         <Eye className="w-4 h-4" />

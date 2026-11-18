@@ -4,6 +4,7 @@ import {
   Download, Database, Key, Globe, X, Check, ChevronDown, ChevronRight,
   ArrowUpDown, Wifi, WifiOff, Tag
 } from 'lucide-react';
+import { getActiveGeminiKey, hasBuiltInGeminiKey } from '../utils/bahiKhataOcr.js';
 
 const COLORS = {
   green: '#1B7A43',
@@ -43,10 +44,19 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
   const [shopNameInput, setShopNameInput] = useState(() => store.shopName || 'Gupta Kirana & General Store');
   const [shopNameSaved, setShopNameSaved] = useState(false);
 
-  // Gemini key state
-  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem('kiranascan_gemini_key') || '');
+  // Gemini key state (uses built-in VITE_GEMINI_API_KEY by default; custom override optional)
+  const builtInGeminiActive = hasBuiltInGeminiKey();
+  const [geminiKey, setGeminiKey] = useState(() => {
+    const active = getActiveGeminiKey();
+    const envKey = import.meta.env?.VITE_GEMINI_API_KEY?.trim() || '';
+    return active && active !== envKey ? active : '';
+  });
   const [showGeminiKey, setShowGeminiKey] = useState(false);
-  const [geminiSaved, setGeminiSaved] = useState(() => !!localStorage.getItem('kiranascan_gemini_key'));
+  const [geminiSaved, setGeminiSaved] = useState(() => {
+    const active = getActiveGeminiKey();
+    const envKey = import.meta.env?.VITE_GEMINI_API_KEY?.trim() || '';
+    return Boolean(active && active !== envKey);
+  });
 
   // Sync animation
   const [syncing, setSyncing] = useState(false);
@@ -762,12 +772,18 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       <section>
         <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#16202A] shadow-sm">
           <h2 className="text-base font-bold mb-1 text-slate-900 dark:text-white">
-            Optional Gemini AI Enhancement
+            Gemini Vision AI Settings
           </h2>
           <p className="text-xs mb-3 leading-relaxed text-slate-600 dark:text-slate-400">
             The built-in <strong>Position-Independent Hinglish NLP Engine</strong> works 100% offline with zero API keys.
-            Optionally add a Gemini API key for LLM-powered parsing fallback.
+            Gemini Vision powers handwritten bill &amp; Bahi-Khata photo scanning automatically.
           </p>
+
+          {builtInGeminiActive && !geminiKey.trim() && (
+            <div className="mb-3 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-[#1B7A43] dark:text-emerald-300">
+              ✅ Built-in Cloud Vision Key Active (Optional: enter a custom key below to override)
+            </div>
+          )}
 
           <div className="flex gap-2 mb-2">
             <div className="relative flex-1">
@@ -776,7 +792,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                 type={showGeminiKey ? 'text' : 'password'}
                 value={geminiKey}
                 onChange={e => { setGeminiKey(e.target.value); setGeminiSaved(false); }}
-                placeholder="Gemini API Key"
+                placeholder={builtInGeminiActive ? 'Optional custom Gemini API Key to override…' : 'Gemini API Key'}
                 className="w-full pl-8 pr-16 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
               />
               <button
@@ -795,9 +811,13 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
           </div>
 
           <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-            {geminiSaved && geminiKey ? (
+            {geminiSaved && geminiKey.trim() ? (
               <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <Check size={14} /> Connected
+                <Check size={14} /> Custom Gemini Key Connected
+              </span>
+            ) : builtInGeminiActive ? (
+              <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                <Check size={14} /> ✨ Gemini Vision AI Active
               </span>
             ) : (
               <span className="flex items-center gap-1">
@@ -807,7 +827,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
           </div>
 
           <p className="text-[10px] mt-2 italic text-slate-500 dark:text-slate-400">
-            Roadmap: Gemini 1.5 Flash for complex multi-item disambiguation
+            Powered by Gemini 2.5 Flash Vision with automatic multi-model failover
           </p>
         </div>
       </section>

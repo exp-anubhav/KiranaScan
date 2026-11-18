@@ -1,5 +1,18 @@
 import { hindiToHinglish } from './devanagariTransliterator.js';
 
+export function getActiveGeminiKey() {
+  const userCustomKey =
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('kiranascan_gemini_key')?.trim()
+      : '';
+  const builtInEnvKey = import.meta.env?.VITE_GEMINI_API_KEY?.trim();
+  return userCustomKey || builtInEnvKey || '';
+}
+
+export function hasBuiltInGeminiKey() {
+  return Boolean(import.meta.env?.VITE_GEMINI_API_KEY?.trim());
+}
+
 function convertDevanagariDigits(str) {
   return String(str || '').replace(/[०-९]/g, (d) =>
     String.fromCharCode(d.charCodeAt(0) - 0x0966 + 0x30)
@@ -690,7 +703,7 @@ export async function scanBahiKhataImage(
   let warning = '';
 
   // 1. Optional Gemini Vision AI (best accuracy for messy Hindi/Hinglish handwriting + heavy shadows)
-  const cleanKey = preferOffline ? '' : String(geminiApiKey || '').trim();
+  const cleanKey = preferOffline ? '' : String(geminiApiKey || getActiveGeminiKey() || '').trim();
   if (cleanKey) {
     onProgress?.({ stage: 'gemini', progress: 15, status: 'Compressing photo for Gemini Vision AI...' });
     try {
