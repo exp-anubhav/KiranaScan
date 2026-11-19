@@ -3,20 +3,20 @@
 
 :root {
   color-scheme: light;
-  --bg-app: #FAF6F0;
+  --bg-app: #F4F6F8;
   --bg-card: #FFFFFF;
-  --bg-muted: #F3EFE6;
-  --border-card: #E2D9C8;
+  --bg-muted: #EEF2F6;
+  --border-card: rgba(15, 23, 42, 0.08);
   --text-main: #111827;
   --text-sub: #4B5563;
 }
 
 html.dark, .dark {
   color-scheme: dark;
-  --bg-app: #0B1116;
-  --bg-card: #151F28;
-  --bg-muted: #1E293B;
-  --border-card: #2A3644;
+  --bg-app: #090B0F;
+  --bg-card: #12151C;
+  --bg-muted: #181C25;
+  --border-card: rgba(255, 255, 255, 0.08);
   --text-main: #F9FAFB;
   --text-sub: #9CA3AF;
 }
@@ -33,6 +33,18 @@ body {
 
 .tabular-nums { font-variant-numeric: tabular-nums; }
 .font-editorial { font-family: 'Instrument Serif', Georgia, serif; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.card-surface {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-card);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+}
+.dark .card-surface {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
 
 .glass-frosted {
   background-color: rgba(14, 17, 23, 0.6);

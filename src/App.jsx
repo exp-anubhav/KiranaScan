@@ -15,6 +15,20 @@ import {
 import './index.css';
 
 const TAB_ICONS = [Mic, BookOpen, BarChart3, StoreIcon];
+const TAB_SHORT_LABELS = ['Bol Kar', 'Khata', 'Hisab', 'Bhaav'];
+
+function getShopMonogram(name) {
+  if (!name) return 'KS';
+  const clean = name.trim().replace(/[^a-zA-Z0-9\s]/g, '');
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  if (words.length === 1 && words[0].length >= 2) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+  return 'KS';
+}
 
 function detectMobileDevice() {
   if (typeof window === 'undefined') return false;
@@ -276,16 +290,16 @@ export default function App() {
   };
 
   const appContent = (
-    <div className="flex flex-col w-full flex-1 app-min-h bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors relative">
-      {/* ── CLEAN PROFESSIONAL MERCHANT HEADER (ADAPTIVE MOBILE + STRUCTURED FULL MODE) ── */}
-      <header className="bg-[#1B7A43] text-white px-3.5 sm:px-5 py-2.5 shadow-md sticky top-0 z-30 shrink-0 transition-all">
-        <div className={isMobileFrame ? 'space-y-2' : 'max-w-5xl mx-auto space-y-2.5'}>
+    <div className="flex flex-col w-full flex-1 app-min-h bg-[#F4F6F8] dark:bg-[#090B0F] text-slate-900 dark:text-slate-100 transition-colors relative">
+      {/* ── REFINED FROSTED GLASS HEADER (OBSIDIAN + VOLT LIME) ── */}
+      <header className="sticky top-0 z-30 bg-white/85 dark:bg-[#090B0F]/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/[0.08] transition-all">
+        <div className={isMobileFrame ? 'w-full' : 'max-w-5xl mx-auto'}>
           {/* Row 1: Shop Identity + Quick Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            {/* Left: Store Icon + Title + Subtitle */}
+          <div className="px-4 py-3 flex items-center justify-between gap-3">
+            {/* Left: Shop Monogram + Name + inline Edit + City/Owner subtitle */}
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                <StoreIcon className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 rounded-xl bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] font-extrabold text-xs flex items-center justify-center shrink-0 tracking-wider shadow-sm">
+                {getShopMonogram(currentShopName)}
               </div>
               <div className="min-w-0 flex-1">
                 {editingShopName ? (
@@ -294,7 +308,7 @@ export default function App() {
                       type="text"
                       value={tempShopName}
                       onChange={e => setTempShopName(e.target.value)}
-                      className="text-xs font-bold text-slate-900 dark:text-white px-2 py-0.5 rounded-md bg-white dark:bg-[#16202A] border border-green-300 focus:outline-none"
+                      className="text-xs font-bold text-slate-900 dark:text-white px-2 py-0.5 rounded-md bg-white dark:bg-[#181C25] border border-slate-300 dark:border-white/20 focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
                       autoFocus
                     />
                     <button
@@ -302,14 +316,14 @@ export default function App() {
                         if (tempShopName.trim()) store.updateShopName(tempShopName.trim());
                         setEditingShopName(false);
                       }}
-                      className="p-1 bg-white text-[#1B7A43] rounded hover:bg-green-50 shadow"
+                      className="p-1 bg-[#111315] text-[#C8F53B] dark:bg-[#C8F53B] dark:text-[#111315] rounded hover:opacity-90 shadow-sm cursor-pointer"
                       title="Save Name"
                     >
                       <Check size={13} />
                     </button>
                     <button
                       onClick={() => setEditingShopName(false)}
-                      className="p-1 text-white/80 hover:text-white"
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
                       title="Cancel"
                     >
                       <X size={13} />
@@ -317,7 +331,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 group">
-                    <h1 className="font-bold text-base truncate text-white leading-tight">
+                    <h1 className="font-bold text-sm tracking-tight text-[#111315] dark:text-white truncate leading-tight">
                       {currentShopName}
                     </h1>
                     <button
@@ -325,92 +339,40 @@ export default function App() {
                         setTempShopName(currentShopName);
                         setEditingShopName(true);
                       }}
-                      className="p-1 text-white/70 hover:text-white rounded hover:bg-white/10 transition-colors shrink-0"
+                      className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
                       title="Rename Shop"
                     >
                       <Edit2 size={12} />
                     </button>
                   </div>
                 )}
-                <p className="text-xs text-emerald-100 truncate">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate leading-tight mt-0.5">
                   {currentMerchant?.ownerName || 'Rajesh Gupta'} · {currentMerchant?.area || 'Jaipur'}
                 </p>
               </div>
             </div>
 
-            {/* Right: Quick Controls (Full Mode consolidates status pills inline with actions) */}
-            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-              {!isMobileFrame && (
-                <>
-                  <button
-                    onClick={() => setIsOnline(!isOnline)}
-                    className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors"
-                    title="Toggle Online / Offline Mode"
-                  >
-                    {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-300" /> : <WifiOff className="w-3.5 h-3.5 text-amber-300" />}
-                    <span>{isOnline ? 'Online' : `Offline (${store.pendingSyncCount})`}</span>
-                  </button>
-
-                  <div className="flex bg-black/20 rounded-lg p-0.5 border border-white/10">
-                    {[
-                      { key: 'hinglish', label: 'Hinglish' },
-                      { key: 'hi', label: 'हिंदी' },
-                      { key: 'en', label: 'Eng' },
-                    ].map(l => (
-                      <button
-                        key={l.key}
-                        onClick={() => setLang(l.key)}
-                        className={`text-xs whitespace-nowrap transition-all ${lang === l.key
-                          ? 'bg-white text-[#1B7A43] font-bold px-2.5 py-1 rounded-md shadow-xs'
-                          : 'text-emerald-100 hover:text-white px-2 py-1'
-                          }`}
-                      >
-                        {l.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => setSoundboxEnabled(!soundboxEnabled)}
-                    className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors"
-                    title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
-                  >
-                    {soundboxEnabled ? <Volume2 className="w-3.5 h-3.5 text-yellow-300" /> : <VolumeX className="w-3.5 h-3.5 text-white/60" />}
-                    <span>{soundboxEnabled ? 'Audio' : 'Mute'}</span>
-                  </button>
-
-                  <button
-                    onClick={handleToggleViewMode}
-                    className="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors"
-                    title="Auto-detected Desktop View · Click to preview 430px Mobile Frame"
-                  >
-                    <Monitor className="w-3.5 h-3.5" />
-                    <span>Full</span>
-                  </button>
-
-                  <div className="w-px h-5 bg-white/20 mx-0.5 hidden sm:block" />
-                </>
-              )}
-
+            {/* Right: Minimal circular icon buttons for Theme, Reset Demo, and compact Switch pill */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
                 title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
-                {isDarkMode ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4" />}
+                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
               </button>
 
               <button
                 onClick={() => store.resetToDemo()}
-                className="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
                 title="Reset Demo Data"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
 
               <button
                 onClick={() => store.logoutMerchant()}
-                className="px-2.5 py-1.5 rounded-lg bg-black/25 hover:bg-black/35 text-xs font-semibold text-white flex items-center gap-1 transition-colors"
+                className="px-2.5 h-8 rounded-full border border-slate-200 dark:border-white/12 bg-white/60 dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Switch Shop / Logout"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -419,136 +381,150 @@ export default function App() {
             </div>
           </div>
 
-          {/* Row 2 (Mobile Frame Mode): Single-Line Control Strip */}
-          {isMobileFrame && (
-            <div className="flex items-center justify-between gap-1 sm:gap-1.5 mt-2 pt-2 border-t border-white/15 text-[11px] sm:text-xs">
-              {/* Online/Offline Pill */}
-              <button
-                onClick={() => setIsOnline(!isOnline)}
-                className="px-2 sm:px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white font-medium flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
-                title="Toggle Online / Offline Mode"
-              >
-                {isOnline ? <Wifi className="w-3.5 h-3.5 text-emerald-300" /> : <WifiOff className="w-3.5 h-3.5 text-amber-300" />}
-                <span>{isOnline ? 'Online' : `Offline (${store.pendingSyncCount})`}</span>
-              </button>
+          {/* Row 2: Sleek Utility Strip */}
+          <div className="px-4 pb-2.5 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+            {/* Online / Offline Pill */}
+            <button
+              onClick={() => setIsOnline(!isOnline)}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                isOnline
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                  : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+              }`}
+              title="Toggle Online / Offline Mode"
+            >
+              {isOnline ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Online</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3 h-3" />
+                  <span>Offline ({store.pendingSyncCount})</span>
+                </>
+              )}
+            </button>
 
-              {/* Language Segmented Pill */}
-              <div className="flex bg-black/20 rounded-full p-0.5 shrink-0">
-                {[
-                  { key: 'hinglish', label: 'Hinglish' },
-                  { key: 'hi', label: 'हिंदी' },
-                  { key: 'en', label: 'Eng' },
-                ].map(l => (
-                  <button
-                    key={l.key}
-                    onClick={() => setLang(l.key)}
-                    className={`text-[11px] sm:text-xs whitespace-nowrap transition-all ${lang === l.key
-                      ? 'bg-white text-[#1B7A43] font-bold px-2 py-0.5 rounded-full shadow-xs'
-                      : 'text-emerald-100 hover:text-white px-1.5 py-0.5'
-                      }`}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
+            {/* Language Segmented Control */}
+            <div className="flex bg-slate-100 dark:bg-white/[0.06] p-0.5 rounded-full border border-slate-200/70 dark:border-white/[0.08] shrink-0">
+              {[
+                { key: 'hinglish', label: 'Hinglish' },
+                { key: 'hi', label: 'हिंदी' },
+                { key: 'en', label: 'Eng' },
+              ].map(l => (
+                <button
+                  key={l.key}
+                  onClick={() => setLang(l.key)}
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] whitespace-nowrap transition-all cursor-pointer ${
+                    lang === l.key
+                      ? 'bg-[#111315] text-[#C8F53B] dark:bg-[#C8F53B] dark:text-[#111315] font-bold shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium'
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
 
-              {/* Audio Toggle Pill */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Audio Pill */}
               <button
                 onClick={() => setSoundboxEnabled(!soundboxEnabled)}
-                className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                  soundboxEnabled
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                    : 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border border-transparent'
+                }`}
                 title={soundboxEnabled ? 'Soundbox Audio Feedback On' : 'Audio Muted'}
               >
-                {soundboxEnabled ? <Volume2 className="w-3.5 h-3.5 text-yellow-300" /> : <VolumeX className="w-3.5 h-3.5 text-white/60" />}
-                <span>{soundboxEnabled ? 'Audio' : 'Mute'}</span>
+                {soundboxEnabled ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <Volume2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                    <span>Audio</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-3 h-3 text-slate-400" />
+                    <span>Mute</span>
+                  </>
+                )}
               </button>
 
-              {/* View Toggle Pill */}
+              {/* View-Mode Pill */}
               <button
                 onClick={handleToggleViewMode}
-                className="px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors"
-                title="Switch to Full Screen Mode"
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
+                title={isMobileFrame ? 'Switch to Full Screen Desktop Mode' : 'Preview 430px Mobile Frame'}
               >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>430px</span>
+                {isMobileFrame ? (
+                  <>
+                    <Smartphone className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                    <span>430px</span>
+                  </>
+                ) : (
+                  <>
+                    <Monitor className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                    <span>Full</span>
+                  </>
+                )}
               </button>
             </div>
-          )}
-
-          {/* Row 2 (Full Screen Mode): Structured 4-Column Equal-Width Navigation Bar */}
-          {!isMobileFrame && (
-            <nav
-              aria-label="Primary Navigation"
-              className="grid grid-cols-4 gap-1.5 bg-black/20 p-1.5 rounded-2xl border border-white/10"
-            >
-              {tabLabels.map((label, i) => {
-                const Icon = TAB_ICONS[i];
-                const isActive = i === activeTab;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(i);
-                      window.scrollTo(0, 0);
-                    }}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs sm:text-[13px] transition-all cursor-pointer ${isActive
-                      ? 'bg-white dark:bg-[#11181F] text-[#1B7A43] dark:text-emerald-400 font-bold shadow-sm ring-1 ring-black/5 dark:ring-emerald-400/25'
-                      : 'text-emerald-50/90 hover:text-white hover:bg-white/10 font-semibold'
-                      }`}
-                  >
-                    <Icon size={16} className="shrink-0" />
-                    <span className="truncate">{label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          )}
+          </div>
         </div>
       </header>
 
       {/* Tab Content */}
-      <main className={`flex-1 flex flex-col min-h-0 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-2.5 sm:p-3' : 'max-w-5xl w-full mx-auto p-6 pb-12'}`}>
+      <main className={`flex-1 flex flex-col min-h-0 pb-28 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-2.5 sm:p-3' : 'max-w-5xl w-full mx-auto p-6 pb-28'}`}>
         {renderTabContent()}
       </main>
 
-      {/* Bottom Navigation for Mobile View (In-flow sticky so it sits right inside visible viewport without hiding content) */}
-      {isMobileFrame && (
-        <nav className="sticky bottom-0 z-40 shrink-0 bg-white/95 dark:bg-[#16202A]/95 backdrop-blur-md border-t border-[#E2D9C8] dark:border-[#2A3644] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-[env(safe-area-inset-bottom)]">
-          <div className="max-w-[440px] mx-auto flex items-center justify-around">
-            {tabLabels.map((label, i) => {
-              const Icon = TAB_ICONS[i];
-              const isActive = i === activeTab;
-              return (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setActiveTab(i);
-                    window.scrollTo(0, 0);
-                  }}
-                  className={`flex-1 flex flex-col items-center py-2 px-1 text-[11px] font-medium transition-all ${isActive
-                    ? 'text-[#1B7A43] dark:text-emerald-400 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                    }`}
-                >
-                  <div className={`p-1 rounded-xl transition-all ${isActive ? 'bg-emerald-50 dark:bg-emerald-950/60' : ''}`}>
-                    <Icon size={20} className={isActive ? 'text-[#1B7A43] dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'} />
-                  </div>
-                  <span className="mt-0.5 truncate max-w-[80px]">{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      )}
+      {/* Floating Glassmorphic Pill Bottom Dock */}
+      <nav
+        aria-label="Bottom Navigation"
+        className="fixed bottom-3.5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-[404px] rounded-full bg-[#111315]/95 dark:bg-[#161A22]/95 backdrop-blur-2xl border border-white/12 shadow-[0_16px_40px_rgba(0,0,0,0.28)] p-1.5 flex items-center justify-between gap-1"
+      >
+        {TAB_ICONS.map((Icon, i) => {
+          const isActive = i === activeTab;
+          return isActive ? (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                setActiveTab(i);
+                window.scrollTo(0, 0);
+              }}
+              aria-current="page"
+              className="bg-[#C8F53B] text-[#111315] font-bold rounded-full px-3.5 py-2.5 flex items-center gap-1.5 shadow-sm transition-all text-xs shrink-0 cursor-pointer"
+            >
+              <Icon size={16} strokeWidth={2.4} className="shrink-0" />
+              <span className="whitespace-nowrap">{TAB_SHORT_LABELS[i]}</span>
+            </button>
+          ) : (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                setActiveTab(i);
+                window.scrollTo(0, 0);
+              }}
+              className="text-slate-400 hover:text-white px-2.5 py-2 rounded-full flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer flex-1"
+            >
+              <Icon size={16} strokeWidth={2} />
+              <span className="text-[10px] font-medium leading-none whitespace-nowrap">{TAB_SHORT_LABELS[i]}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 
   return (
-    <div className={`app-min-h bg-[#FAF6F0] dark:bg-[#0B1116] text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`app-min-h bg-[#F4F6F8] dark:bg-[#090B0F] text-slate-900 dark:text-slate-100 transition-colors ${isDarkMode ? 'dark' : ''}`}>
       {isMobileFrame ? (
-        <div className="w-full app-min-h flex justify-center bg-[#F2EDE4] dark:bg-[#070B0E]">
-          <div className="w-full max-w-[440px] app-min-h bg-[#FAF6F0] dark:bg-[#0B1116] border-x border-[#E2D9C8] dark:border-[#2A3644] shadow-2xl flex flex-col relative">
+        <div className="w-full app-min-h flex justify-center bg-[#E5E9EE] dark:bg-[#05070A]">
+          <div className="w-full max-w-[440px] app-min-h bg-[#F4F6F8] dark:bg-[#090B0F] border-x border-slate-200/80 dark:border-white/[0.08] shadow-2xl flex flex-col relative">
             {appContent}
           </div>
         </div>
