@@ -687,10 +687,19 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
     return true;
   }, [draft, ncName, hasMissingPrices, requiresNamedCustomer]);
 
-  const needsClarification = useMemo(() => {
-    if (!draft) return false;
-    return hasMissingPrices || draft.isNewCustomer || (!draft.customer && requiresNamedCustomer);
-  }, [draft, hasMissingPrices, requiresNamedCustomer]);
+  const clarificationWarning = useMemo(() => {
+    if (!draft) return null;
+    if (hasMissingPrices) {
+      return 'Please resolve highlighted items before confirming';
+    }
+    if (requiresNamedCustomer && !draft.customer && !draft.isNewCustomer) {
+      return 'Please select a customer above for Udhaar / Wasooli before confirming';
+    }
+    if (draft.isNewCustomer && !ncName.trim()) {
+      return 'Please enter customer name above before confirming';
+    }
+    return null;
+  }, [draft, hasMissingPrices, requiresNamedCustomer, ncName]);
 
   const handleConfirm = useCallback(() => {
     if (!draft || !canConfirm) return;
@@ -1530,10 +1539,10 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
               </div>
 
               {/* ── d. Clarification banner ───── */}
-              {needsClarification && (
+              {clarificationWarning && (
                 <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 rounded-xl px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
                   <AlertTriangle size={14} className="text-amber-600 shrink-0" />
-                  <span>Please resolve highlighted items before confirming</span>
+                  <span>{clarificationWarning}</span>
                 </div>
               )}
 
@@ -1769,7 +1778,9 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                   ? (labels?.confirm || '✓ Confirm Karein (Ledger Mein Save)')
                   : !hasMissingPrices && requiresNamedCustomer && !draft.customer && !draft.isNewCustomer
                     ? '⚠️ Select Customer Above for Udhaar / Wasooli'
-                    : (labels?.pendingConfirm || '⚠️ Select Missing Price Above to Confirm')}
+                    : draft.isNewCustomer && !ncName.trim()
+                      ? '⚠️ Enter Customer Name Above'
+                      : (labels?.pendingConfirm || '⚠️ Select Missing Price Above to Confirm')}
               </button>
             </div>
           </div>
