@@ -4,24 +4,27 @@ import {
   Store as StoreIcon, Shield, WifiOff, CheckCircle2,
   ChevronRight, ChevronLeft, AlertCircle
 } from 'lucide-react';
+import heroVoiceImg from '../assets/hero-voice.jpg';
+import heroKiranaImg from '../assets/hero-kirana.jpg';
+import heroLedgerImg from '../assets/hero-ledger.jpg';
 
-// ─── Slide Content Data ──────────────────────────────────────
+// ─── Hero Images & Slide Meta ────────────────────────────────
+const HERO_IMAGES = [heroVoiceImg, heroKiranaImg, heroLedgerImg];
+const SLIDE_BADGES = ['01 · VOICE', '02 · PARCHI AI', '03 · OFFLINE'];
+
 const SLIDES = [
   {
-    headline: 'Speak in Hinglish. Bill in 3 seconds.',
     subtext: 'Say items naturally in Hindi or English—no tapping through 5 menus during store rush.',
   },
   {
-    headline: 'Snap any parchi. Instant digital bill.',
     subtext: 'Point your camera at handwritten customer slips and convert them into verified bills.',
   },
   {
-    headline: 'Zero-error khata. Even without internet.',
     subtext: 'Every rupee needs your tap to confirm, with instant WhatsApp slips and safe local sync.',
   },
 ];
 
-// ─── Tactile 4-Circle PIN Input ──────────────────────────────
+// ─── Tactile 4-Circle PIN Input (High Contrast Light + Dark) ──
 function PinCircles({ value, onChange, id }) {
   const digits = value.padEnd(4, ' ').split('').slice(0, 4);
   const refs = [useRef(null), useRef(null), useRef(null), useRef(null)];
@@ -76,14 +79,15 @@ function PinCircles({ value, onChange, id }) {
             inputMode="numeric"
             maxLength={1}
             value={filled ? '•' : ''}
+            placeholder="•"
             onKeyDown={(e) => handleKey(i, e)}
             onPaste={handlePaste}
             onFocus={(e) => e.target.select()}
-            className={`w-13 h-13 rounded-full text-center text-xl font-bold border-2 outline-none transition-all cursor-pointer ${
+            className={`w-12 h-12 rounded-full text-center text-lg font-bold transition-all outline-none cursor-pointer placeholder:text-slate-400/60 dark:placeholder:text-white/25 ${
               filled
-                ? 'bg-[#C8F53B]/20 border-[#111315]/20 dark:border-[#C8F53B]/50 text-[#111315] dark:text-white shadow-sm'
-                : 'bg-slate-100/90 dark:bg-[#16191F] border-transparent text-slate-400'
-            } focus:border-[#111315] dark:focus:border-[#C8F53B] focus:bg-white dark:focus:bg-[#16191F]`}
+                ? 'bg-[#C8F53B]/20 border border-[#111315]/40 dark:border-[#C8F53B]/60 text-[#111315] dark:text-white shadow-sm ring-2 ring-[#C8F53B]/30'
+                : 'bg-slate-100/90 dark:bg-white/[0.06] border border-slate-300/80 dark:border-white/20 text-slate-400'
+            } focus:border-[#111315] dark:focus:border-[#C8F53B] focus:ring-4 focus:ring-[#C8F53B]/20 focus:bg-white dark:focus:bg-[#141821]`}
             aria-label={`PIN digit ${i + 1}`}
           />
         );
@@ -92,77 +96,53 @@ function PinCircles({ value, onChange, id }) {
   );
 }
 
-// ─── Real Layered UI Mockup: Slide 0 (Hinglish Voice Billing) ──
-function SlideVoice() {
+// ─── Slide 0: Luminous Silk + Frosted Voice Card ─────────────
+function SlideVoiceFrosted() {
   return (
-    <div className="w-full max-w-md mx-auto space-y-3">
-      {/* Top Floating Dark-Glass Voice Bar */}
-      <div className="bg-[#181C24]/90 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 shadow-xl flex items-center gap-3">
-        {/* Pulsing Volt-Lime mic circle */}
-        <div className="w-9 h-9 rounded-full bg-[#C8F53B] text-[#111315] flex items-center justify-center shadow-[0_0_20px_rgba(200,245,59,0.35)] shrink-0 animate-pulse">
-          <Mic className="w-4 h-4 text-[#111315]" strokeWidth={2.5} />
-        </div>
-        {/* 6 animated soundwave bars */}
-        <div className="flex items-end gap-1 h-5 shrink-0">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <span
-              key={i}
-              className="w-1 rounded-full bg-[#C8F53B] animate-wave-pulse"
-              style={{ animationDelay: `${i * 0.14}s` }}
-            />
-          ))}
-        </div>
-        {/* Live Hinglish text */}
-        <div className="min-w-0 flex-1">
+    <div className="w-full max-w-md mx-auto relative z-20">
+      <div className="glass-frosted rounded-2xl p-4 sm:p-5 space-y-3.5">
+        {/* Top Strip */}
+        <div className="flex items-center gap-3 pb-2 border-b border-white/10">
+          <div className="w-8 h-8 rounded-full bg-[#C8F53B] text-[#111315] flex items-center justify-center shadow-[0_0_16px_rgba(200,245,59,0.4)] shrink-0 animate-pulse">
+            <Mic className="w-4 h-4 text-[#111315]" strokeWidth={2.5} />
+          </div>
+          <div className="flex items-end gap-1 h-4 shrink-0">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className="w-1 rounded-full bg-[#C8F53B] animate-wave-pulse"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
           <p className="text-xs sm:text-sm font-semibold text-white/95 truncate">
             “Raju ne 5kg aata, 2 biscuit, 5 Maggi liya”
           </p>
         </div>
-      </div>
 
-      {/* Mini Draft Bill Card */}
-      <div className="bg-[#181C24]/95 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Draft Bill · Raju
-          </span>
-          <span className="px-2 py-0.5 rounded-full bg-[#C8F53B]/10 text-[#C8F53B] border border-[#C8F53B]/20 text-[10px] font-semibold">
-            Voice Parsed
-          </span>
-        </div>
-
-        {/* 3 clean tabular-nums rows */}
-        <div className="space-y-2 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-white/90 font-medium">Aata (Wheat Flour)</span>
-            <div className="flex items-center gap-3">
-              <span className="px-2 py-0.5 rounded-md bg-white/5 text-[11px] text-slate-300">5 kg</span>
-              <span className="font-bold text-white tabular-nums">₹225</span>
-            </div>
+        {/* Compact Itemized Glass Rows */}
+        <div className="space-y-1.5 text-xs">
+          <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-white/[0.05]">
+            <span className="text-white/90 font-medium">Aata 5kg</span>
+            <span className="font-bold text-white tabular-nums">₹225</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-white/90 font-medium">Biscuit (Parle-G)</span>
-            <div className="flex items-center gap-3">
-              <span className="px-2 py-0.5 rounded-md bg-white/5 text-[11px] text-slate-300">2 pkt</span>
-              <span className="font-bold text-white tabular-nums">₹20</span>
-            </div>
+          <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-white/[0.05]">
+            <span className="text-white/90 font-medium">Biscuit 2pkt</span>
+            <span className="font-bold text-white tabular-nums">₹20</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-white/90 font-medium">Maggi Noodles</span>
-            <div className="flex items-center gap-3">
-              <span className="px-2 py-0.5 rounded-md bg-white/5 text-[11px] text-slate-300">5 pkt</span>
-              <span className="font-bold text-white tabular-nums">₹70</span>
-            </div>
+          <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-white/[0.05]">
+            <span className="text-white/90 font-medium">Maggi 5pkt</span>
+            <span className="font-bold text-white tabular-nums">₹70</span>
           </div>
         </div>
 
-        {/* Bottom Footer Bar */}
-        <div className="pt-2.5 border-t border-white/10 flex items-center justify-between">
+        {/* Footer */}
+        <div className="pt-2 border-t border-white/10 flex items-center justify-between">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xs text-slate-400 font-medium">Total:</span>
-            <span className="text-lg font-extrabold text-white tabular-nums">₹315</span>
+            <span className="text-xs text-white/60 font-medium">Total:</span>
+            <span className="text-base sm:text-lg font-extrabold text-white tabular-nums">₹315</span>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8F53B]/15 text-[#C8F53B] border border-[#C8F53B]/30 text-xs font-bold shadow-[0_0_12px_rgba(200,245,59,0.2)]">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8F53B]/20 text-[#C8F53B] border border-[#C8F53B]/35 text-xs font-bold shadow-[0_0_12px_rgba(200,245,59,0.25)]">
             <Check className="w-3.5 h-3.5" strokeWidth={3} />
             Approved · Soundbox ON
           </span>
@@ -172,107 +152,121 @@ function SlideVoice() {
   );
 }
 
-// ─── Real Layered UI Mockup: Slide 1 (AI Handwritten Parchi Scan) ──
-function SlideParchi() {
+// ─── Slide 1: Editorial Kirana Counter + Floating Vision Pill ──
+function SlideParchiVision() {
   return (
-    <div className="w-full max-w-md mx-auto relative py-2">
-      {/* Tilted warm-paper handwritten slip card */}
-      <div className="relative w-64 sm:w-72 bg-[#FAF7F0] text-slate-800 rounded-2xl p-4 shadow-2xl border border-amber-200/50 rotate-[-2.5deg] overflow-hidden font-mono text-xs">
-        {/* Animated sweeping emerald/lime laser scan line */}
-        <div className="absolute left-0 right-0 h-0.5 bg-[#C8F53B] shadow-[0_0_12px_#C8F53B,0_0_24px_#C8F53B] animate-laser-sweep pointer-events-none z-20" />
+    <div className="w-full h-full flex flex-col justify-end relative z-20">
+      <div className="glass-frosted rounded-2xl p-4 sm:p-5 max-w-sm ml-auto mt-auto mb-2 sm:mb-6 w-full space-y-3.5">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C8F53B] animate-pulse shadow-[0_0_8px_#C8F53B]" />
+            <span className="text-xs font-bold text-white tracking-wide">
+              Parchi Scanned · 0.9s
+            </span>
+          </div>
+          <span className="text-[11px] text-[#C8F53B] font-mono font-semibold">
+            AI Vision
+          </span>
+        </div>
 
-        <div className="space-y-2 relative z-10">
-          <div className="border-b border-dashed border-slate-300 pb-1.5 flex justify-between items-center text-[11px]">
-            <span className="font-bold tracking-wider text-slate-700">PARCHI SLIP</span>
-            <span className="text-[10px] text-slate-400">20 Nov</span>
-          </div>
-          <div className="font-bold text-slate-900 text-xs">Ramesh - Udhaar</div>
-          <div className="space-y-1 text-slate-600 text-[11px]">
-            <div className="flex justify-between">
-              <span>2kg Aata</span>
-              <span>₹90</span>
-            </div>
-            <div className="flex justify-between">
-              <span>1 Sabun</span>
-              <span>₹40</span>
-            </div>
-            <div className="flex justify-between">
-              <span>1kg Chini</span>
-              <span>₹44</span>
-            </div>
-          </div>
-          <div className="border-t border-dashed border-slate-300 pt-1.5 flex justify-between font-bold text-slate-800 text-xs">
-            <span>Total</span>
-            <span>₹174</span>
-          </div>
+        {/* 3 Crisp Item Chips */}
+        <div className="flex flex-wrap gap-1.5">
+          <span className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/15 text-xs text-white font-medium tabular-nums">
+            2kg Aata <span className="font-bold text-[#C8F53B]">₹90</span>
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/15 text-xs text-white font-medium tabular-nums">
+            1 Sabun <span className="font-bold text-[#C8F53B]">₹40</span>
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/15 text-xs text-white font-medium tabular-nums">
+            1kg Chini <span className="font-bold text-[#C8F53B]">₹44</span>
+          </span>
         </div>
-      </div>
 
-      {/* Floating Extracted Card overlapping bottom-right corner */}
-      <div className="bg-[#181C24]/95 backdrop-blur-md border border-emerald-400/40 rounded-xl p-3.5 shadow-2xl w-60 sm:w-64 ml-auto -mt-10 mr-2 relative z-20 space-y-2">
-        <div className="flex items-center gap-1.5 text-[#C8F53B] text-xs font-bold">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-[#C8F53B]" />
-          <span>✓ 3 Items Parsed</span>
-        </div>
-        <div className="text-[11px] text-slate-300 flex items-center justify-between">
-          <span className="truncate max-w-[130px]">Aata, Sabun, Chini</span>
-          <span className="font-bold text-white tabular-nums">₹174</span>
-        </div>
-        <div className="w-full text-center py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
-          Ready to Confirm
+        {/* Footer Pill */}
+        <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+          <div className="text-xs text-white/70">
+            Total <span className="font-bold text-white text-sm tabular-nums">₹174</span>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 text-xs font-bold">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            Ready to Confirm
+          </span>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Real Layered UI Mockup: Slide 2 (Zero-Error Bahi-Khata & Offline Sync) ──
-function SlideTrust() {
+// ─── Slide 2: 3D-Tilted Multi-Card Dashboard Bleeding Off Edge ─
+function SlideLedgerTilted() {
   return (
-    <div className="w-full max-w-md mx-auto space-y-3">
-      {/* Sleek Customer Ledger Card */}
-      <div className="bg-[#181C24]/95 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-2xl space-y-3.5">
-        {/* Customer Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 text-white font-bold flex items-center justify-center text-sm border border-white/10">
-              RK
-            </div>
+    <div className="w-full flex justify-end items-center relative z-20 py-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 -rotate-6 translate-x-3 sm:translate-x-6 translate-y-3 sm:translate-y-4 scale-105 transition-transform duration-700 max-w-lg w-full">
+        {/* Left Mini Column: Bahi-Khata Card */}
+        <div className="glass-frosted rounded-2xl p-4 space-y-3 border border-white/20 shadow-2xl">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="font-bold text-sm text-white flex items-center gap-2">
-                Ramesh Kumar
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34D399]" />
-              </div>
-              <div className="text-xs text-slate-400">Sector 4 · +91 98112 00000</div>
+              <div className="font-bold text-xs sm:text-sm text-white">Ramesh Kumar</div>
+              <div className="text-[10px] text-white/60">Sector 4 · #98112</div>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34D399]" />
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 space-y-0.5">
+            <div className="text-[10px] font-semibold text-white/60 uppercase">Khata Balance</div>
+            <div className="text-base sm:text-lg font-extrabold text-[#C8F53B] tabular-nums tracking-tight flex items-center gap-1.5">
+              <span className="text-white/40 line-through text-xs font-semibold">₹420</span>
+              <ArrowRight className="w-3.5 h-3.5 text-white/40" />
+              <span>₹550</span>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold inline-flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            Approval Zaroori Hai
-          </span>
+
+          <div className="space-y-1.5 pt-1 border-t border-white/10">
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold inline-flex items-center gap-1">
+              <Shield className="w-3 h-3 text-emerald-400" />
+              Approval Zaroori Hai
+            </span>
+            <div className="flex items-center gap-1 text-[10px] text-white/80">
+              <WifiOff className="w-3 h-3 text-amber-300 shrink-0" />
+              <span>Offline Queue · 100% Safe</span>
+            </div>
+          </div>
         </div>
 
-        {/* Balance Box with Transition */}
-        <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Udhaar Khata Balance
+        {/* Right Mini Column: Aaj Ka Hisab Card */}
+        <div className="glass-frosted rounded-2xl p-4 space-y-3 border border-white/20 shadow-2xl hidden sm:block">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">
+              Aaj Ka Hisab
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-[#C8F53B]/20 text-[#C8F53B] border border-[#C8F53B]/30 text-[9px] font-bold">
+              Live Counter
+            </span>
           </div>
-          <div className="text-2xl font-extrabold text-[#C8F53B] tabular-nums tracking-tight flex items-center gap-2.5 animate-balance-pop">
-            <span className="text-slate-400 line-through text-lg font-bold">₹420</span>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
-            <span>₹550</span>
-          </div>
-          <div className="text-[11px] text-slate-400">
-            +₹130 New Bill Added · WhatsApp Slip Sent
-          </div>
-        </div>
-      </div>
 
-      {/* Floating Offline Queue Pill */}
-      <div className="flex items-center justify-center">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/90 text-xs font-medium shadow-lg">
-          <WifiOff className="w-3.5 h-3.5 text-amber-300" />
-          <span>Offline Queue · 100% Safe</span>
+          <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 space-y-0.5">
+            <div className="text-[10px] font-semibold text-white/60">Today's Sales</div>
+            <div className="text-xl font-extrabold text-[#C8F53B] tabular-nums tracking-tight">
+              ₹4,850
+            </div>
+          </div>
+
+          <div className="space-y-1 text-xs text-white/80 pt-1 border-t border-white/10">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-white/60">Cash</span>
+              <span className="font-semibold text-white tabular-nums">₹2,400</span>
+            </div>
+            <div className="flex justify-between text-[11px]">
+              <span className="text-white/60">UPI</span>
+              <span className="font-semibold text-white tabular-nums">₹1,900</span>
+            </div>
+            <div className="pt-1">
+              <span className="px-2 py-0.5 rounded-full bg-[#C8F53B]/20 text-[#C8F53B] border border-[#C8F53B]/30 text-[10px] font-bold inline-block">
+                Galla Verified ✓
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -281,9 +275,9 @@ function SlideTrust() {
 
 // ─── UI Mockup Dispatcher ────────────────────────────────────
 function SlideMockup({ index }) {
-  if (index === 0) return <SlideVoice />;
-  if (index === 1) return <SlideParchi />;
-  return <SlideTrust />;
+  if (index === 0) return <SlideVoiceFrosted />;
+  if (index === 1) return <SlideParchiVision />;
+  return <SlideLedgerTilted />;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -336,13 +330,13 @@ export default function OnboardingAuth({
     setPhase('onboarding');
   };
 
-  // ─── THEME TOGGLE BUTTON ──────────────────────────────────
+  // ─── THEME TOGGLE BUTTON (no ugly browser tooltip popup) ────
   const themeToggle = (
     <button
       type="button"
       onClick={() => setIsDarkMode(!isDarkMode)}
-      className="w-10 h-10 rounded-full border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-[#16191F]/80 backdrop-blur-sm text-slate-600 dark:text-slate-300 hover:text-[#111315] dark:hover:text-white flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
-      title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      className="w-10 h-10 rounded-full border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-[#141821]/80 backdrop-blur-sm text-slate-600 dark:text-slate-300 hover:text-[#111315] dark:hover:text-white flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
+      aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {isDarkMode ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} />}
     </button>
@@ -351,8 +345,8 @@ export default function OnboardingAuth({
   // ─── EDITORIAL FORM CONTAINER (Right Column & Mobile Auth) ──
   const renderAuthForm = () => (
     <div className="w-full max-w-[380px] relative space-y-6">
-      {/* Visible Architectural Grid Halo behind brand icon */}
-      <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-[220px] h-[110px] bg-auth-grid pointer-events-none" />
+      {/* Architectural Grid Halo behind brand icon */}
+      <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-[220px] h-[110px] bg-auth-grid opacity-80 pointer-events-none" />
 
       {/* Layered Brand Mark */}
       <div className="relative z-10 text-center space-y-3 pt-2">
@@ -372,7 +366,7 @@ export default function OnboardingAuth({
       </div>
 
       {/* Segmented Pill Switcher */}
-      <div className="relative z-10 flex p-1 rounded-full bg-slate-100 dark:bg-[#16191F] border border-slate-200/70 dark:border-white/10">
+      <div className="relative z-10 flex p-1 rounded-full bg-slate-100 dark:bg-[#141821] border border-slate-200/70 dark:border-white/10">
         <button
           type="button"
           onClick={() => { setAuthTab('login'); setAuthError(''); }}
@@ -412,7 +406,7 @@ export default function OnboardingAuth({
             <label className="block text-xs font-semibold mb-1.5 text-slate-500 dark:text-slate-400">
               Mobile Number
             </label>
-            <div className="h-12 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all flex items-center px-3.5 relative">
+            <div className="h-12 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all flex items-center px-3.5 relative">
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 mr-2.5 select-none">
                 +91
               </span>
@@ -456,7 +450,7 @@ export default function OnboardingAuth({
             <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
               Shop Name *
             </label>
-            <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3.5 flex items-center">
+            <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all px-3.5 flex items-center">
               <input
                 type="text"
                 value={signupShopName}
@@ -473,7 +467,7 @@ export default function OnboardingAuth({
               <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
                 Owner Name *
               </label>
-              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3.5 flex items-center">
+              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all px-3.5 flex items-center">
                 <input
                   type="text"
                   value={signupOwnerName}
@@ -488,7 +482,7 @@ export default function OnboardingAuth({
               <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
                 City / Area
               </label>
-              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3.5 flex items-center">
+              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all px-3.5 flex items-center">
                 <input
                   type="text"
                   value={signupArea}
@@ -505,7 +499,7 @@ export default function OnboardingAuth({
               <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
                 Mobile *
               </label>
-              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3 flex items-center">
+              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all px-3 flex items-center">
                 <span className="text-[11px] font-bold text-slate-400 mr-1.5 select-none">+91</span>
                 <input
                   type="tel"
@@ -522,7 +516,7 @@ export default function OnboardingAuth({
               <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
                 Opening Cash ₹
               </label>
-              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3 flex items-center">
+              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all px-3 flex items-center">
                 <span className="text-xs font-bold text-slate-400 mr-1.5">₹</span>
                 <input
                   type="number"
@@ -565,7 +559,7 @@ export default function OnboardingAuth({
         <button
           type="button"
           onClick={() => store.loginDemoMerchant()}
-          className="w-full rounded-2xl p-3 bg-slate-50 hover:bg-[#C8F53B]/15 dark:bg-[#16191F] dark:hover:bg-[#C8F53B]/10 border border-slate-200 dark:border-white/10 hover:border-[#C8F53B] transition-all flex items-center justify-between text-left group cursor-pointer shadow-sm"
+          className="w-full rounded-2xl p-3 bg-slate-50 hover:bg-[#C8F53B]/15 dark:bg-[#141821] dark:hover:bg-[#C8F53B]/10 border border-slate-200 dark:border-white/12 hover:border-[#C8F53B] transition-all flex items-center justify-between text-left group cursor-pointer shadow-sm"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#C8F53B] text-[#111315] font-extrabold flex items-center justify-center shrink-0 text-sm shadow-sm">
@@ -588,39 +582,83 @@ export default function OnboardingAuth({
     </div>
   );
 
-  // ─── DESKTOP LEFT PANEL: Obsidian Showcase Panel ───────────
+  // ─── DESKTOP LEFT PANEL: Full-Bleed Cinematic Showcase ──────
   const renderLeftPanel = () => (
-    <div className="w-full h-full min-h-[calc(100vh-2rem)] rounded-[2rem] bg-[#0F1217] relative overflow-hidden flex flex-col justify-between p-8 lg:p-10 text-white border border-white/10 shadow-2xl">
-      {/* Mesh Glows & Architectural Grid */}
-      <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-[#C8F53B]/15 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-[#6366F1]/15 blur-3xl pointer-events-none" />
-      <div className="absolute inset-0 bg-auth-grid opacity-[0.06] pointer-events-none" />
+    <div className="w-full h-full min-h-[calc(100vh-2rem)] rounded-[2rem] relative overflow-hidden border border-black/10 dark:border-white/15 shadow-2xl flex flex-col justify-between p-8 lg:p-11 text-white">
+      {/* Crossfading Full-Bleed Background Images */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {HERO_IMAGES.map((img, i) => (
+          <img
+            key={i}
+            src={img}
+            alt={`Slide ${i + 1} Visual`}
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${
+              slide === i
+                ? 'opacity-100 scale-100'
+                : 'opacity-0 scale-105'
+            }`}
+          />
+        ))}
+        {/* Multi-stop cinematic scrim overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/25 to-black/85" />
+      </div>
 
-      {/* Top Bar inside Panel */}
-      <div className="relative z-10 flex items-center justify-between">
+      {/* Top Eyebrow Row */}
+      <div className="relative z-20 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#C8F53B] shadow-inner">
-            <StoreIcon size={18} strokeWidth={2.2} />
+          <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-[#C8F53B] shadow-inner backdrop-blur-md">
+            <StoreIcon size={16} strokeWidth={2.2} />
           </div>
-          <span className="text-lg font-bold tracking-tight text-white">KiranaScan</span>
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-bold tracking-[0.2em] text-white/90">
+              KIRANASCAN
+            </span>
+            <span className="w-10 sm:w-14 h-[1px] bg-white/35" />
+            <span className="text-[10px] font-bold tracking-widest text-[#C8F53B] uppercase">
+              RETAIL OS
+            </span>
+          </div>
         </div>
-        <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 border border-white/10 text-xs font-medium backdrop-blur-sm">
-          Offline-Ready Retail OS
+
+        {/* Active Slide Badge Pill */}
+        <span className="px-3 py-1 rounded-full bg-black/35 backdrop-blur-md border border-white/15 text-xs text-white/90 font-mono">
+          {SLIDE_BADGES[slide]}
         </span>
       </div>
 
       {/* Centerpiece: Real Layered UI Mockup Stage */}
-      <div className="relative z-10 my-auto py-6">
+      <div className="relative z-20 my-auto py-6">
         <SlideMockup index={slide} />
       </div>
 
-      {/* Bottom Footer inside Panel */}
-      <div className="relative z-10 space-y-5">
+      {/* Bottom Editorial Copy & Controls */}
+      <div className="relative z-20 space-y-5">
         <div className="space-y-1.5">
-          <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
-            {SLIDES[slide].headline}
-          </h2>
-          <p className="text-slate-400 text-sm lg:text-base leading-relaxed max-w-lg">
+          {slide === 0 && (
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
+              Speak in Hinglish.{' '}
+              <span className="font-editorial italic font-normal text-[#C8F53B] text-4xl lg:text-5xl">
+                Bill in 3 seconds.
+              </span>
+            </h2>
+          )}
+          {slide === 1 && (
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
+              Snap any parchi.{' '}
+              <span className="font-editorial italic font-normal text-[#C8F53B] text-4xl lg:text-5xl">
+                Instant digital bill.
+              </span>
+            </h2>
+          )}
+          {slide === 2 && (
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
+              Zero-error khata.{' '}
+              <span className="font-editorial italic font-normal text-[#C8F53B] text-4xl lg:text-5xl">
+                Even offline.
+              </span>
+            </h2>
+          )}
+          <p className="text-white/75 text-sm lg:text-base leading-relaxed max-w-md">
             {SLIDES[slide].subtext}
           </p>
         </div>
@@ -646,7 +684,7 @@ export default function OnboardingAuth({
             <button
               type="button"
               onClick={() => setSlide((s) => (s - 1 + 3) % 3)}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/15 text-white/90 hover:text-white flex items-center justify-center transition-all cursor-pointer"
               aria-label="Previous slide"
             >
               <ChevronLeft size={16} />
@@ -654,7 +692,7 @@ export default function OnboardingAuth({
             <button
               type="button"
               onClick={() => setSlide((s) => (s + 1) % 3)}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/15 text-white/90 hover:text-white flex items-center justify-center transition-all cursor-pointer"
               aria-label="Next slide"
             >
               <ChevronRight size={16} />
@@ -667,26 +705,40 @@ export default function OnboardingAuth({
 
   // ─── MOBILE ONBOARDING VIEW (< 768px) ──────────────────────
   const mobileOnboarding = (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-[#0B0D11] text-slate-900 dark:text-white">
-      {/* Top Hero Stage */}
-      <div className="min-h-[55vh] rounded-b-[2.5rem] bg-[#0F1217] relative overflow-hidden flex flex-col justify-between p-6 text-white border-b border-white/10 shadow-xl">
-        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[#C8F53B]/15 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-[#6366F1]/15 blur-3xl pointer-events-none" />
-        <div className="absolute inset-0 bg-auth-grid opacity-[0.06] pointer-events-none" />
+    <div className="flex flex-col min-h-screen bg-white dark:bg-[#090B0F] text-slate-900 dark:text-white">
+      {/* Top Hero Stage with full-bleed hero backdrop */}
+      <div className="min-h-[54vh] rounded-b-[2.5rem] relative overflow-hidden flex flex-col justify-between p-6 text-white border-b border-black/10 dark:border-white/15 shadow-2xl">
+        {/* Stacked Hero Images */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {HERO_IMAGES.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt={`Slide ${i + 1} Visual`}
+              className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${
+                slide === i ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
+              }`}
+            />
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/25 to-black/85" />
+        </div>
 
         {/* Top Bar inside Stage */}
-        <div className="relative z-10 flex items-center justify-between">
+        <div className="relative z-20 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#C8F53B]">
+            <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-[#C8F53B]">
               <StoreIcon size={16} strokeWidth={2.2} />
             </div>
-            <span className="text-sm font-bold text-white tracking-tight">KiranaScan</span>
+            <span className="text-sm font-bold text-white tracking-tight">KIRANASCAN</span>
           </div>
           <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full bg-black/35 backdrop-blur-md border border-white/15 text-[11px] text-white/90 font-mono">
+              {SLIDE_BADGES[slide]}
+            </span>
             <button
               type="button"
               onClick={goToAuth}
-              className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-sm border border-white/10 transition-colors cursor-pointer"
+              className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md border border-white/15 transition-colors cursor-pointer"
             >
               Skip →
             </button>
@@ -695,7 +747,7 @@ export default function OnboardingAuth({
         </div>
 
         {/* Active Mockup */}
-        <div className="relative z-10 my-auto py-2">
+        <div className="relative z-20 my-auto py-2">
           <SlideMockup index={slide} />
         </div>
       </div>
@@ -703,9 +755,30 @@ export default function OnboardingAuth({
       {/* Bottom Controls Area */}
       <div className="flex-1 flex flex-col justify-between p-6 space-y-4">
         <div className="space-y-1.5">
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
-            {SLIDES[slide].headline}
-          </h2>
+          {slide === 0 && (
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+              Speak in Hinglish.{' '}
+              <span className="font-editorial italic font-normal text-[#C8F53B] text-3xl">
+                Bill in 3 seconds.
+              </span>
+            </h2>
+          )}
+          {slide === 1 && (
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+              Snap any parchi.{' '}
+              <span className="font-editorial italic font-normal text-[#C8F53B] text-3xl">
+                Instant digital bill.
+              </span>
+            </h2>
+          )}
+          {slide === 2 && (
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+              Zero-error khata.{' '}
+              <span className="font-editorial italic font-normal text-[#C8F53B] text-3xl">
+                Even offline.
+              </span>
+            </h2>
+          )}
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             {SLIDES[slide].subtext}
           </p>
@@ -762,7 +835,7 @@ export default function OnboardingAuth({
   );
 
   return (
-    <div className={`min-h-screen w-full bg-white dark:bg-[#0B0D11] text-slate-900 dark:text-white transition-colors ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`min-h-screen w-full bg-white dark:bg-[#090B0F] text-slate-900 dark:text-white transition-colors ${isDarkMode ? 'dark' : ''}`}>
       {/* Mobile Onboarding Flow (active only on mobile when phase === 'onboarding') */}
       {phase === 'onboarding' ? (
         <div className="flex md:hidden flex-col min-h-screen">
@@ -775,7 +848,7 @@ export default function OnboardingAuth({
           - Mobile (< 768px): Rendered only when phase === 'auth' (occupying col-span-12) */}
       <div className={`w-full min-h-screen grid md:grid-cols-12 ${phase === 'onboarding' ? 'hidden md:grid' : 'grid'}`}>
         {/* Left Panel: Desktop Showcase */}
-        <div className="hidden md:flex md:col-span-6 lg:col-span-7 p-4">
+        <div className="hidden md:flex md:col-span-6 lg:col-span-7 p-3 lg:p-4">
           {renderLeftPanel()}
         </div>
 
