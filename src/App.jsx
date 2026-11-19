@@ -5,12 +5,12 @@ import VoiceTab from './components/VoiceTab.jsx';
 import LedgerTab from './components/LedgerTab.jsx';
 import DailyHisabTab from './components/DailyHisabTab.jsx';
 import CatalogueTab from './components/CatalogueTab.jsx';
+import OnboardingAuth from './components/OnboardingAuth.jsx';
 import {
   Mic, BookOpen, BarChart3, Store as StoreIcon,
   Wifi, WifiOff, Volume2, VolumeX, RotateCcw,
   Smartphone, Monitor, Globe, ChevronUp, ChevronDown, Zap,
-  Sun, Moon, Edit2, Check, X, LogOut, ArrowRight, User, Phone, Lock, MapPin, Wallet, Sparkles, AlertCircle,
-  KeyRound, Camera, FileText, CheckCircle2, MessageCircle
+  Sun, Moon, Edit2, Check, X, LogOut
 } from 'lucide-react';
 import './index.css';
 
@@ -34,21 +34,6 @@ export default function App() {
   const [lang, setLang] = useState('hinglish');
   const [isMobileFrame, setIsMobileFrame] = useState(() => detectMobileDevice());
   const manualViewOverrideRef = useRef(false);
-  const [activeSlide, setActiveSlide] = useState(0);
-
-  // Auto-cycle live preview card on front screen
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveSlide(prev => (prev + 1) % 3);
-    }, 3500);
-    return () => clearInterval(timer);
-  }, []);
-
-  const mobileTickerExamples = [
-    '“Ramesh ko 2 kg aata, 1 sabun udhaar”',
-    '“Parchi scan karein — instant digital hisab”',
-    '“Offline bhi chalta hai — zero data loss”'
-  ];
 
   // Auto-detect device & adapt layout automatically unless user manually toggled on desktop
   useEffect(() => {
@@ -194,434 +179,33 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════
   if (!currentMerchant) {
     return (
-      <div className={`w-full min-h-screen relative overflow-hidden bg-[#FAF6F0] dark:bg-[#0B1116] bg-ledger-dots flex items-center justify-center p-4 sm:p-6 text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
-        {/* Ambient Blurred Orbs */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#1B7A43]/10 dark:bg-[#1B7A43]/15 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-[#E68A00]/10 dark:bg-[#E68A00]/10 blur-3xl pointer-events-none" />
-
-        {/* Top Floating Controls */}
-        <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2.5 rounded-2xl bg-white/90 dark:bg-[#16202A]/90 backdrop-blur-sm border border-[#E2D9C8] dark:border-[#2A3644] text-[#5A6573] dark:text-[#9CA3AF] hover:text-[#1B7A43] dark:hover:text-emerald-400 shadow-sm transition-all cursor-pointer"
-            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          >
-            {isDarkMode ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
-          </button>
-        </div>
-
-        {/* Responsive Grid */}
-        <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-12 items-center relative z-10 py-6">
-          {/* LEFT COLUMN: Desktop Minimal Brand Showcase */}
-          <div className="hidden md:flex md:col-span-6 flex-col gap-6">
-            {/* Trust Eyebrow Pill */}
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1B7A43]/10 text-[#1B7A43] dark:text-emerald-400 text-xs font-semibold w-fit border border-[#1B7A43]/20 dark:border-emerald-800/30">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Built for Indian Kirana Stores
-            </span>
-
-            {/* Crisp Headline */}
-            <div className="space-y-1">
-              <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-                Bol Kar Likhein.
-              </h1>
-              <h2 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-[#1B7A43] dark:text-emerald-400 leading-tight">
-                Confirm Karein. Trust Karein.
-              </h2>
-            </div>
-
-            {/* 1-Sentence Subtitle */}
-            <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed">
-              Move from handwritten credit notebooks to verified digital hisab in under 5 seconds—offline or online.
-            </p>
-
-            {/* Interactive Auto-Cycling Live Preview Card */}
-            <div className="bg-white/95 dark:bg-[#151F28]/95 backdrop-blur-md rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-5 shadow-lg relative min-h-[195px] flex flex-col justify-between overflow-hidden">
-              {activeSlide === 0 && (
-                <div className="space-y-3 animate-fade-in">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1.5 text-[#1B7A43] dark:text-emerald-400">
-                      <Mic className="w-3.5 h-3.5" />
-                      Voice-to-Bill
-                    </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium">
-                      Hinglish NLP
-                    </span>
-                  </div>
-
-                  <div className="bg-stone-50 dark:bg-[#0F171F] p-3 rounded-xl border border-stone-200 dark:border-slate-800 flex items-center gap-3">
-                    <div className="flex items-center gap-0.5 h-4 px-1.5 py-1 rounded bg-[#1B7A43]/10 dark:bg-emerald-950/60 shrink-0">
-                      <span className="w-1 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
-                      <span className="w-1 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
-                      <span className="w-1 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
-                      <span className="w-1 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
-                    </div>
-                    <p className="text-xs font-medium text-slate-800 dark:text-slate-200 italic">
-                      &ldquo;Ramesh ko 2 kg aata aur 40 wala sabun udhaar&rdquo;
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs">
-                    <span className="font-semibold text-emerald-900 dark:text-emerald-200">
-                      Aata 2kg ₹90 · Soap ₹40
-                    </span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-300 bg-white dark:bg-[#16202A] px-2 py-0.5 rounded-md border border-emerald-500/20 shadow-xs">
-                      Balance: ₹420 → ₹550
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {activeSlide === 1 && (
-                <div className="space-y-3 animate-fade-in relative">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1.5 text-[#1B7A43] dark:text-emerald-400">
-                      <Camera className="w-3.5 h-3.5" />
-                      Parchi OCR & Vision AI
-                    </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium">
-                      Multi-Model
-                    </span>
-                  </div>
-
-                  <div className="relative bg-[#FFFDF9] dark:bg-[#0F171F] p-3 rounded-xl border border-stone-300 dark:border-slate-800 overflow-hidden shadow-inner font-mono text-[11px] text-slate-700 dark:text-slate-300">
-                    <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent shadow-[0_0_8px_#10B981] animate-scanline pointer-events-none" />
-                    <div className="space-y-1.5 opacity-90">
-                      <div className="flex justify-between border-b border-dashed border-stone-300 dark:border-slate-700 pb-0.5">
-                        <span>1. Sarson Tel 1L</span>
-                        <span>₹160</span>
-                      </div>
-                      <div className="flex justify-between border-b border-dashed border-stone-300 dark:border-slate-700 pb-0.5">
-                        <span>2. Chini 2kg</span>
-                        <span>₹88</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>3. Haldi Powder 200g</span>
-                        <span>₹45</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs text-emerald-900 dark:text-emerald-200 font-semibold">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>Parchi Scanned · 3 Items Ready to Approve</span>
-                  </div>
-                </div>
-              )}
-
-              {activeSlide === 2 && (
-                <div className="space-y-3 animate-fade-in">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1.5 text-[#1B7A43] dark:text-emerald-400">
-                      <WifiOff className="w-3.5 h-3.5" />
-                      Offline-First & WhatsApp
-                    </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium">
-                      Zero Net Delay
-                    </span>
-                  </div>
-
-                  <div className="bg-stone-50 dark:bg-[#0F171F] p-3 rounded-xl border border-stone-200 dark:border-slate-800 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">Offline Queue Synced</span>
-                    </div>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-stone-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
-                      TXN-4821
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs text-emerald-900 dark:text-emerald-200">
-                    <div className="flex items-center gap-2 font-semibold">
-                      <MessageCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>WhatsApp Slip Ready</span>
-                    </div>
-                    <span className="text-[10px] font-bold bg-[#1B7A43] text-white px-2 py-0.5 rounded-md shadow-xs">
-                      1-Tap Share
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Clickable 3-Dot Indicator */}
-              <div className="flex items-center justify-center gap-2 pt-2">
-                {[0, 1, 2].map((idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setActiveSlide(idx)}
-                    aria-label={`Slide ${idx + 1}`}
-                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                      activeSlide === idx
-                        ? 'w-6 bg-[#1B7A43] dark:bg-emerald-400'
-                        : 'w-2 bg-stone-300 dark:bg-slate-700 hover:bg-stone-400 dark:hover:bg-slate-600'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Micro-Feature Pills */}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-[#16202A]/80 border border-[#E2D9C8] dark:border-[#2A3644] font-medium shadow-xs">
-                <Mic className="w-3.5 h-3.5 text-[#1B7A43] dark:text-emerald-400" />
-                Hinglish Voice
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-[#16202A]/80 border border-[#E2D9C8] dark:border-[#2A3644] font-medium shadow-xs">
-                <Camera className="w-3.5 h-3.5 text-[#1B7A43] dark:text-emerald-400" />
-                Parchi Scan
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-[#16202A]/80 border border-[#E2D9C8] dark:border-[#2A3644] font-medium shadow-xs">
-                <WifiOff className="w-3.5 h-3.5 text-[#1B7A43] dark:text-emerald-400" />
-                Works Offline
-              </span>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: Polished Login / Sign Up Card */}
-          <div className="md:col-span-6 w-full max-w-md mx-auto">
-            <div className="bg-white/95 dark:bg-[#151F28]/95 backdrop-blur-md border border-[#E6DFD3] dark:border-[#2A3644] rounded-3xl shadow-xl p-6 sm:p-8 animate-fade-up space-y-6">
-              {/* Mobile-Only Animated Voice Ticker */}
-              <div className="md:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1B7A43]/10 dark:bg-emerald-950/40 border border-[#1B7A43]/20 dark:border-emerald-800/40 text-xs text-[#1B7A43] dark:text-emerald-300 w-full justify-center">
-                <div className="flex items-center gap-0.5 h-3 shrink-0">
-                  <span className="w-0.5 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
-                  <span className="w-0.5 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
-                  <span className="w-0.5 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
-                  <span className="w-0.5 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
-                </div>
-                <span className="font-medium truncate transition-all duration-300">
-                  {mobileTickerExamples[activeSlide]}
-                </span>
-              </div>
-
-              {/* Logo Header */}
-              <div className="text-center space-y-2">
-                <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 dark:bg-emerald-400/20 animate-logo-ripple pointer-events-none" />
-                  <div className="relative w-14 h-14 rounded-2xl bg-[#1B7A43] text-white flex items-center justify-center shadow-lg shadow-green-900/25">
-                    <StoreIcon size={30} />
-                  </div>
-                </div>
-                <div>
-                  <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                    KiranaScan
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Voice-First Accounting & Bahi-Khata for Kirana Merchants
-                  </p>
-                </div>
-              </div>
-
-              {/* 1-Tap Instant Demo Login Button (Prominent) */}
-              <button
-                type="button"
-                onClick={() => store.loginDemoMerchant()}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#1B7A43] to-[#145E33] hover:from-[#145E33] hover:to-[#0E4424] text-white font-bold text-sm shadow-md shadow-green-900/30 active:scale-[0.98] transition-all flex items-center justify-between group subtle-shimmer cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300 shrink-0" />
-                  <span>Instant Demo Login: Gupta Kirana Store</span>
-                </span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
-              </button>
-
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-[#E6DFD3] dark:bg-[#2A343D]" />
-                <span className="text-[11px] text-[#5A6573] dark:text-[#9CA3AF] uppercase font-semibold">ya apna khata kholein</span>
-                <div className="flex-1 h-px bg-[#E6DFD3] dark:bg-[#2A343D]" />
-              </div>
-
-              {/* Tab Switcher */}
-              <div className="flex bg-[#FAF6F0] dark:bg-[#11181F] p-1 rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644]">
-                <button
-                  type="button"
-                  onClick={() => { setAuthTab('login'); setAuthError(''); }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    authTab === 'login'
-                      ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-emerald-400 shadow-sm'
-                      : 'text-[#5A6573] dark:text-[#9CA3AF] hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Dukan Login</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAuthTab('signup'); setAuthError(''); }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    authTab === 'signup'
-                      ? 'bg-white dark:bg-[#16202A] text-[#1B7A43] dark:text-emerald-400 shadow-sm'
-                      : 'text-[#5A6573] dark:text-[#9CA3AF] hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <StoreIcon className="w-3.5 h-3.5" />
-                  <span>Nayi Dukan Jodein</span>
-                </button>
-              </div>
-
-              {/* Error Banner */}
-              {authError && (
-                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-300 flex items-center gap-2">
-                  <AlertCircle size={15} className="shrink-0 text-red-500" />
-                  <span>{authError}</span>
-                </div>
-              )}
-
-              {/* ── Login Form ── */}
-              {authTab === 'login' && (
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1 text-[#5A6573] dark:text-[#9CA3AF]">
-                      10-Digit Mobile Number
-                    </label>
-                    <div className="relative">
-                      <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5A6573] dark:text-[#9CA3AF]" />
-                      <input
-                        type="tel"
-                        maxLength={10}
-                        value={loginPhone}
-                        onChange={e => setLoginPhone(e.target.value.replace(/\D/g, ''))}
-                        placeholder="e.g. 9876543210"
-                        className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-[#E6DFD3] dark:border-[#2A343D] bg-white dark:bg-[#11181F] text-sm text-[#1E242B] dark:text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold mb-1 text-[#5A6573] dark:text-[#9CA3AF]">
-                      4-Digit Security PIN
-                    </label>
-                    <div className="relative">
-                      <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5A6573] dark:text-[#9CA3AF]" />
-                      <input
-                        type="password"
-                        maxLength={4}
-                        value={loginPin}
-                        onChange={e => setLoginPin(e.target.value.replace(/\D/g, ''))}
-                        placeholder="••••"
-                        className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-[#E6DFD3] dark:border-[#2A343D] bg-white dark:bg-[#11181F] text-sm text-[#1E242B] dark:text-[#F3F4F6] tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                        required
-                      />
-                    </div>
-                    <p className="text-[10px] text-[#5A6573] dark:text-[#9CA3AF] mt-1 italic">
-                      Demo Store: 9876543210 / PIN: 1234
-                    </p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 rounded-xl bg-[#1B7A43] hover:bg-[#145E33] text-white font-bold text-sm shadow transition-all active:scale-[0.98] cursor-pointer"
-                  >
-                    Login to Shop
-                  </button>
-                </form>
-              )}
-
-              {/* ── Sign Up Form ── */}
-              {authTab === 'signup' && (
-                <form onSubmit={handleSignup} className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1 text-[#5A6573] dark:text-[#9CA3AF]">
-                      Dukan Ka Naam (Shop Name) *
-                    </label>
-                    <input
-                      type="text"
-                      value={signupShopName}
-                      onChange={e => setSignupShopName(e.target.value)}
-                      placeholder="e.g. Sharma Grocery Store"
-                      className="w-full px-3 py-2 rounded-xl border border-[#E6DFD3] dark:border-[#2A343D] bg-white dark:bg-[#11181F] text-sm text-[#1E242B] dark:text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1 text-[#5A6573] dark:text-[#9CA3AF]">
-                        Dukandar Ka Naam *
-                      </label>
-                      <input
-                        type="text"
-                        value={signupOwnerName}
-                        onChange={e => setSignupOwnerName(e.target.value)}
-                        placeholder="e.g. Ramesh Sharma"
-                        className="w-full px-3 py-2 rounded-xl border border-[#E6DFD3] dark:border-[#2A343D] bg-white dark:bg-[#11181F] text-sm text-[#1E242B] dark:text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1 text-[#5A6573] dark:text-[#9CA3AF]">
-                        Area / City
-                      </label>
-                      <input
-                        type="text"
-                        value={signupArea}
-                        onChange={e => setSignupArea(e.target.value)}
-                        placeholder="e.g. Jaipur"
-                        className="w-full px-3 py-2 rounded-xl border border-[#E6DFD3] dark:border-[#2A343D] bg-white dark:bg-[#11181F] text-sm text-[#1E242B] dark:text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1 text-[#5A6573] dark:text-[#9CA3AF]">
-                        10-Digit Mobile *
-                      </label>
-                      <input
-                        type="tel"
-                        maxLength={10}
-                        value={signupPhone}
-                        onChange={e => setSignupPhone(e.target.value.replace(/\D/g, ''))}
-                        placeholder="9811122233"
-                        className="w-full px-3 py-2 rounded-xl border border-[#E6DFD3] dark:border-[#2A343D] bg-white dark:bg-[#11181F] text-sm text-[#1E242B] dark:text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold mb-1 text-[#5A6573] dark:text-[#9CA3AF]">
-                        4-Digit PIN *
-                      </label>
-                      <input
-                        type="password"
-                        maxLength={4}
-                        value={signupPin}
-                        onChange={e => setSignupPin(e.target.value.replace(/\D/g, ''))}
-                        placeholder="1234"
-                        className="w-full px-3 py-2 rounded-xl border border-[#E6DFD3] dark:border-[#2A343D] bg-white dark:bg-[#11181F] text-sm text-[#1E242B] dark:text-[#F3F4F6] tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold mb-1 text-[#5A6573] dark:text-[#9CA3AF]">
-                      Opening Galla Cash ₹ (Dukan Khulte Samay Galla)
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#5A6573]">₹</span>
-                      <input
-                        type="number"
-                        value={signupOpeningCash}
-                        onChange={e => setSignupOpeningCash(e.target.value)}
-                        placeholder="1000"
-                        className="w-full pl-7 pr-3 py-2 rounded-xl border border-[#E6DFD3] dark:border-[#2A343D] bg-white dark:bg-[#11181F] text-sm text-[#1E242B] dark:text-[#F3F4F6] font-semibold focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 rounded-xl bg-[#1B7A43] hover:bg-[#145E33] text-white font-bold text-sm shadow transition-all active:scale-[0.98] mt-2 cursor-pointer"
-                  >
-                    Create Shop & Start Accounting
-                  </button>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <OnboardingAuth
+        store={store}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+        authTab={authTab}
+        setAuthTab={setAuthTab}
+        loginPhone={loginPhone}
+        setLoginPhone={setLoginPhone}
+        loginPin={loginPin}
+        setLoginPin={setLoginPin}
+        signupShopName={signupShopName}
+        setSignupShopName={setSignupShopName}
+        signupOwnerName={signupOwnerName}
+        setSignupOwnerName={setSignupOwnerName}
+        signupPhone={signupPhone}
+        setSignupPhone={setSignupPhone}
+        signupPin={signupPin}
+        setSignupPin={setSignupPin}
+        signupArea={signupArea}
+        setSignupArea={setSignupArea}
+        signupOpeningCash={signupOpeningCash}
+        setSignupOpeningCash={setSignupOpeningCash}
+        authError={authError}
+        setAuthError={setAuthError}
+        handleLogin={handleLogin}
+        handleSignup={handleSignup}
+      />
     );
   }
 
