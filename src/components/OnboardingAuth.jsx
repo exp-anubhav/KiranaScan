@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Mic, Camera, Shield, WifiOff, Zap, ArrowRight, Sun, Moon,
-  Phone, Store as StoreIcon, User, MapPin, ChevronRight, Wallet,
-  AlertCircle, CheckCircle2, Sparkles
+  Mic, Check, ArrowRight, Sun, Moon, Phone,
+  Store as StoreIcon, Shield, WifiOff, CheckCircle2,
+  ChevronRight, ChevronLeft, AlertCircle
 } from 'lucide-react';
 
-// ─── Slide Data ──────────────────────────────────────────────
+// ─── Slide Content Data ──────────────────────────────────────
 const SLIDES = [
   {
     headline: 'Speak in Hinglish. Bill in 3 seconds.',
-    subtext: 'Say items naturally in Hindi or English\u2014no tapping through 5 menus during store rush.',
+    subtext: 'Say items naturally in Hindi or English—no tapping through 5 menus during store rush.',
   },
   {
     headline: 'Snap any parchi. Instant digital bill.',
@@ -21,7 +21,7 @@ const SLIDES = [
   },
 ];
 
-// ─── 4-Circle PIN Input ─────────────────────────────────────
+// ─── Tactile 4-Circle PIN Input ──────────────────────────────
 function PinCircles({ value, onChange, id }) {
   const digits = value.padEnd(4, ' ').split('').slice(0, 4);
   const refs = [useRef(null), useRef(null), useRef(null), useRef(null)];
@@ -75,15 +75,15 @@ function PinCircles({ value, onChange, id }) {
             type="text"
             inputMode="numeric"
             maxLength={1}
-            value={filled ? '\u2022' : ''}
+            value={filled ? '•' : ''}
             onKeyDown={(e) => handleKey(i, e)}
             onPaste={handlePaste}
             onFocus={(e) => e.target.select()}
-            className={`w-13 h-13 rounded-full text-center text-lg font-bold border-2 outline-none transition-all bg-white dark:bg-[#1E222B] ${
+            className={`w-13 h-13 rounded-full text-center text-xl font-bold border-2 outline-none transition-all cursor-pointer ${
               filled
-                ? 'border-[#C8F53B] text-[#111315] dark:text-white shadow-[0_0_0_3px_rgba(200,245,59,0.15)]'
-                : 'border-slate-200 dark:border-[#2A2F3A] text-slate-400'
-            } focus:border-[#6366F1] dark:focus:border-[#C8F53B] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] dark:focus:shadow-[0_0_0_3px_rgba(200,245,59,0.2)]`}
+                ? 'bg-[#C8F53B]/20 border-[#111315]/20 dark:border-[#C8F53B]/50 text-[#111315] dark:text-white shadow-sm'
+                : 'bg-slate-100/90 dark:bg-[#16191F] border-transparent text-slate-400'
+            } focus:border-[#111315] dark:focus:border-[#C8F53B] focus:bg-white dark:focus:bg-[#16191F]`}
             aria-label={`PIN digit ${i + 1}`}
           />
         );
@@ -92,116 +92,198 @@ function PinCircles({ value, onChange, id }) {
   );
 }
 
-// ─── Slide 0: Voice Billing Hero ─────────────────────────────
-function VoiceHero() {
+// ─── Real Layered UI Mockup: Slide 0 (Hinglish Voice Billing) ──
+function SlideVoice() {
   return (
-    <div className="relative w-full h-full rounded-[2rem] bg-[#111315] overflow-hidden flex items-center justify-center">
-      {/* Concentric pulse rings */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-56 h-56 rounded-full border border-[#C8F53B]/10 animate-[logo-ripple_3s_ease-in-out_infinite]" />
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-40 h-40 rounded-full border border-[#C8F53B]/15 animate-[logo-ripple_3s_ease-in-out_infinite_0.6s]" />
-      </div>
-
-      {/* Core mic icon */}
-      <div className="relative z-10 w-20 h-20 rounded-full bg-[#C8F53B] flex items-center justify-center shadow-[0_0_60px_rgba(200,245,59,0.4)]">
-        <Mic className="w-9 h-9 text-[#111315]" strokeWidth={2.5} />
-      </div>
-
-      {/* Orbiting micro-pills */}
-      <div className="absolute top-[14%] left-[8%] animate-float-orbit">
-        <span className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-[11px] font-semibold text-white/90 border border-white/10">5kg Aata</span>
-      </div>
-      <div className="absolute top-[18%] right-[10%] animate-float-orbit" style={{ animationDelay: '0.8s' }}>
-        <span className="px-3 py-1.5 rounded-full bg-[#C8F53B]/15 backdrop-blur-sm text-[11px] font-semibold text-[#C8F53B] border border-[#C8F53B]/20 tabular-nums">₹225</span>
-      </div>
-      <div className="absolute bottom-[18%] left-[12%] animate-float-orbit" style={{ animationDelay: '1.6s' }}>
-        <span className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-[11px] font-semibold text-white/90 border border-white/10">Soundbox ON</span>
-      </div>
-      <div className="absolute bottom-[14%] right-[8%] animate-float-orbit" style={{ animationDelay: '2.4s' }}>
-        <span className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-[11px] font-semibold text-white/90 border border-white/10">Hinglish AI</span>
+    <div className="w-full max-w-md mx-auto space-y-3">
+      {/* Top Floating Dark-Glass Voice Bar */}
+      <div className="bg-[#181C24]/90 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 shadow-xl flex items-center gap-3">
+        {/* Pulsing Volt-Lime mic circle */}
+        <div className="w-9 h-9 rounded-full bg-[#C8F53B] text-[#111315] flex items-center justify-center shadow-[0_0_20px_rgba(200,245,59,0.35)] shrink-0 animate-pulse">
+          <Mic className="w-4 h-4 text-[#111315]" strokeWidth={2.5} />
+        </div>
+        {/* 6 animated soundwave bars */}
+        <div className="flex items-end gap-1 h-5 shrink-0">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <span
+              key={i}
+              className="w-1 rounded-full bg-[#C8F53B] animate-wave-pulse"
+              style={{ animationDelay: `${i * 0.14}s` }}
+            />
+          ))}
+        </div>
+        {/* Live Hinglish text */}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs sm:text-sm font-semibold text-white/95 truncate">
+            “Raju ne 5kg aata, 2 biscuit, 5 Maggi liya”
+          </p>
+        </div>
       </div>
 
-      {/* Soundwave bars at bottom */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-end gap-1 h-5">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <span key={i} className="w-1 rounded-full bg-[#C8F53B]/60 animate-wave-pulse" style={{ animationDelay: `${i * 0.12}s` }} />
-        ))}
+      {/* Mini Draft Bill Card */}
+      <div className="bg-[#181C24]/95 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Draft Bill · Raju
+          </span>
+          <span className="px-2 py-0.5 rounded-full bg-[#C8F53B]/10 text-[#C8F53B] border border-[#C8F53B]/20 text-[10px] font-semibold">
+            Voice Parsed
+          </span>
+        </div>
+
+        {/* 3 clean tabular-nums rows */}
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-white/90 font-medium">Aata (Wheat Flour)</span>
+            <div className="flex items-center gap-3">
+              <span className="px-2 py-0.5 rounded-md bg-white/5 text-[11px] text-slate-300">5 kg</span>
+              <span className="font-bold text-white tabular-nums">₹225</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-white/90 font-medium">Biscuit (Parle-G)</span>
+            <div className="flex items-center gap-3">
+              <span className="px-2 py-0.5 rounded-md bg-white/5 text-[11px] text-slate-300">2 pkt</span>
+              <span className="font-bold text-white tabular-nums">₹20</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-white/90 font-medium">Maggi Noodles</span>
+            <div className="flex items-center gap-3">
+              <span className="px-2 py-0.5 rounded-md bg-white/5 text-[11px] text-slate-300">5 pkt</span>
+              <span className="font-bold text-white tabular-nums">₹70</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Footer Bar */}
+        <div className="pt-2.5 border-t border-white/10 flex items-center justify-between">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xs text-slate-400 font-medium">Total:</span>
+            <span className="text-lg font-extrabold text-white tabular-nums">₹315</span>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8F53B]/15 text-[#C8F53B] border border-[#C8F53B]/30 text-xs font-bold shadow-[0_0_12px_rgba(200,245,59,0.2)]">
+            <Check className="w-3.5 h-3.5" strokeWidth={3} />
+            Approved · Soundbox ON
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Slide 1: Parchi OCR Hero ────────────────────────────────
-function ParchiHero() {
+// ─── Real Layered UI Mockup: Slide 1 (AI Handwritten Parchi Scan) ──
+function SlideParchi() {
   return (
-    <div className="relative w-full h-full rounded-[2rem] bg-gradient-to-br from-[#FF5C35] via-[#F97316] to-[#6366F1] overflow-hidden flex items-center justify-center p-6">
-      {/* Paper slip */}
-      <div className="relative w-48 bg-white rounded-2xl shadow-2xl p-4 rotate-[-4deg] border border-black/5">
-        {/* Laser sweep */}
+    <div className="w-full max-w-md mx-auto relative py-2">
+      {/* Tilted warm-paper handwritten slip card */}
+      <div className="relative w-64 sm:w-72 bg-[#FAF7F0] text-slate-800 rounded-2xl p-4 shadow-2xl border border-amber-200/50 rotate-[-2.5deg] overflow-hidden font-mono text-xs">
+        {/* Animated sweeping emerald/lime laser scan line */}
         <div className="absolute left-0 right-0 h-0.5 bg-[#C8F53B] shadow-[0_0_12px_#C8F53B,0_0_24px_#C8F53B] animate-laser-sweep pointer-events-none z-20" />
 
-        <div className="space-y-2.5 font-mono text-[11px] text-slate-700 leading-tight">
-          <div className="border-b border-dashed border-slate-300 pb-1.5 text-center font-bold text-xs text-slate-800">PARCHI</div>
-          <div className="flex justify-between"><span>Maggi ×5</span><span>₹70</span></div>
-          <div className="flex justify-between"><span>Aata 5kg</span><span>₹225</span></div>
-          <div className="flex justify-between"><span>Tel 1L</span><span>₹160</span></div>
-          <div className="border-t border-slate-300 pt-1.5 flex justify-between font-bold text-xs"><span>Total</span><span>₹455</span></div>
+        <div className="space-y-2 relative z-10">
+          <div className="border-b border-dashed border-slate-300 pb-1.5 flex justify-between items-center text-[11px]">
+            <span className="font-bold tracking-wider text-slate-700">PARCHI SLIP</span>
+            <span className="text-[10px] text-slate-400">20 Nov</span>
+          </div>
+          <div className="font-bold text-slate-900 text-xs">Ramesh - Udhaar</div>
+          <div className="space-y-1 text-slate-600 text-[11px]">
+            <div className="flex justify-between">
+              <span>2kg Aata</span>
+              <span>₹90</span>
+            </div>
+            <div className="flex justify-between">
+              <span>1 Sabun</span>
+              <span>₹40</span>
+            </div>
+            <div className="flex justify-between">
+              <span>1kg Chini</span>
+              <span>₹44</span>
+            </div>
+          </div>
+          <div className="border-t border-dashed border-slate-300 pt-1.5 flex justify-between font-bold text-slate-800 text-xs">
+            <span>Total</span>
+            <span>₹174</span>
+          </div>
         </div>
       </div>
 
-      {/* Floating extracted chips */}
-      <div className="absolute top-[12%] right-[8%] animate-float-orbit" style={{ animationDelay: '0.3s' }}>
-        <span className="px-3 py-1.5 rounded-full bg-white/90 text-[11px] font-bold text-[#111315] shadow-lg">Maggi ×5</span>
-      </div>
-      <div className="absolute bottom-[16%] right-[12%] animate-float-orbit" style={{ animationDelay: '1.2s' }}>
-        <span className="px-3 py-1.5 rounded-full bg-[#C8F53B] text-[11px] font-bold text-[#111315] shadow-lg">Auto-Priced</span>
+      {/* Floating Extracted Card overlapping bottom-right corner */}
+      <div className="bg-[#181C24]/95 backdrop-blur-md border border-emerald-400/40 rounded-xl p-3.5 shadow-2xl w-60 sm:w-64 ml-auto -mt-10 mr-2 relative z-20 space-y-2">
+        <div className="flex items-center gap-1.5 text-[#C8F53B] text-xs font-bold">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-[#C8F53B]" />
+          <span>✓ 3 Items Parsed</span>
+        </div>
+        <div className="text-[11px] text-slate-300 flex items-center justify-between">
+          <span className="truncate max-w-[130px]">Aata, Sabun, Chini</span>
+          <span className="font-bold text-white tabular-nums">₹174</span>
+        </div>
+        <div className="w-full text-center py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
+          Ready to Confirm
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Slide 2: Trust & Offline Hero ───────────────────────────
-function TrustHero() {
+// ─── Real Layered UI Mockup: Slide 2 (Zero-Error Bahi-Khata & Offline Sync) ──
+function SlideTrust() {
   return (
-    <div className="relative w-full h-full rounded-[2rem] bg-gradient-to-br from-[#0D3320] via-[#111315] to-[#111315] overflow-hidden flex items-center justify-center">
-      {/* Floating credit card */}
-      <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/10 shadow-2xl max-w-[220px] w-full space-y-3">
+    <div className="w-full max-w-md mx-auto space-y-3">
+      {/* Sleek Customer Ledger Card */}
+      <div className="bg-[#181C24]/95 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-2xl space-y-3.5">
+        {/* Customer Header */}
         <div className="flex items-center justify-between">
-          <span className="text-white text-xs font-bold">Ramesh Kumar</span>
-          <span className="w-2 h-2 rounded-full bg-[#C8F53B] animate-pulse" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 text-white font-bold flex items-center justify-center text-sm border border-white/10">
+              RK
+            </div>
+            <div>
+              <div className="font-bold text-sm text-white flex items-center gap-2">
+                Ramesh Kumar
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34D399]" />
+              </div>
+              <div className="text-xs text-slate-400">Sector 4 · +91 98112 00000</div>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold inline-flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-emerald-400" />
+            Approval Zaroori Hai
+          </span>
         </div>
-        <div className="text-[#C8F53B] text-sm font-bold tabular-nums">
-          ₹420 → ₹550
+
+        {/* Balance Box with Transition */}
+        <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            Udhaar Khata Balance
+          </div>
+          <div className="text-2xl font-extrabold text-[#C8F53B] tabular-nums tracking-tight flex items-center gap-2.5 animate-balance-pop">
+            <span className="text-slate-400 line-through text-lg font-bold">₹420</span>
+            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <span>₹550</span>
+          </div>
+          <div className="text-[11px] text-slate-400">
+            +₹130 New Bill Added · WhatsApp Slip Sent
+          </div>
         </div>
-        <div className="text-white/50 text-[10px]">Udhaar Updated · Just Now</div>
       </div>
 
-      {/* Shield badge */}
-      <div className="absolute top-[14%] left-[10%] animate-float-orbit">
-        <span className="px-3 py-1.5 rounded-xl bg-[#C8F53B]/15 backdrop-blur-sm text-[11px] font-bold text-[#C8F53B] border border-[#C8F53B]/20 flex items-center gap-1.5">
-          <Shield className="w-3 h-3" />
-          Approval Zaroori Hai
-        </span>
-      </div>
-
-      {/* Offline pill */}
-      <div className="absolute bottom-[14%] right-[10%] animate-float-orbit" style={{ animationDelay: '1.5s' }}>
-        <span className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-[11px] font-semibold text-white/90 border border-white/10 flex items-center gap-1.5">
-          <WifiOff className="w-3 h-3" />
-          Works Offline
-        </span>
+      {/* Floating Offline Queue Pill */}
+      <div className="flex items-center justify-center">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/90 text-xs font-medium shadow-lg">
+          <WifiOff className="w-3.5 h-3.5 text-amber-300" />
+          <span>Offline Queue · 100% Safe</span>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Slide Visual Hero (wraps the 3 heroes) ──────────────────
-function SlideHero({ index }) {
-  if (index === 0) return <VoiceHero />;
-  if (index === 1) return <ParchiHero />;
-  return <TrustHero />;
+// ─── UI Mockup Dispatcher ────────────────────────────────────
+function SlideMockup({ index }) {
+  if (index === 0) return <SlideVoice />;
+  if (index === 1) return <SlideParchi />;
+  return <SlideTrust />;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -236,100 +318,68 @@ export default function OnboardingAuth({
 }) {
   const [slide, setSlide] = useState(0);
   const [phase, setPhase] = useState('onboarding'); // 'onboarding' | 'auth'
-  const [showTour, setShowTour] = useState(false);
 
-  // Auto-advance slides
+  // Auto-advance showcase slides every 4.5s
   useEffect(() => {
-    if (phase !== 'onboarding' && !showTour) return;
     const timer = setInterval(() => {
       setSlide((prev) => (prev + 1) % 3);
-    }, 4000);
+    }, 4500);
     return () => clearInterval(timer);
-  }, [phase, showTour]);
+  }, []);
 
   const goToAuth = () => {
     setPhase('auth');
-    setShowTour(false);
   };
 
   const replayTour = () => {
     setSlide(0);
-    setShowTour(true);
+    setPhase('onboarding');
   };
 
-  // Desktop: always show split view (hero left + auth right)
-  // Mobile: show onboarding slides first, then auth
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
-
-  // ─── Shared: Slide Hero + Text Content ─────────────────────
-  const renderHeroSection = (forDesktop = false) => (
-    <div className={`flex flex-col ${forDesktop ? 'gap-6 h-full' : 'gap-4'}`}>
-      {/* Hero Visual */}
-      <div className={`relative overflow-hidden ${forDesktop ? 'flex-1 min-h-[320px]' : 'aspect-[4/3] max-h-[52vh]'}`}>
-        <div className="absolute inset-0 transition-all duration-500">
-          <SlideHero index={slide} />
-        </div>
-      </div>
-
-      {/* Headline + Subtext */}
-      <div className={`${forDesktop ? 'px-0' : 'px-6'} space-y-2`}>
-        <h2 className={`font-extrabold tracking-tight leading-snug text-[#111315] dark:text-white ${forDesktop ? 'text-2xl lg:text-3xl' : 'text-2xl'}`}>
-          {SLIDES[slide].headline}
-        </h2>
-        <p className={`text-slate-500 dark:text-slate-400 leading-relaxed ${forDesktop ? 'text-sm' : 'text-sm'}`}>
-          {SLIDES[slide].subtext}
-        </p>
-      </div>
-
-      {/* Pagination Dots */}
-      <div className={`flex items-center gap-2 ${forDesktop ? '' : 'px-6'}`}>
-        {[0, 1, 2].map((i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => setSlide(i)}
-            aria-label={`Slide ${i + 1}`}
-            className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-              slide === i
-                ? 'w-7 bg-[#111315] dark:bg-[#C8F53B]'
-                : 'w-2 bg-slate-300 dark:bg-[#2A2F3A] hover:bg-slate-400 dark:hover:bg-slate-600'
-            }`}
-          />
-        ))}
-      </div>
-    </div>
+  // ─── THEME TOGGLE BUTTON ──────────────────────────────────
+  const themeToggle = (
+    <button
+      type="button"
+      onClick={() => setIsDarkMode(!isDarkMode)}
+      className="w-10 h-10 rounded-full border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-[#16191F]/80 backdrop-blur-sm text-slate-600 dark:text-slate-300 hover:text-[#111315] dark:hover:text-white flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
+      title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+    >
+      {isDarkMode ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} />}
+    </button>
   );
 
-  // ─── Shared: Auth Card Content ─────────────────────────────
-  const renderAuthCard = (inDesktopSplit = false) => (
-    <div className={`bg-white dark:bg-[#16191F] border border-slate-200 dark:border-[#2A2F3A] rounded-[2rem] shadow-2xl ${inDesktopSplit ? 'p-6 lg:p-8' : 'p-6 sm:p-8'} space-y-5 relative overflow-hidden`}>
-      {/* Grid background behind logo */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-auth-grid pointer-events-none" />
+  // ─── EDITORIAL FORM CONTAINER (Right Column & Mobile Auth) ──
+  const renderAuthForm = () => (
+    <div className="w-full max-w-[380px] relative space-y-6">
+      {/* Visible Architectural Grid Halo behind brand icon */}
+      <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-[220px] h-[110px] bg-auth-grid pointer-events-none" />
 
-      {/* Logo */}
-      <div className="relative z-10 text-center space-y-2 pt-2">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-[#111315] dark:bg-[#C8F53B] text-white dark:text-[#111315] flex items-center justify-center shadow-lg">
-          <StoreIcon className="w-7 h-7" strokeWidth={2} />
+      {/* Layered Brand Mark */}
+      <div className="relative z-10 text-center space-y-3 pt-2">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-[#111315] dark:bg-[#C8F53B] shadow-xl flex items-center justify-center ring-4 ring-slate-100 dark:ring-white/5 text-[#C8F53B] dark:text-[#111315] transition-all">
+          <StoreIcon className="w-7 h-7" strokeWidth={2.2} />
         </div>
         <div>
-          <h1 className="text-xl font-extrabold tracking-tight text-[#111315] dark:text-white">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             {authTab === 'login' ? 'Welcome back' : 'Open your shop'}
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            KiranaScan
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {authTab === 'login'
+              ? 'Sign in to open your shop counter'
+              : 'Register your counter in 30 seconds'}
           </p>
         </div>
       </div>
 
-      {/* Segmented Pill Toggle */}
-      <div className="relative z-10 flex p-1 rounded-full bg-slate-100 dark:bg-[#1E222B]">
+      {/* Segmented Pill Switcher */}
+      <div className="relative z-10 flex p-1 rounded-full bg-slate-100 dark:bg-[#16191F] border border-slate-200/70 dark:border-white/10">
         <button
           type="button"
           onClick={() => { setAuthTab('login'); setAuthError(''); }}
-          className={`flex-1 py-2 text-xs font-bold rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-2 text-xs font-bold rounded-full transition-all flex items-center justify-center cursor-pointer ${
             authTab === 'login'
               ? 'bg-[#C8F53B] text-[#111315] shadow-sm'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           Shop Login
@@ -337,10 +387,10 @@ export default function OnboardingAuth({
         <button
           type="button"
           onClick={() => { setAuthTab('signup'); setAuthError(''); }}
-          className={`flex-1 py-2 text-xs font-bold rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-2 text-xs font-bold rounded-full transition-all flex items-center justify-center cursor-pointer ${
             authTab === 'signup'
               ? 'bg-[#C8F53B] text-[#111315] shadow-sm'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           New Shop
@@ -357,35 +407,42 @@ export default function OnboardingAuth({
 
       {/* ── Login Form ── */}
       {authTab === 'login' && (
-        <form onSubmit={handleLogin} className="relative z-10 space-y-5">
+        <form onSubmit={handleLogin} className="relative z-10 space-y-4">
           <div>
-            <label className="block text-xs font-semibold mb-1.5 text-slate-500 dark:text-slate-400">Mobile Number</label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 dark:text-slate-500 select-none">+91</span>
-              <Phone size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <label className="block text-xs font-semibold mb-1.5 text-slate-500 dark:text-slate-400">
+              Mobile Number
+            </label>
+            <div className="h-12 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all flex items-center px-3.5 relative">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 mr-2.5 select-none">
+                +91
+              </span>
               <input
                 type="tel"
                 maxLength={10}
                 value={loginPhone}
                 onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, ''))}
                 placeholder="98765 43210"
-                className="w-full pl-12 pr-10 py-3 rounded-2xl border border-slate-200 dark:border-[#2A2F3A] bg-white dark:bg-[#1E222B] text-sm text-[#111315] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1] dark:focus:ring-[#C8F53B] tabular-nums"
+                className="w-full bg-transparent text-sm text-[#111315] dark:text-white font-medium outline-none tabular-nums placeholder:text-slate-400"
                 required
               />
+              <Phone size={15} className="text-slate-400 dark:text-slate-500 shrink-0 ml-2" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold mb-1.5 text-slate-500 dark:text-slate-400">4-Digit PIN</label>
+            <label className="block text-xs font-semibold mb-2 text-slate-500 dark:text-slate-400">
+              4-Digit PIN
+            </label>
             <PinCircles value={loginPin} onChange={setLoginPin} id="login-pin" />
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-center">
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2 text-center">
               Demo: 9876543210 / PIN: 1234
             </p>
           </div>
 
+          {/* Primary CTA: Jet Ink Black */}
           <button
             type="submit"
-            className="w-full py-3 rounded-full bg-[#111315] dark:bg-white text-white dark:text-[#111315] font-bold text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] dark:shadow-[inset_0_1px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+            className="w-full h-12 rounded-full bg-[#111315] hover:bg-black dark:bg-white dark:text-[#111315] text-white font-semibold text-sm shadow-lg shadow-black/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all"
           >
             Login to Shop
           </button>
@@ -394,239 +451,357 @@ export default function OnboardingAuth({
 
       {/* ── Sign Up Form ── */}
       {authTab === 'signup' && (
-        <form onSubmit={handleSignup} className="relative z-10 space-y-3">
+        <form onSubmit={handleSignup} className="relative z-10 space-y-3.5">
           <div>
-            <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Shop Name *</label>
-            <input
-              type="text"
-              value={signupShopName}
-              onChange={(e) => setSignupShopName(e.target.value)}
-              placeholder="Sharma Grocery Store"
-              className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-[#2A2F3A] bg-white dark:bg-[#1E222B] text-sm text-[#111315] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1] dark:focus:ring-[#C8F53B]"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Owner Name *</label>
+            <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
+              Shop Name *
+            </label>
+            <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3.5 flex items-center">
               <input
                 type="text"
-                value={signupOwnerName}
-                onChange={(e) => setSignupOwnerName(e.target.value)}
-                placeholder="Ramesh Sharma"
-                className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-[#2A2F3A] bg-white dark:bg-[#1E222B] text-sm text-[#111315] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1] dark:focus:ring-[#C8F53B]"
+                value={signupShopName}
+                onChange={(e) => setSignupShopName(e.target.value)}
+                placeholder="Sharma Grocery Store"
+                className="w-full bg-transparent text-sm text-[#111315] dark:text-white outline-none placeholder:text-slate-400"
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">City</label>
-              <input
-                type="text"
-                value={signupArea}
-                onChange={(e) => setSignupArea(e.target.value)}
-                placeholder="Jaipur"
-                className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-[#2A2F3A] bg-white dark:bg-[#1E222B] text-sm text-[#111315] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1] dark:focus:ring-[#C8F53B]"
-              />
-            </div>
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Mobile *</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 select-none">+91</span>
+              <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
+                Owner Name *
+              </label>
+              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3.5 flex items-center">
+                <input
+                  type="text"
+                  value={signupOwnerName}
+                  onChange={(e) => setSignupOwnerName(e.target.value)}
+                  placeholder="Ramesh Sharma"
+                  className="w-full bg-transparent text-sm text-[#111315] dark:text-white outline-none placeholder:text-slate-400"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
+                City / Area
+              </label>
+              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3.5 flex items-center">
+                <input
+                  type="text"
+                  value={signupArea}
+                  onChange={(e) => setSignupArea(e.target.value)}
+                  placeholder="Jaipur"
+                  className="w-full bg-transparent text-sm text-[#111315] dark:text-white outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
+                Mobile *
+              </label>
+              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3 flex items-center">
+                <span className="text-[11px] font-bold text-slate-400 mr-1.5 select-none">+91</span>
                 <input
                   type="tel"
                   maxLength={10}
                   value={signupPhone}
                   onChange={(e) => setSignupPhone(e.target.value.replace(/\D/g, ''))}
                   placeholder="9811122233"
-                  className="w-full pl-10 pr-3 py-2.5 rounded-2xl border border-slate-200 dark:border-[#2A2F3A] bg-white dark:bg-[#1E222B] text-sm text-[#111315] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6366F1] dark:focus:ring-[#C8F53B] tabular-nums"
+                  className="w-full bg-transparent text-sm text-[#111315] dark:text-white outline-none tabular-nums placeholder:text-slate-400"
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Opening Cash ₹</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+              <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
+                Opening Cash ₹
+              </label>
+              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#16191F] border border-slate-200 dark:border-white/10 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#16191F] transition-all px-3 flex items-center">
+                <span className="text-xs font-bold text-slate-400 mr-1.5">₹</span>
                 <input
                   type="number"
                   value={signupOpeningCash}
                   onChange={(e) => setSignupOpeningCash(e.target.value)}
                   placeholder="1000"
-                  className="w-full pl-7 pr-3 py-2.5 rounded-2xl border border-slate-200 dark:border-[#2A2F3A] bg-white dark:bg-[#1E222B] text-sm text-[#111315] dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-[#6366F1] dark:focus:ring-[#C8F53B] tabular-nums"
+                  className="w-full bg-transparent text-sm text-[#111315] dark:text-white font-semibold outline-none tabular-nums placeholder:text-slate-400"
                 />
               </div>
             </div>
           </div>
+
           <div>
-            <label className="block text-xs font-semibold mb-1.5 text-slate-500 dark:text-slate-400">4-Digit PIN *</label>
+            <label className="block text-xs font-semibold mb-2 text-slate-500 dark:text-slate-400">
+              4-Digit PIN *
+            </label>
             <PinCircles value={signupPin} onChange={setSignupPin} id="signup-pin" />
           </div>
+
           <button
             type="submit"
-            className="w-full py-3 rounded-full bg-[#111315] dark:bg-white text-white dark:text-[#111315] font-bold text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] dark:shadow-[inset_0_1px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer mt-1"
+            className="w-full h-12 rounded-full bg-[#111315] hover:bg-black dark:bg-white dark:text-[#111315] text-white font-semibold text-sm shadow-lg shadow-black/15 flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all mt-1"
           >
-            Create Shop
+            Create Shop & Counter
           </button>
         </form>
       )}
 
-      {/* OR Divider + Instant Demo */}
-      <div className="relative z-10 space-y-3">
+      {/* Clean Divider & Refined Instant Demo Merchant Card */}
+      <div className="relative z-10 space-y-3 pt-1">
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-slate-200 dark:bg-[#2A2F3A]" />
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">or</span>
-          <div className="flex-1 h-px bg-slate-200 dark:bg-[#2A2F3A]" />
+          <div className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">
+            OR TRY LIVE DEMO
+          </span>
+          <div className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
         </div>
 
+        {/* Merchant Quick-Access Card */}
         <button
           type="button"
           onClick={() => store.loginDemoMerchant()}
-          className="w-full py-3 px-4 rounded-full bg-[#C8F53B] hover:bg-[#b8e62b] text-[#111315] font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-between cursor-pointer shadow-sm"
+          className="w-full rounded-2xl p-3 bg-slate-50 hover:bg-[#C8F53B]/15 dark:bg-[#16191F] dark:hover:bg-[#C8F53B]/10 border border-slate-200 dark:border-white/10 hover:border-[#C8F53B] transition-all flex items-center justify-between text-left group cursor-pointer shadow-sm"
         >
-          <span className="flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            <span>Instant Demo: Gupta Kirana Store</span>
-          </span>
-          <ArrowRight className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#C8F53B] text-[#111315] font-extrabold flex items-center justify-center shrink-0 text-sm shadow-sm">
+              GK
+            </div>
+            <div>
+              <div className="font-bold text-sm text-[#111315] dark:text-white leading-tight">
+                Gupta Kirana Store
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
+                Instant 1-Click Demo · PIN 1234
+              </div>
+            </div>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-white dark:bg-white/10 group-hover:bg-[#111315] group-hover:text-[#C8F53B] text-slate-600 dark:text-slate-300 transition-colors flex items-center justify-center shrink-0 shadow-sm">
+            <ArrowRight size={15} />
+          </div>
         </button>
       </div>
-
-      {/* Replay tour link */}
-      {phase === 'auth' && !showTour && (
-        <div className="relative z-10 text-center md:hidden">
-          <button
-            type="button"
-            onClick={replayTour}
-            className="text-[11px] text-slate-400 dark:text-slate-500 hover:text-[#6366F1] dark:hover:text-[#C8F53B] font-medium cursor-pointer transition-colors"
-          >
-            View Feature Tour
-          </button>
-        </div>
-      )}
     </div>
   );
 
-  // ─── THEME TOGGLE (shared) ─────────────────────────────────
-  const themeToggle = (
-    <button
-      type="button"
-      onClick={() => setIsDarkMode(!isDarkMode)}
-      className="p-2.5 rounded-2xl bg-white/90 dark:bg-[#16191F]/90 backdrop-blur-sm border border-slate-200 dark:border-[#2A2F3A] text-slate-500 dark:text-slate-400 hover:text-[#111315] dark:hover:text-[#C8F53B] shadow-sm transition-all cursor-pointer"
-      title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
-    >
-      {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-    </button>
-  );
+  // ─── DESKTOP LEFT PANEL: Obsidian Showcase Panel ───────────
+  const renderLeftPanel = () => (
+    <div className="w-full h-full min-h-[calc(100vh-2rem)] rounded-[2rem] bg-[#0F1217] relative overflow-hidden flex flex-col justify-between p-8 lg:p-10 text-white border border-white/10 shadow-2xl">
+      {/* Mesh Glows & Architectural Grid */}
+      <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-[#C8F53B]/15 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-[#6366F1]/15 blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-auth-grid opacity-[0.06] pointer-events-none" />
 
-  // ═══════════════════════════════════════════════════════════
-  // DESKTOP & TABLET LAYOUT (md >= 768px): Split Canvas
-  // ═══════════════════════════════════════════════════════════
-  const desktopView = (
-    <div className={`hidden md:flex w-full min-h-screen bg-[#F5F7FA] dark:bg-[#0E1013] items-center justify-center p-6 lg:p-10 transition-colors ${isDarkMode ? 'dark' : ''}`}>
-      {/* Theme toggle */}
-      <div className="fixed top-5 right-5 z-50">{themeToggle}</div>
-
-      <div className="w-full max-w-5xl grid md:grid-cols-12 gap-8 items-center relative z-10">
-        {/* Left: Hero Showcase */}
-        <div className="md:col-span-6 flex flex-col gap-5">
-          {renderHeroSection(true)}
-        </div>
-
-        {/* Right: Auth Card */}
-        <div className="md:col-span-6 w-full max-w-md mx-auto slide-in-up">
-          {renderAuthCard(true)}
-        </div>
-      </div>
-    </div>
-  );
-
-  // ═══════════════════════════════════════════════════════════
-  // MOBILE LAYOUT (< 768px)
-  // ═══════════════════════════════════════════════════════════
-  const showOnboarding = phase === 'onboarding' || showTour;
-
-  const mobileOnboarding = (
-    <div className={`flex md:hidden flex-col min-h-screen bg-[#F5F7FA] dark:bg-[#0E1013] transition-colors ${isDarkMode ? 'dark' : ''}`}>
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-2 relative z-20">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-[#111315] dark:bg-[#C8F53B] text-white dark:text-[#111315] flex items-center justify-center">
-            <StoreIcon className="w-4 h-4" />
+      {/* Top Bar inside Panel */}
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#C8F53B] shadow-inner">
+            <StoreIcon size={18} strokeWidth={2.2} />
           </div>
-          <span className="text-sm font-bold text-[#111315] dark:text-white">KiranaScan</span>
+          <span className="text-lg font-bold tracking-tight text-white">KiranaScan</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={goToAuth}
-            className="px-3.5 py-1.5 rounded-full bg-slate-100 dark:bg-[#1E222B] text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#2A2F3A] transition-colors cursor-pointer"
-          >
-            Skip <ChevronRight className="w-3 h-3 inline" />
-          </button>
-          {themeToggle}
-        </div>
+        <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 border border-white/10 text-xs font-medium backdrop-blur-sm">
+          Offline-Ready Retail OS
+        </span>
       </div>
 
-      {/* Hero Visual Stage */}
-      <div className="flex-1 px-4 pt-2 pb-0">
-        {renderHeroSection(false)}
+      {/* Centerpiece: Real Layered UI Mockup Stage */}
+      <div className="relative z-10 my-auto py-6">
+        <SlideMockup index={slide} />
       </div>
 
-      {/* Bottom Controls */}
-      <div className="px-6 pb-8 pt-4 space-y-3">
-        {slide < 2 ? (
-          <button
-            type="button"
-            onClick={() => setSlide((s) => s + 1)}
-            className="w-full py-3.5 rounded-full bg-[#111315] dark:bg-white text-white dark:text-[#111315] font-bold text-sm active:scale-[0.98] transition-all cursor-pointer"
-          >
-            Next
-          </button>
-        ) : (
-          <>
+      {/* Bottom Footer inside Panel */}
+      <div className="relative z-10 space-y-5">
+        <div className="space-y-1.5">
+          <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
+            {SLIDES[slide].headline}
+          </h2>
+          <p className="text-slate-400 text-sm lg:text-base leading-relaxed max-w-lg">
+            {SLIDES[slide].subtext}
+          </p>
+        </div>
+
+        {/* Clickable Progress Bars & Prev/Next Buttons */}
+        <div className="flex items-center justify-between pt-1 border-t border-white/10">
+          <div className="flex items-center gap-2">
+            {SLIDES.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setSlide(i)}
+                aria-label={`Slide ${i + 1}`}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  slide === i
+                    ? 'w-10 bg-[#C8F53B]'
+                    : 'w-3 bg-white/20 hover:bg-white/40'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSlide((s) => (s - 1 + 3) % 3)}
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSlide((s) => (s + 1) % 3)}
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Next slide"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── MOBILE ONBOARDING VIEW (< 768px) ──────────────────────
+  const mobileOnboarding = (
+    <div className="flex flex-col min-h-screen bg-white dark:bg-[#0B0D11] text-slate-900 dark:text-white">
+      {/* Top Hero Stage */}
+      <div className="min-h-[55vh] rounded-b-[2.5rem] bg-[#0F1217] relative overflow-hidden flex flex-col justify-between p-6 text-white border-b border-white/10 shadow-xl">
+        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[#C8F53B]/15 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-[#6366F1]/15 blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 bg-auth-grid opacity-[0.06] pointer-events-none" />
+
+        {/* Top Bar inside Stage */}
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[#C8F53B]">
+              <StoreIcon size={16} strokeWidth={2.2} />
+            </div>
+            <span className="text-sm font-bold text-white tracking-tight">KiranaScan</span>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={goToAuth}
-              className="w-full py-3.5 rounded-full bg-[#111315] dark:bg-white text-white dark:text-[#111315] font-bold text-sm active:scale-[0.98] transition-all cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-sm border border-white/10 transition-colors cursor-pointer"
             >
-              Get Started
+              Skip →
             </button>
+            {themeToggle}
+          </div>
+        </div>
+
+        {/* Active Mockup */}
+        <div className="relative z-10 my-auto py-2">
+          <SlideMockup index={slide} />
+        </div>
+      </div>
+
+      {/* Bottom Controls Area */}
+      <div className="flex-1 flex flex-col justify-between p-6 space-y-4">
+        <div className="space-y-1.5">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-snug">
+            {SLIDES[slide].headline}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            {SLIDES[slide].subtext}
+          </p>
+        </div>
+
+        {/* Expanding Pagination Dots */}
+        <div className="flex items-center gap-2">
+          {SLIDES.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setSlide(i)}
+              aria-label={`Slide ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                slide === i
+                  ? 'w-8 bg-[#111315] dark:bg-[#C8F53B]'
+                  : 'w-2 bg-slate-200 dark:bg-white/20'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* CTAs */}
+        <div className="space-y-2 pt-2">
+          {slide < 2 ? (
             <button
               type="button"
-              onClick={() => { goToAuth(); setTimeout(() => store.loginDemoMerchant(), 50); }}
-              className="w-full text-center text-xs font-semibold text-[#6366F1] dark:text-[#C8F53B] hover:underline cursor-pointer py-1"
+              onClick={() => setSlide((s) => s + 1)}
+              className="w-full h-12 rounded-full bg-[#111315] dark:bg-white text-white dark:text-[#111315] font-semibold text-sm shadow-md cursor-pointer active:scale-[0.98] transition-all"
             >
-              Try Instant Demo Store →
+              Next
             </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-
-  const mobileAuth = (
-    <div className={`flex md:hidden flex-col min-h-screen bg-[#F5F7FA] dark:bg-[#0E1013] transition-colors ${isDarkMode ? 'dark' : ''}`}>
-      {/* Top bar */}
-      <div className="flex items-center justify-end px-5 pt-5 pb-2 relative z-20">
-        {themeToggle}
-      </div>
-
-      {/* Auth card */}
-      <div className="flex-1 flex items-center justify-center px-4 pb-8">
-        <div className="w-full max-w-md slide-in-up">
-          {renderAuthCard(false)}
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={goToAuth}
+                className="w-full h-12 rounded-full bg-[#111315] dark:bg-white text-white dark:text-[#111315] font-semibold text-sm shadow-md cursor-pointer active:scale-[0.98] transition-all"
+              >
+                Get Started
+              </button>
+              <button
+                type="button"
+                onClick={() => { goToAuth(); setTimeout(() => store.loginDemoMerchant(), 50); }}
+                className="w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer py-1"
+              >
+                Try Instant Demo Store →
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 
   return (
-    <>
-      {desktopView}
-      {showOnboarding ? mobileOnboarding : mobileAuth}
-    </>
+    <div className={`min-h-screen w-full bg-white dark:bg-[#0B0D11] text-slate-900 dark:text-white transition-colors ${isDarkMode ? 'dark' : ''}`}>
+      {/* Mobile Onboarding Flow (active only on mobile when phase === 'onboarding') */}
+      {phase === 'onboarding' ? (
+        <div className="flex md:hidden flex-col min-h-screen">
+          {mobileOnboarding}
+        </div>
+      ) : null}
+
+      {/* Split Canvas Layout:
+          - Desktop (md: >= 768px): Always rendered side-by-side regardless of phase
+          - Mobile (< 768px): Rendered only when phase === 'auth' (occupying col-span-12) */}
+      <div className={`w-full min-h-screen grid md:grid-cols-12 ${phase === 'onboarding' ? 'hidden md:grid' : 'grid'}`}>
+        {/* Left Panel: Desktop Showcase */}
+        <div className="hidden md:flex md:col-span-6 lg:col-span-7 p-4">
+          {renderLeftPanel()}
+        </div>
+
+        {/* Right Panel: Editorial Auth Form */}
+        <div className="col-span-12 md:col-span-6 lg:col-span-5 flex flex-col justify-center items-center p-6 sm:p-10 relative">
+          {/* Top-Right Theme Toggle */}
+          <div className="absolute top-6 right-6 z-20">
+            {themeToggle}
+          </div>
+
+          {/* Mobile-only "← View App Tour" link when in auth view */}
+          {phase === 'auth' && (
+            <div className="absolute top-6 left-6 z-20 md:hidden">
+              <button
+                type="button"
+                onClick={replayTour}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer py-1.5 px-3 rounded-full bg-slate-100 dark:bg-white/10 transition-colors"
+              >
+                ← View App Tour
+              </button>
+            </div>
+          )}
+
+          {renderAuthForm()}
+        </div>
+      </div>
+    </div>
   );
 }
-
