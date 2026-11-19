@@ -2,22 +2,9 @@ import { useState } from 'react';
 import {
   Search, Plus, Edit3, Save, Trash2, Package, RefreshCw, Shield,
   Download, Database, Key, Globe, X, Check, ChevronDown, ChevronRight,
-  ArrowUpDown, Wifi, WifiOff, Tag
+  ArrowUpDown, Wifi, WifiOff, Tag, Store
 } from 'lucide-react';
 import { getActiveGeminiKey, hasBuiltInGeminiKey } from '../utils/bahiKhataOcr.js';
-
-const COLORS = {
-  green: '#1B7A43',
-  greenLight: '#E8F5EE',
-  amber: '#E68A00',
-  amberBg: '#FFF4E0',
-  amberText: '#B36B00',
-  danger: '#DC2626',
-  dangerBg: '#FEF2F2',
-  cardBorder: '#E6DFD3',
-  text: '#1E242B',
-  secondary: '#5A6573',
-};
 
 const UNIT_OPTIONS = ['kg', 'L', 'pkt', 'pc'];
 
@@ -272,23 +259,24 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
   const queuedCount = syncQueue.filter(e => e.status === 'QUEUED_OFFLINE').length;
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 pb-8">
+
       {/* ===== SECTION 0: SHOP NAME / DUKAN PROFILE ===== */}
-      <section className="bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 shadow-sm">
+      <section className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-sm">
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2">
-            <Tag size={18} className="text-[#1B7A43] dark:text-emerald-400" />
+            <span className="w-2 h-2 rounded-full bg-[#111315] dark:bg-[#C8F53B]" />
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">
               Dukan Profile & Shop Name (दुकान का नाम)
             </h2>
           </div>
           {shopNameSaved && (
-            <span className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
+            <span className="text-xs text-emerald-600 dark:text-[#C8F53B] font-bold flex items-center gap-1">
               <Check size={14} /> Saved!
             </span>
           )}
         </div>
-        <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3.5">
           This name appears on customer WhatsApp slips, voice soundbox, and header.
         </p>
         <div className="flex gap-2">
@@ -300,7 +288,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               setShopNameSaved(false);
             }}
             placeholder="e.g. Gupta Kirana & General Store"
-            className="flex-1 px-3 py-2 text-sm border rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white border-[#E2D9C8] dark:border-[#2A3644] focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
+            className="flex-1 px-3.5 py-2.5 text-sm border rounded-2xl bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white border-slate-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#C8F53B]"
           />
           <button
             onClick={() => {
@@ -310,7 +298,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                 setTimeout(() => setShopNameSaved(false), 2500);
               }
             }}
-            className="px-4 py-2 bg-[#1B7A43] hover:bg-[#145E33] text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5 shrink-0"
+            className="px-4 py-2.5 bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] rounded-full text-xs font-extrabold transition-all shadow-sm active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
           >
             <Save size={14} /> Save Name
           </button>
@@ -318,26 +306,35 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       </section>
 
       {/* ===== SECTION 1: SHOP CATALOGUE MANAGER ===== */}
-      <section>
-        <div className="flex items-center gap-2 mb-3">
-          <Package size={20} className="text-[#1B7A43] dark:text-emerald-400" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            {lang === 'hi' ? 'दुकान कैटलॉग' : 'Dukan Catalogue'}
-          </h2>
-          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-            {filtered.length} items
-          </span>
+      <section className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#111315] dark:bg-[#C8F53B]" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              {lang === 'hi' ? 'दुकान कैटलॉग व भाव' : 'Shop Catalogue & Rates'}
+            </h2>
+            <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 tabular-nums">
+              {filtered.length} items
+            </span>
+          </div>
+
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] rounded-full font-bold px-3.5 py-1.5 text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+          >
+            <Plus size={14} /> {lang === 'hi' ? 'नया सामान' : 'Add Item'}
+          </button>
         </div>
 
         {/* Search */}
-        <div className="relative mb-3">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+        <div className="relative">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder={lang === 'hi' ? 'Item khojein...' : 'Search items by name or alias...'}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1B7A43]"
+            placeholder={lang === 'hi' ? 'सामान या उपनाम खोजें...' : 'Search items by name or alias...'}
+            className="w-full pl-9 pr-8 py-2.5 text-sm rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#C8F53B]"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -346,206 +343,15 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
           )}
         </div>
 
-        {/* Catalogue List */}
-        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-          {filtered.map(item => {
-            const isExpanded = expandedItemId === item.id;
-            return (
-              <div
-                key={item.id}
-                className="rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] overflow-hidden shadow-sm"
-              >
-                {/* Item Header */}
-                <button
-                  onClick={() => handleExpand(item)}
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-slate-50/60 dark:hover:bg-[#1E293B]/60 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {isExpanded
-                        ? <ChevronDown size={14} className="text-slate-500 dark:text-slate-400" />
-                        : <ChevronRight size={14} className="text-slate-500 dark:text-slate-400" />}
-                      <span className="font-semibold text-sm text-slate-900 dark:text-white">{item.name}</span>
-                      {item.isMultiBrand && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                          Multi-Brand
-                        </span>
-                      )}
-                    </div>
-                    {item.aliases?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1 ml-5">
-                        {item.aliases.map((alias, i) => (
-                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-[#1E293B] text-slate-600 dark:text-slate-300">
-                            {alias}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0 ml-2">
-                    <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">₹{item.rate}/{item.unit}</div>
-                  </div>
-                </button>
-
-                {/* Expanded Edit Form */}
-                {isExpanded && (
-                  <div className="px-3 pb-3 border-t border-[#E2D9C8] dark:border-[#2A3644] pt-3 space-y-3">
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Base Rate (₹ / {item.unit})</label>
-                        <input
-                          type="number"
-                          value={editRate}
-                          onChange={e => setEditRate(e.target.value)}
-                          className="w-full px-2 py-1.5 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Aliases (comma-separated)</label>
-                        <input
-                          type="text"
-                          value={editAliases}
-                          onChange={e => setEditAliases(e.target.value)}
-                          className="w-full px-2 py-1.5 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
-                          placeholder="e.g. aata, gehun"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Multi-brand / Variant Manager */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-[#2A3644]">
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1">
-                          <Tag size={13} className="text-amber-600" />
-                          Brands & Variant Rates (ब्रांड और कीमतें)
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setEditIsMultiBrand(!editIsMultiBrand)}
-                          className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium hover:underline"
-                        >
-                          {editIsMultiBrand || editVariants.length > 0 ? '✓ Multi-Brand Enabled' : '+ Enable Multi-Brand'}
-                        </button>
-                      </div>
-
-                      {/* Existing Variants list */}
-                      {editVariants.length > 0 ? (
-                        <div className="space-y-1.5 mb-2.5">
-                          {editVariants.map((v, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-slate-50 dark:bg-[#11181F] p-2 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644]">
-                              <div className="flex-1">
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Brand Name</span>
-                                <input
-                                  type="text"
-                                  value={v.brand}
-                                  onChange={e => handleUpdateVariantBrand(i, e.target.value)}
-                                  className="w-full text-xs px-2 py-1 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded focus:outline-none"
-                                  placeholder="Brand name"
-                                />
-                              </div>
-                              <div className="w-24">
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Rate (₹)</span>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs text-slate-500">₹</span>
-                                  <input
-                                    type="number"
-                                    value={v.price}
-                                    onChange={e => handleUpdateVariantPrice(i, e.target.value)}
-                                    className="w-full text-xs px-2 py-1 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] rounded font-semibold text-emerald-700 dark:text-emerald-400 focus:outline-none"
-                                  />
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveVariant(i)}
-                                className="text-red-500 hover:text-red-700 p-1.5 mt-3 rounded hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                                title="Remove Brand"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 italic mb-2">No separate brands. Fixed rate: ₹{editRate}/{item.unit}</p>
-                      )}
-
-                      {/* Add new brand inline */}
-                      <div className="flex items-center gap-2 bg-emerald-50/60 dark:bg-emerald-950/30 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
-                        <input
-                          type="text"
-                          value={newBrandName}
-                          onChange={e => setNewBrandName(e.target.value)}
-                          placeholder="Brand Name (e.g. Lifebuoy, Tata)"
-                          className="flex-1 text-xs px-2.5 py-1.5 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded-md focus:outline-none"
-                        />
-                        <div className="flex items-center gap-1 w-24">
-                          <span className="text-xs text-slate-500">₹</span>
-                          <input
-                            type="number"
-                            value={newBrandPrice}
-                            onChange={e => setNewBrandPrice(e.target.value)}
-                            placeholder="Price"
-                            className="w-full text-xs px-2 py-1.5 bg-white dark:bg-[#16202A] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white rounded-md focus:outline-none"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleAddBrandToExisting}
-                          disabled={!newBrandName.trim()}
-                          className="px-3 py-1.5 text-xs font-semibold bg-[#1B7A43] text-white rounded-md hover:bg-[#145E33] shrink-0 disabled:opacity-40"
-                        >
-                          + Add Brand
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#2A3644]">
-                      <button
-                        onClick={() => handleSaveEdit(item.id)}
-                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-white text-xs font-bold transition-colors bg-[#1B7A43] hover:bg-[#145E33]"
-                      >
-                        <Save size={14} /> Save Changes
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete "${item.name}" from catalogue?`)) {
-                            store.deleteCatalogueItem(item.id);
-                          }
-                        }}
-                        className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 hover:text-red-800 px-2.5 py-1 rounded hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                      >
-                        <Trash2 size={13} /> Delete Item
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {filtered.length === 0 && (
-            <p className="text-sm text-center py-4 text-slate-500 dark:text-slate-400">
-              {searchQuery ? 'No items match your search.' : 'No catalogue items yet.'}
-            </p>
-          )}
-        </div>
-
-        {/* Add New Item */}
-        {!showAddForm ? (
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-dashed border-[#1B7A43] text-[#1B7A43] dark:text-emerald-400 text-sm font-semibold transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-          >
-            <Plus size={16} /> {lang === 'hi' ? 'नया आइटम जोड़ें' : 'Add New Item'}
-          </button>
-        ) : (
-          <div className="mt-3 rounded-2xl border-2 border-[#1B7A43] p-4 bg-white dark:bg-[#16202A] space-y-3 shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
-                <Package size={16} className="text-[#1B7A43] dark:text-emerald-400" /> New Item (नया सामान)
+        {/* Add New Item Inline Form */}
+        {showAddForm && (
+          <div className="rounded-2xl border border-slate-200 dark:border-white/15 p-4 bg-slate-50 dark:bg-[#181C25] space-y-3 shadow-sm">
+            <div className="flex items-center justify-between pb-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Package size={14} className="text-[#111315] dark:text-[#C8F53B]" /> Naya Item (Add Item)
               </h3>
-              <button onClick={() => setShowAddForm(false)}>
-                <X size={16} className="text-slate-500 hover:text-slate-700" />
+              <button onClick={() => setShowAddForm(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X size={16} />
               </button>
             </div>
             <input
@@ -553,56 +359,56 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               value={newItem.name}
               onChange={e => setNewItem({ ...newItem, name: e.target.value })}
               placeholder="Item name (e.g. Toor Dal, Namkeen)"
-              className="w-full px-3 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#12151C] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
             />
             <input
               type="text"
               value={newItem.aliases}
               onChange={e => setNewItem({ ...newItem, aliases: e.target.value })}
               placeholder="Spoken Aliases (e.g. arhar, toor, dal)"
-              className="w-full px-3 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#12151C] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
             />
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Unit (मात्रा प्रकार)</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">Unit</label>
                 <select
                   value={newItem.unit}
                   onChange={e => setNewItem({ ...newItem, unit: e.target.value })}
-                  className="w-full px-2.5 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#12151C] text-slate-900 dark:text-white focus:outline-none"
                 >
                   {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
               <div className="flex-1">
-                <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Base Rate (₹)</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">Base Rate (₹)</label>
                 <input
                   type="number"
                   value={newItem.rate}
                   onChange={e => setNewItem({ ...newItem, rate: e.target.value })}
                   placeholder="0"
-                  className="w-full px-2.5 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#12151C] text-slate-900 dark:text-white font-bold tabular-nums focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
                 />
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer p-2.5 rounded-xl bg-slate-50 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] text-slate-900 dark:text-white">
+            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer p-2 rounded-xl bg-white dark:bg-[#12151C] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
               <input
                 type="checkbox"
                 checked={newItem.isMultiBrand}
                 onChange={e => setNewItem({ ...newItem, isMultiBrand: e.target.checked })}
-                className="accent-green-700 w-4 h-4 rounded"
+                className="accent-black dark:accent-[#C8F53B] w-4 h-4 rounded"
               />
-              Multi-Brand Item (कई अलग-अलग ब्रांड उपलब्ध हैं)
+              Multi-Brand Item (अलग-अलग ब्रांड व कीमतें हैं)
             </label>
 
-            {/* Merchant-friendly Brand Manager for New Item */}
+            {/* Brand Manager for New Item */}
             {newItem.isMultiBrand && (
-              <div className="bg-amber-50/70 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-800/60 space-y-2.5">
+              <div className="bg-white dark:bg-[#12151C] p-3 rounded-xl border border-slate-200 dark:border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1">
-                    <Tag size={12} /> Add Brands & Rates (ब्रांड और भाव)
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                    <Tag size={12} className="text-[#111315] dark:text-[#C8F53B]" /> Add Brands &amp; Rates
                   </span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">e.g. Tata, Local, 10 Mini</span>
+                  <span className="text-[10px] text-slate-400">e.g. Tata, GoodDay</span>
                 </div>
                 {newItemVariants.map((v, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -614,11 +420,11 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                         arr[i].brand = e.target.value;
                         setNewItemVariants(arr);
                       }}
-                      placeholder={`Brand ${i + 1} (e.g. Tata, GoodDay)`}
-                      className="flex-1 px-2.5 py-1.5 text-xs border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#16202A] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                      placeholder={`Brand ${i + 1} (e.g. Tata, Local)`}
+                      className="flex-1 px-2.5 py-1.5 text-xs border border-slate-200 dark:border-white/10 rounded-lg bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white focus:outline-none"
                     />
                     <div className="flex items-center gap-1 w-24">
-                      <span className="text-xs text-slate-500">₹</span>
+                      <span className="text-xs text-slate-400">₹</span>
                       <input
                         type="number"
                         value={v.price}
@@ -628,14 +434,14 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                           setNewItemVariants(arr);
                         }}
                         placeholder="Rate"
-                        className="w-full px-2 py-1.5 text-xs border border-[#E2D9C8] dark:border-[#2A3644] rounded-lg bg-white dark:bg-[#16202A] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                        className="w-full px-2 py-1.5 text-xs border border-slate-200 dark:border-white/10 rounded-lg bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white font-bold tabular-nums focus:outline-none"
                       />
                     </div>
                     {newItemVariants.length > 1 && (
                       <button
                         type="button"
                         onClick={() => setNewItemVariants(newItemVariants.filter((_, idx) => idx !== i))}
-                        className="p-1 text-red-500 hover:text-red-700"
+                        className="p-1 text-slate-400 hover:text-rose-500"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -645,9 +451,9 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
                 <button
                   type="button"
                   onClick={() => setNewItemVariants([...newItemVariants, { brand: '', price: '' }])}
-                  className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 pt-1"
+                  className="text-xs font-semibold text-slate-800 dark:text-[#C8F53B] hover:underline flex items-center gap-1 pt-0.5 cursor-pointer"
                 >
-                  <Plus size={13} /> + Add Another Brand (नया ब्रांड जोड़ें)
+                  <Plus size={13} /> + Add Another Brand
                 </button>
               </div>
             )}
@@ -655,88 +461,262 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             <button
               onClick={handleAddItem}
               disabled={!newItem.name.trim()}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white text-sm font-bold bg-[#1B7A43] hover:bg-[#145E33] disabled:opacity-40 shadow-sm transition-all"
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-full text-xs font-extrabold text-[#111315] bg-[#C8F53B] hover:bg-[#b8e62b] disabled:opacity-40 shadow-sm transition-all cursor-pointer"
             >
-              <Save size={16} /> Save Item to Catalogue
+              <Save size={15} /> Save Item to Catalogue
             </button>
           </div>
         )}
+
+        {/* Catalogue List */}
+        <div className="space-y-2 max-h-[460px] overflow-y-auto pr-0.5">
+          {filtered.map(item => {
+            const isExpanded = expandedItemId === item.id;
+            return (
+              <div
+                key={item.id}
+                className="rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#181C25]/50 overflow-hidden shadow-xs transition-all"
+              >
+                {/* Item Row Header */}
+                <button
+                  onClick={() => handleExpand(item)}
+                  className="w-full flex items-center justify-between p-3.5 text-left hover:bg-slate-100/60 dark:hover:bg-[#181C25] transition-colors cursor-pointer"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {isExpanded
+                        ? <ChevronDown size={14} className="text-slate-400" />
+                        : <ChevronRight size={14} className="text-slate-400" />}
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">{item.name}</span>
+                      {item.isMultiBrand && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                          Multi-Brand
+                        </span>
+                      )}
+                    </div>
+                    {item.aliases?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5 ml-5">
+                        {item.aliases.map((alias, i) => (
+                          <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-white/10 text-slate-600 dark:text-slate-300 font-medium">
+                            {alias}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <div className="text-sm font-extrabold text-[#111315] dark:text-[#C8F53B] tabular-nums">
+                      ₹{item.rate}<span className="text-xs font-normal text-slate-400">/{item.unit}</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded Edit Form */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 border-t border-slate-200/80 dark:border-white/10 pt-3.5 space-y-3 bg-white dark:bg-[#12151C]">
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                          Base Rate (₹ / {item.unit})
+                        </label>
+                        <input
+                          type="number"
+                          value={editRate}
+                          onChange={e => setEditRate(e.target.value)}
+                          className="w-full px-3 py-2 text-sm font-bold tabular-nums border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                          Aliases (comma-separated)
+                        </label>
+                        <input
+                          type="text"
+                          value={editAliases}
+                          onChange={e => setEditAliases(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
+                          placeholder="e.g. aata, gehun"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Multi-brand / Variant Manager */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                          <Tag size={13} className="text-[#111315] dark:text-[#C8F53B]" />
+                          Brands &amp; Variant Rates
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setEditIsMultiBrand(!editIsMultiBrand)}
+                          className="text-[11px] text-slate-800 dark:text-[#C8F53B] font-bold hover:underline cursor-pointer"
+                        >
+                          {editIsMultiBrand || editVariants.length > 0 ? '✓ Multi-Brand Enabled' : '+ Enable Multi-Brand'}
+                        </button>
+                      </div>
+
+                      {/* Existing Variants list */}
+                      {editVariants.length > 0 ? (
+                        <div className="space-y-1.5 mb-2.5">
+                          {editVariants.map((v, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-slate-50 dark:bg-[#181C25] p-2.5 rounded-xl border border-slate-200 dark:border-white/10">
+                              <div className="flex-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Brand</span>
+                                <input
+                                  type="text"
+                                  value={v.brand}
+                                  onChange={e => handleUpdateVariantBrand(i, e.target.value)}
+                                  className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-[#12151C] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-lg focus:outline-none"
+                                  placeholder="Brand name"
+                                />
+                              </div>
+                              <div className="w-24">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Rate (₹)</span>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-slate-400">₹</span>
+                                  <input
+                                    type="number"
+                                    value={v.price}
+                                    onChange={e => handleUpdateVariantPrice(i, e.target.value)}
+                                    className="w-full text-xs px-2 py-1.5 bg-white dark:bg-[#12151C] border border-slate-200 dark:border-white/10 rounded-lg font-bold tabular-nums text-[#111315] dark:text-[#C8F53B] focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveVariant(i)}
+                                className="text-slate-400 hover:text-rose-500 p-1.5 mt-3.5 rounded-lg transition-colors cursor-pointer"
+                                title="Remove Brand"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic mb-2">No separate brands. Fixed rate: ₹{editRate}/{item.unit}</p>
+                      )}
+
+                      {/* Add new brand inline */}
+                      <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#181C25] p-2 rounded-xl border border-slate-200 dark:border-white/10">
+                        <input
+                          type="text"
+                          value={newBrandName}
+                          onChange={e => setNewBrandName(e.target.value)}
+                          placeholder="Brand Name (e.g. Lifebuoy, Tata)"
+                          className="flex-1 text-xs px-2.5 py-1.5 bg-white dark:bg-[#12151C] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-lg focus:outline-none"
+                        />
+                        <div className="flex items-center gap-1 w-24">
+                          <span className="text-xs text-slate-400">₹</span>
+                          <input
+                            type="number"
+                            value={newBrandPrice}
+                            onChange={e => setNewBrandPrice(e.target.value)}
+                            placeholder="Price"
+                            className="w-full text-xs px-2 py-1.5 bg-white dark:bg-[#12151C] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-lg font-bold tabular-nums focus:outline-none"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddBrandToExisting}
+                          disabled={!newBrandName.trim()}
+                          className="px-3 py-1.5 text-xs font-bold bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] rounded-lg shrink-0 disabled:opacity-40 cursor-pointer"
+                        >
+                          + Add Brand
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/10">
+                      <button
+                        onClick={() => handleSaveEdit(item.id)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[#111315] bg-[#C8F53B] hover:bg-[#b8e62b] text-xs font-extrabold transition-all shadow-sm cursor-pointer"
+                      >
+                        <Save size={14} /> Save Changes
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete "${item.name}" from catalogue?`)) {
+                            store.deleteCatalogueItem(item.id);
+                          }
+                        }}
+                        className="flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 px-3 py-1.5 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={13} /> Delete Item
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="text-sm text-center py-6 text-slate-400">
+              {searchQuery ? 'No items match your search.' : 'No catalogue items yet.'}
+            </p>
+          )}
+        </div>
       </section>
 
       {/* ===== SECTION 2: SYNC QUEUE INSPECTOR ===== */}
-      <section>
-        <div className="flex items-center gap-2 mb-1">
-          <RefreshCw size={18} className="text-[#E68A00] dark:text-amber-400" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            Duplicate-Safe Offline Sync Queue
-          </h2>
-        </div>
-        <p className="text-xs mb-3 text-slate-600 dark:text-slate-400">
-          Each transaction gets a unique <span className="font-mono font-semibold">TXN_UUID</span> + <span className="font-mono font-semibold">Idempotency Key</span> for duplicate-safe sync.
-        </p>
-
-        {/* Architecture Flow Diagram */}
-        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-3 mb-3 overflow-x-auto bg-[#F9F7F4] dark:bg-[#11181F]">
-          <div className="flex items-center gap-0 text-[11px] font-medium min-w-[520px] text-slate-800 dark:text-slate-200">
-            {[
-              { label: 'Voice Input', icon: '🎤' },
-              { label: 'Parser', icon: '⚙️' },
-              { label: 'Draft', icon: '📝' },
-              { label: 'Confirm', icon: '✅' },
-              { label: 'IndexedDB', icon: '💾' },
-              { label: 'Sync Queue', icon: '📤' },
-              { label: 'Server', icon: '☁️' },
-            ].map((step, i, arr) => (
-              <div key={step.label} className="flex items-center">
-                <div className="flex flex-col items-center px-1.5">
-                  <span className="text-base">{step.icon}</span>
-                  <span className="whitespace-nowrap mt-0.5">{step.label}</span>
-                </div>
-                {i < arr.length - 1 && (
-                  <span className="text-base mx-0.5 text-[#1B7A43] dark:text-emerald-400">→</span>
-                )}
-              </div>
-            ))}
+      <section className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-sm space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#111315] dark:bg-[#C8F53B]" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              Duplicate-Safe Offline Sync Queue
+            </h2>
           </div>
+          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+            queuedCount === 0
+              ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+              : 'bg-amber-500/15 text-amber-800 dark:text-amber-300'
+          }`}>
+            {queuedCount === 0 ? 'All Synced ✓' : `${queuedCount} Queued Offline`}
+          </span>
         </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Each transaction gets a unique <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">TXN_UUID</span> + <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">Idempotency Key</span> for duplicate-safe sync.
+        </p>
 
         {/* Sync Queue Table */}
         {syncQueue.length > 0 ? (
-          <div className="overflow-x-auto rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A]">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25]">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-[#F7F5F0] dark:bg-[#1E293B] border-b border-[#E2D9C8] dark:border-[#2A3644]">
-                  <th className="text-left px-3 py-2.5 font-semibold text-slate-600 dark:text-slate-300">TXN_UUID</th>
-                  <th className="text-left px-3 py-2.5 font-semibold text-slate-600 dark:text-slate-300">Idempotency Key</th>
-                  <th className="text-left px-3 py-2.5 font-semibold text-slate-600 dark:text-slate-300">Timestamp</th>
-                  <th className="text-left px-3 py-2.5 font-semibold text-slate-600 dark:text-slate-300">Status</th>
+                <tr className="bg-slate-100 dark:bg-[#12151C] border-b border-slate-200 dark:border-white/10 text-[10px] uppercase font-bold text-slate-400">
+                  <th className="text-left px-3.5 py-2.5">TXN_UUID</th>
+                  <th className="text-left px-3.5 py-2.5">Idempotency Key</th>
+                  <th className="text-left px-3.5 py-2.5">Timestamp</th>
+                  <th className="text-left px-3.5 py-2.5">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/10">
                 {syncQueue.map((entry, i) => (
-                  <tr key={entry.txnId || i} className="border-t border-[#E2D9C8] dark:border-[#2A3644]">
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-900 dark:text-white font-semibold">
+                  <tr key={entry.txnId || i}>
+                    <td className="px-3.5 py-2 font-mono text-[11px] text-slate-900 dark:text-white font-semibold">
                       {entry.txnId || '—'}
                     </td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                    <td className="px-3.5 py-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
                       {entry.idempotencyKey
                         ? entry.idempotencyKey.length > 12
                           ? entry.idempotencyKey.slice(0, 12) + '…'
                           : entry.idempotencyKey
                         : '—'}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-400">
+                    <td className="px-3.5 py-2 text-slate-500 dark:text-slate-400">
                       {entry.timestamp
                         ? new Date(entry.timestamp).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })
                         : '—'}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3.5 py-2">
                       {entry.status === 'SYNCED' ? (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300">
                           <Check size={10} /> SYNCED
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300">
                           <WifiOff size={10} /> QUEUED_OFFLINE
                         </span>
                       )}
@@ -747,8 +727,8 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
             </table>
           </div>
         ) : (
-          <div className="text-center py-4 text-sm rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-500 dark:text-slate-400">
-            <Database size={20} className="mx-auto mb-1 opacity-40" />
+          <div className="text-center py-5 text-xs rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-400">
+            <Database size={18} className="mx-auto mb-1 opacity-40" />
             Sync queue is empty.
           </div>
         )}
@@ -758,9 +738,9 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-60 bg-[#E68A00] hover:bg-[#B36B00] shadow-sm"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-[#111315] text-xs font-extrabold transition-all disabled:opacity-60 bg-[#C8F53B] hover:bg-[#b8e62b] shadow-sm cursor-pointer"
           >
-            <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
             {syncing
               ? 'Syncing...'
               : `Trigger Manual Batch Sync (${queuedCount} queued)`}
@@ -769,141 +749,136 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       </section>
 
       {/* ===== SECTION 3: GEMINI AI KEY ===== */}
-      <section>
-        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#16202A] shadow-sm">
-          <h2 className="text-base font-bold mb-1 text-slate-900 dark:text-white">
+      <section className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-sm space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#111315] dark:bg-[#C8F53B]" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">
             Gemini Vision AI Settings
           </h2>
-          <p className="text-xs mb-3 leading-relaxed text-slate-600 dark:text-slate-400">
-            The built-in <strong>Position-Independent Hinglish NLP Engine</strong> works 100% offline with zero API keys.
-            Gemini Vision powers handwritten bill &amp; Bahi-Khata photo scanning automatically.
-          </p>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          The built-in <strong>Position-Independent Hinglish NLP Engine</strong> works 100% offline with zero API keys.
+          Gemini Vision powers handwritten bill &amp; Bahi-Khata photo scanning automatically.
+        </p>
 
-          {builtInGeminiActive && !geminiKey.trim() && (
-            <div className="mb-3 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-[#1B7A43] dark:text-emerald-300">
-              ✅ Built-in Cloud Vision Key Active (Optional: enter a custom key below to override)
-            </div>
-          )}
+        {builtInGeminiActive && !geminiKey.trim() && (
+          <div className="px-3.5 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+            ✨ Built-in Cloud Vision Key Active (Optional: enter a custom key below to override)
+          </div>
+        )}
 
-          <div className="flex gap-2 mb-2">
-            <div className="relative flex-1">
-              <Key size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
-              <input
-                type={showGeminiKey ? 'text' : 'password'}
-                value={geminiKey}
-                onChange={e => { setGeminiKey(e.target.value); setGeminiSaved(false); }}
-                placeholder={builtInGeminiActive ? 'Optional custom Gemini API Key to override…' : 'Gemini API Key'}
-                className="w-full pl-8 pr-16 py-2 text-sm border border-[#E2D9C8] dark:border-[#2A3644] rounded-xl bg-white dark:bg-[#11181F] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
-              />
-              <button
-                onClick={() => setShowGeminiKey(!showGeminiKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium px-2 py-0.5 rounded-lg text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-[#1E293B]"
-              >
-                {showGeminiKey ? 'Hide' : 'Show'}
-              </button>
-            </div>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type={showGeminiKey ? 'text' : 'password'}
+              value={geminiKey}
+              onChange={e => { setGeminiKey(e.target.value); setGeminiSaved(false); }}
+              placeholder={builtInGeminiActive ? 'Optional custom Gemini API Key to override…' : 'Gemini API Key'}
+              className="w-full pl-8 pr-16 py-2.5 text-xs border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
+            />
             <button
-              onClick={handleSaveGeminiKey}
-              className="px-3.5 py-2 rounded-xl text-white text-sm font-medium shrink-0 bg-[#1B7A43] hover:bg-[#145E33] shadow-sm"
+              onClick={() => setShowGeminiKey(!showGeminiKey)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold px-2 py-1 rounded-lg text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-white/10 cursor-pointer"
             >
-              <Save size={14} />
+              {showGeminiKey ? 'Hide' : 'Show'}
             </button>
           </div>
+          <button
+            onClick={handleSaveGeminiKey}
+            className="px-4 py-2.5 rounded-2xl bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] text-xs font-extrabold shrink-0 shadow-sm cursor-pointer"
+          >
+            <Save size={14} />
+          </button>
+        </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-            {geminiSaved && geminiKey.trim() ? (
-              <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <Check size={14} /> Custom Gemini Key Connected
-              </span>
-            ) : builtInGeminiActive ? (
-              <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <Check size={14} /> ✨ Gemini Vision AI Active
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <Globe size={14} /> Not configured (optional)
-              </span>
-            )}
-          </div>
-
-          <p className="text-[10px] mt-2 italic text-slate-500 dark:text-slate-400">
-            Powered by Gemini 2.5 Flash Vision with automatic multi-model failover
-          </p>
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+          {geminiSaved && geminiKey.trim() ? (
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+              <Check size={14} /> Custom Gemini Key Connected
+            </span>
+          ) : builtInGeminiActive ? (
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+              <Check size={14} /> ✨ Gemini Vision AI Active
+            </span>
+          ) : (
+            <span className="flex items-center gap-1">
+              <Globe size={14} /> Not configured (optional)
+            </span>
+          )}
         </div>
       </section>
 
       {/* ===== SECTION 4: DATA PRIVACY & PORTABILITY ===== */}
-      <section>
-        <div className="rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-4 bg-white dark:bg-[#16202A] shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Shield size={18} className="text-[#1B7A43] dark:text-emerald-400" />
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              Data Privacy & Portability
-            </h2>
-          </div>
-
-          <div className="grid gap-2">
-            {/* Export JSON */}
-            <button
-              onClick={handleExportJSON}
-              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-left transition-colors bg-white dark:bg-[#11181F] text-slate-900 dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-            >
-              <Download size={16} className="text-[#1B7A43] dark:text-emerald-400" />
-              <span>Export Full Shop Ledger (JSON)</span>
-            </button>
-
-            {/* Export CSV */}
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-left transition-colors bg-white dark:bg-[#11181F] text-slate-900 dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-            >
-              <Download size={16} className="text-[#1B7A43] dark:text-emerald-400" />
-              <span>Export as CSV</span>
-            </button>
-
-            {/* Reset Demo */}
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 text-sm font-medium text-left transition-colors bg-amber-50/60 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100"
-            >
-              <RefreshCw size={16} className="text-[#E68A00] dark:text-amber-400" />
-              <span>Restore Default Sample Data</span>
-            </button>
-
-            {/* Delete All */}
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-2 w-full px-3.5 py-2.5 rounded-xl border border-red-200 dark:border-red-900/60 text-sm font-medium text-left transition-colors bg-red-50/60 dark:bg-red-950/30 text-red-600 dark:text-red-300 hover:bg-red-100"
-            >
-              <Trash2 size={16} className="text-red-600 dark:text-red-400" />
-              <span>Delete All Shop Data</span>
-            </button>
-          </div>
-
-          <p className="text-[10px] mt-3 leading-relaxed text-slate-500 dark:text-slate-400">
-            All data stored locally on your device. Zero data sent to any server without your explicit consent.
-          </p>
+      <section className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-sm space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="w-2 h-2 rounded-full bg-[#111315] dark:bg-[#C8F53B]" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+            Data Privacy &amp; Portability
+          </h2>
         </div>
+
+        <div className="grid gap-2">
+          {/* Export JSON */}
+          <button
+            onClick={handleExportJSON}
+            className="flex items-center gap-2.5 w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-left transition-colors bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white hover:border-slate-300 cursor-pointer"
+          >
+            <Download size={15} className="text-[#111315] dark:text-[#C8F53B]" />
+            <span>Export Full Shop Ledger (JSON)</span>
+          </button>
+
+          {/* Export CSV */}
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2.5 w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-left transition-colors bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white hover:border-slate-300 cursor-pointer"
+          >
+            <Download size={15} className="text-[#111315] dark:text-[#C8F53B]" />
+            <span>Export Customer Balances as CSV</span>
+          </button>
+
+          {/* Reset Demo */}
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="flex items-center gap-2.5 w-full px-4 py-2.5 rounded-2xl border border-amber-500/20 text-xs font-semibold text-left transition-colors bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/15 cursor-pointer"
+          >
+            <RefreshCw size={15} className="text-amber-600 dark:text-amber-400" />
+            <span>Restore Default Sample Data</span>
+          </button>
+
+          {/* Delete All */}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-2.5 w-full px-4 py-2.5 rounded-2xl border border-rose-500/20 text-xs font-semibold text-left transition-colors bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/15 cursor-pointer"
+          >
+            <Trash2 size={15} className="text-rose-600 dark:text-rose-400" />
+            <span>Delete All Shop Data</span>
+          </button>
+        </div>
+
+        <p className="text-[10px] text-slate-400 leading-relaxed pt-1">
+          All data stored locally on your device. Zero data sent to any server without your explicit consent.
+        </p>
       </section>
 
       {/* ===== RESET CONFIRMATION MODAL ===== */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
-          <div className="bg-white dark:bg-[#16202A] rounded-2xl border border-[#E2D9C8] dark:border-[#2A3644] p-5 max-w-sm w-full shadow-2xl">
-            <h3 className="text-base font-bold mb-2 text-slate-900 dark:text-white">Restore Default Sample Data?</h3>
-            <p className="text-sm mb-4 text-slate-600 dark:text-slate-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4">
+          <div className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200 dark:border-white/10 p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Restore Default Sample Data?</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               This will restore default sample customers, catalogue items, and hisab entries. Your current data will be reset.
             </p>
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end pt-2">
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-slate-700 dark:text-slate-300"
+                className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReset}
-                className="px-4 py-2 rounded-xl text-white text-sm font-semibold bg-[#E68A00] hover:bg-[#B36B00] shadow-sm"
+                className="px-4 py-2 rounded-full text-[#111315] text-xs font-extrabold bg-[#C8F53B] hover:bg-[#b8e62b] shadow-sm cursor-pointer"
               >
                 Yes, Reset
               </button>
@@ -914,37 +889,39 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
       {/* ===== DELETE CONFIRMATION MODAL ===== */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
-          <div className="bg-white dark:bg-[#16202A] rounded-2xl border-2 border-red-500 p-5 max-w-sm w-full shadow-2xl">
-            <div className="flex items-center gap-2 mb-2">
-              <Trash2 size={20} className="text-red-600" />
-              <h3 className="text-base font-bold text-red-600">Delete All Data?</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4">
+          <div className="bg-white dark:bg-[#12151C] rounded-3xl border border-rose-500/50 p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-2 text-rose-600">
+              <Trash2 size={20} />
+              <h3 className="text-base font-bold">Delete All Data?</h3>
             </div>
-            <p className="text-sm mb-3 text-slate-600 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               This will <strong>permanently delete</strong> all your shop data including customers, transactions, and catalogue.
               This action cannot be undone.
             </p>
-            <p className="text-xs font-medium mb-2 text-slate-900 dark:text-white">
-              Type <span className="font-mono font-bold text-red-600">DELETE</span> to confirm:
-            </p>
-            <input
-              type="text"
-              value={deleteText}
-              onChange={e => setDeleteText(e.target.value)}
-              placeholder="DELETE"
-              className="w-full px-3 py-2 text-sm font-mono border-2 border-red-300 rounded-xl mb-3 focus:outline-none bg-white dark:bg-[#11181F] text-red-600 font-bold"
-            />
-            <div className="flex gap-2 justify-end">
+            <div>
+              <p className="text-xs font-medium mb-1.5 text-slate-900 dark:text-white">
+                Type <span className="font-mono font-bold text-rose-600">DELETE</span> to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteText}
+                onChange={e => setDeleteText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full px-3 py-2 text-sm font-mono border-2 border-rose-300 dark:border-rose-900/60 rounded-xl focus:outline-none bg-slate-50 dark:bg-[#181C25] text-rose-600 font-bold"
+              />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
               <button
                 onClick={() => { setShowDeleteConfirm(false); setDeleteText(''); }}
-                className="px-4 py-2 rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] text-sm font-medium text-slate-700 dark:text-slate-300"
+                className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAll}
                 disabled={deleteText !== 'DELETE'}
-                className="px-4 py-2 rounded-xl text-white text-sm font-semibold bg-red-600 hover:bg-red-700 disabled:opacity-30 shadow-sm"
+                className="px-4 py-2 rounded-full text-white text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-30 shadow-sm cursor-pointer"
               >
                 Delete Everything
               </button>

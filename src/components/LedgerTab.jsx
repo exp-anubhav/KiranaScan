@@ -15,13 +15,22 @@ import {
 
 function Backdrop({ children, onClose, sizeClass = 'max-w-lg' }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className={`w-full ${sizeClass} max-h-[92vh] overflow-y-auto bg-white dark:bg-[#16202A] text-slate-900 dark:text-white rounded-2xl shadow-2xl border border-[#E2D9C8] dark:border-[#2A3644]`}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-md" onClick={onClose}>
+      <div className={`w-full ${sizeClass} max-h-[92vh] overflow-y-auto bg-white dark:bg-[#12151C] text-slate-900 dark:text-white rounded-[1.75rem] shadow-2xl border border-slate-200/90 dark:border-white/10`}
            onClick={e => e.stopPropagation()}>
         {children}
       </div>
     </div>
   );
+}
+
+function getInitials(name) {
+  if (!name) return 'C';
+  const clean = name.trim().replace(/[^a-zA-Z0-9\s]/g, '');
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  if (words.length === 1 && words[0].length >= 1) return words[0].slice(0, 2).toUpperCase();
+  return 'C';
 }
 
 /* ───── scan-line keyframe (injected once) ───── */
@@ -53,6 +62,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
   /* ───── state ───── */
   const [search, setSearch] = useState('');
+  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'due' | 'settled'
   const [expandedId, setExpandedId] = useState(null);
 
   // Modals
@@ -123,8 +133,14 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
     });
   }, [store.customers]);
 
+  const totalOutstanding = useMemo(() => {
+    return uniqueCustomers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0);
+  }, [uniqueCustomers]);
+
   const filtered = uniqueCustomers
     .filter(c => {
+      if (filterMode === 'due' && c.balance <= 0) return false;
+      if (filterMode === 'settled' && c.balance > 0) return false;
       if (!search.trim()) return true;
       const s = search.toLowerCase();
       return (
@@ -308,77 +324,123 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
   return (
     <div className="space-y-4">
 
-      {/* ──── TOP ACTION BAR ──── */}
-      <div className="space-y-3">
-        {/* Search */}
+      {/* ──── TOP SUMMARY BENTO CARD (OBSIDIAN + VOLT LIME) ──── */}
+      <div className="bg-[#111315] dark:bg-[#161A22] border border-white/10 rounded-3xl p-5 text-white shadow-lg space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#C8F53B] animate-pulse" />
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-300">
+              Bahi-Khata Ledger
+            </span>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-white/10 text-slate-300 text-xs font-semibold border border-white/10 tabular-nums">
+            {uniqueCustomers.length} Grahak Khata
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-baseline justify-between gap-3 pt-1">
+          <div>
+            <p className="text-xs text-slate-400 font-medium mb-1">Total Outstanding Udhaar (कुल बकाया)</p>
+            <p className="text-3xl sm:text-4xl font-extrabold text-[#C8F53B] tabular-nums tracking-tight">
+              {fmt(totalOutstanding)}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (getActiveGeminiKey()) {
+                  setOcrEngineMode('gemini');
+                }
+                setEditingGeminiKey(false);
+                setShowOCR(true);
+              }}
+              className="bg-white/10 hover:bg-white/15 border border-white/15 text-white rounded-full px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+            >
+              <Camera className="w-3.5 h-3.5 text-[#C8F53B]" />
+              <span>Scan Bahi-Khata</span>
+            </button>
+
+            <button
+              onClick={() => setShowNewCust(true)}
+              className="bg-[#C8F53B] hover:bg-[#b8e62b] text-[#111315] rounded-full px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Naya Grahak</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ──── SEARCH & FILTER ROW ──── */}
+      <div className="space-y-2.5">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={L.searchPlaceholder}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:ring-2 bg-white dark:bg-[#11181F] text-slate-900 dark:text-white border-[#E2D9C8] dark:border-[#2A3644] focus:ring-[#1B7A43]"
+            placeholder="Grahak ka naam, phone ya pehchan search karein..."
+            className="w-full pl-10 pr-4 py-3 rounded-2xl text-sm border focus:outline-none focus:ring-1 bg-white dark:bg-[#12151C] text-[#111315] dark:text-white border-slate-200/80 dark:border-white/[0.08] focus:border-[#111315] dark:focus:border-[#C8F53B] shadow-xs"
           />
         </div>
 
-        {/* Buttons in clean 2-col grid */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <button
-            onClick={() => setShowNewCust(true)}
-            className="text-xs sm:text-sm font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap text-white bg-[#1B7A43] hover:bg-[#156336] shadow-sm transition-all active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4 shrink-0" /> {L.newCustomer}
-          </button>
-          <button
-            onClick={() => {
-              if (getActiveGeminiKey()) {
-                setOcrEngineMode('gemini');
-              }
-              setEditingGeminiKey(false);
-              setShowOCR(true);
-            }}
-            className="text-xs sm:text-sm font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 whitespace-nowrap border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B] shadow-sm transition-all active:scale-[0.98]"
-          >
-            <Camera className="w-4 h-4 shrink-0" /> {L.scanOCR}
-          </button>
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          {[
+            { key: 'all', label: `All (${uniqueCustomers.length})` },
+            { key: 'due', label: `Udhaar Due (${uniqueCustomers.filter(c => c.balance > 0).length})` },
+            { key: 'settled', label: `Settled (${uniqueCustomers.filter(c => c.balance <= 0).length})` },
+          ].map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFilterMode(f.key)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                filterMode === f.key
+                  ? 'bg-[#111315] text-[#C8F53B] dark:bg-[#C8F53B] dark:text-[#111315] shadow-xs'
+                  : 'bg-white dark:bg-[#12151C] border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-400 hover:text-[#111315] dark:hover:text-white'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* ──── CUSTOMER LIST ──── */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {filtered.length === 0 && (
-          <div className="text-center py-10 text-slate-500 dark:text-slate-400">
-            <User className="w-10 h-10 mx-auto mb-2 opacity-40" />
-            <p className="text-sm">Koi grahak nahi mila</p>
+          <div className="text-center py-12 text-slate-400 dark:text-slate-500 bg-white dark:bg-[#12151C] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6">
+            <User className="w-10 h-10 mx-auto mb-2 opacity-30 text-[#111315] dark:text-[#C8F53B]" />
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Koi grahak nahi mila</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Search badlein ya + Naya Grahak button dabayein</p>
           </div>
         )}
 
         {filtered.map(cust => {
           const isExpanded = expandedId === cust.id;
           return (
-            <div key={cust.id} className="rounded-2xl border overflow-hidden bg-white dark:bg-[#16202A] border-[#E2D9C8] dark:border-[#2A3644] shadow-sm">
+            <div key={cust.id} className="rounded-2xl border overflow-hidden bg-white dark:bg-[#12151C] border-slate-200/80 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
 
               {/* ── Card Header (2 Clean Stacked Rows) ── */}
               <button
-                className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50/60 dark:hover:bg-[#1E293B]/60 transition-colors"
+                className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-slate-50/70 dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
                 onClick={() => setExpandedId(isExpanded ? null : cust.id)}
               >
                 {/* Avatar */}
-                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm bg-[#1B7A43]">
-                  {(cust.name || 'G').charAt(0)}
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-extrabold text-xs tracking-wider bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] shadow-sm">
+                  {getInitials(cust.name)}
                 </div>
 
                 <div className="flex-1 min-w-0 space-y-1">
                   {/* Top Row: Customer Name on left, Balance pill on right */}
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-bold text-slate-900 dark:text-white truncate text-sm">
+                    <p className="font-bold text-[#111315] dark:text-white truncate text-sm">
                       {cust.name}
                     </p>
-                    <span className={`text-sm font-bold px-2.5 py-0.5 rounded-lg shrink-0 border ${
+                    <span className={`text-base font-extrabold tabular-nums shrink-0 ${
                       cust.balance > 0
-                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                        : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                        ? 'text-rose-600 dark:text-rose-400'
+                        : 'text-emerald-600 dark:text-emerald-400'
                     }`}>
                       {fmt(cust.balance)}
                     </span>
@@ -388,16 +450,17 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       {cust.pehchan ? (
-                        <span className="bg-stone-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs px-2 py-0.5 rounded-md truncate max-w-[170px]">
-                          {cust.pehchan}
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 text-[11px] font-medium flex items-center gap-1 truncate max-w-[170px]">
+                          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="truncate">{cust.pehchan}</span>
                         </span>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 text-xs italic">
+                        <span className="text-slate-400 dark:text-slate-500 text-[11px] italic">
                           No pehchan
                         </span>
                       )}
                       {cust.phone && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0">
                           <Phone className="w-3 h-3 text-slate-400" /> {cust.phone}
                         </span>
                       )}
@@ -411,19 +474,19 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
               {/* ── Expanded Profile ── */}
               {isExpanded && (
-                <div className="border-t px-4 pb-4 space-y-4 border-[#E2D9C8] dark:border-[#2A3644] bg-[#F9F7F4] dark:bg-[#11181F]">
+                <div className="border-t px-4 pb-4 space-y-4 border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02]">
 
                   {/* Profile header */}
-                  <div className="pt-3 space-y-1">
+                  <div className="pt-3.5 space-y-1">
                     <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {cust.pehchan}
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" /> {cust.pehchan || 'General Customer'}
                     </div>
                     {cust.phone && (
                       <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                        <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> {cust.phone}
+                        <Phone className="w-3.5 h-3.5 text-slate-400" /> {cust.phone}
                       </div>
                     )}
-                    <p className={`text-2xl font-bold pt-1 ${cust.balance > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
+                    <p className={`text-2xl font-extrabold pt-1 tabular-nums ${cust.balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       {fmt(cust.balance)} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">baaki</span>
                     </p>
                   </div>
@@ -432,21 +495,23 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowWasooli(cust.id); setWasooliAmt(''); setWasooliPreset(null); setWasooliMode('CASH'); }}
-                      className="flex-1 py-2 rounded-lg text-xs font-semibold text-white flex items-center justify-center gap-1 bg-[#1B7A43] hover:bg-[#145E33] transition-colors"
+                      className="flex-1 py-2.5 rounded-full text-xs font-bold text-[#111315] bg-[#C8F53B] hover:bg-[#b8e62b] shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
                     >
-                      <ArrowDownCircle className="w-3.5 h-3.5" /> ₹ Wasooli Darj Karein
+                      <ArrowDownCircle className="w-3.5 h-3.5" />
+                      <span>Wasooli (Jama)</span>
                     </button>
                     <button
                       onClick={() => { setShowWhatsApp(cust); setWhatsappTone('polite'); }}
-                      className="flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 bg-green-100 dark:bg-green-950/50 text-[#1B7A43] dark:text-green-300 hover:bg-green-200 transition-colors"
+                      className="flex-1 py-2.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all cursor-pointer active:scale-98"
                     >
-                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp Reminder
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>WhatsApp Reminder</span>
                     </button>
                   </div>
 
                   {/* Audit Trail */}
                   <div>
-                    <p className="text-xs font-semibold mb-2 flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5" /> Complete Audit Trail
                     </p>
                     {(!cust.history || cust.history.length === 0) && (
@@ -454,16 +519,16 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         Koi transaction nahi hai abhi tak
                       </p>
                     )}
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1 no-scrollbar">
                       {(cust.history || []).slice().reverse().map(txn => (
-                        <div key={txn.id} className="rounded-lg p-3 space-y-1.5 border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#1E252D]">
+                        <div key={txn.id} className="rounded-2xl p-3 space-y-2 border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#12151C] shadow-2xs">
 
                           {/* Row 1: ID + timestamp */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#252E38] text-slate-700 dark:text-gray-300">
-                              <Hash className="w-3 h-3 inline -mt-0.5" /> {txn.id}
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 font-medium">
+                              <Hash className="w-3 h-3 inline -mt-0.5 text-slate-400" /> {txn.id}
                             </span>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                            <span className="text-slate-400 dark:text-slate-500 tabular-nums">
                               {new Date(txn.date).toLocaleString('en-IN', {
                                 day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                               })}
@@ -472,37 +537,37 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
                           {/* Row 2: Type + Sync + Amount */}
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                               txn.type === 'WASOOLI'
-                                ? 'bg-green-100 dark:bg-green-950/60 text-[#1B7A43] dark:text-green-300'
-                                : 'bg-amber-100 dark:bg-amber-950/60 text-[#B36B00] dark:text-amber-300'
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
                             }`}>
                               {txn.type === 'WASOOLI' ? '↓ WASOOLI' : '↑ UDHAAR'}
                             </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                               txn.synced
-                                ? 'bg-green-50 dark:bg-green-950/30 text-[#1B7A43] dark:text-green-300'
-                                : 'bg-amber-50 dark:bg-amber-950/30 text-[#B36B00] dark:text-amber-300'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                                : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
                             }`}>
-                              {txn.synced ? '✓ Synced' : '⏳ Queued'}
+                              {txn.synced ? <><Check size={11} /> Synced</> : <><Clock size={11} /> Queued</>}
                             </span>
                             {txn.editedBeforeConfirm && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 text-[#5B21B6] dark:text-purple-300">
-                                ✏️ Edited before confirm
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                                <Edit3 size={11} /> Edited
                               </span>
                             )}
-                            <span className="text-xs font-bold ml-auto text-gray-900 dark:text-white">
+                            <span className="text-xs font-extrabold ml-auto text-[#111315] dark:text-white tabular-nums">
                               {fmt(txn.total)}
                             </span>
                           </div>
 
                           {/* Row 3: Items or wasooli */}
                           {txn.items && txn.items.length > 0 && (
-                            <div className="text-[11px] text-gray-600 dark:text-gray-300 pl-1 space-y-0.5">
+                            <div className="text-[11px] text-slate-600 dark:text-slate-300 pl-1 space-y-0.5">
                               {txn.items.map((it, idx) => (
-                                <div key={idx} className="flex justify-between">
+                                <div key={idx} className="flex justify-between tabular-nums">
                                   <span>{it.name} ({it.qty} {it.unit} × {fmt(it.price)})</span>
-                                  <span>{fmt(it.total)}</span>
+                                  <span className="font-semibold text-slate-800 dark:text-slate-200">{fmt(it.total)}</span>
                                 </div>
                               ))}
                             </div>
@@ -510,8 +575,9 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
                           {/* Row 4: Voice transcript */}
                           {txn.transcript && (
-                            <p className="text-[10px] italic text-slate-500 dark:text-slate-400 pl-1 pt-0.5 border-t border-dashed border-gray-200 dark:border-gray-700">
-                              🎙️ &ldquo;{txn.transcript}&rdquo;
+                            <p className="text-[11px] italic text-slate-500 dark:text-slate-400 pl-1 pt-1 border-t border-dashed border-slate-200 dark:border-white/10 flex items-center gap-1">
+                              <Mic className="w-3 h-3 text-[#111315] dark:text-[#C8F53B] shrink-0" />
+                              <span>&ldquo;{txn.transcript}&rdquo;</span>
                             </p>
                           )}
                         </div>
@@ -531,23 +597,23 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
       {showNewCust && (
         <Backdrop onClose={() => setShowNewCust(false)}>
           <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                <Plus className="w-4 h-4 inline -mt-0.5 mr-1 text-emerald-600 dark:text-emerald-400" /> Naya Grahak Jodein
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#111315] dark:text-[#C8F53B]" /> Naya Grahak Jodein
               </h3>
-              <button onClick={() => setShowNewCust(false)}>
-                <X className="w-5 h-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" />
+              <button onClick={() => setShowNewCust(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-400">
-                  Naam (Name) <span className="text-red-500">*</span>
+                  Naam (Name) <span className="text-rose-500">*</span>
                 </label>
                 <input value={newName} onChange={e => setNewName(e.target.value)}
                        placeholder="e.g. Suresh Kumar"
-                       className="w-full px-3 py-2 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#C8F53B]" />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-400">
@@ -555,7 +621,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 </label>
                 <input value={newPehchan} onChange={e => setNewPehchan(e.target.value)}
                        placeholder="e.g. Chai wala, Gali No. 4"
-                       className="w-full px-3 py-2 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#C8F53B]" />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-400">
@@ -563,7 +629,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 </label>
                 <input value={newPhone} onChange={e => setNewPhone(e.target.value)}
                        placeholder="e.g. 9876543210"
-                       className="w-full px-3 py-2 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#C8F53B]" />
               </div>
               <div>
                 <label className="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-400">
@@ -571,13 +637,13 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 </label>
                 <input type="number" value={newBalance} onChange={e => setNewBalance(e.target.value)}
                        placeholder="0"
-                       className="w-full px-3 py-2 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-[#C8F53B]" />
               </div>
             </div>
 
             <button onClick={handleSaveCustomer}
                     disabled={!newName.trim()}
-                    className="w-full py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] transition-colors shadow-sm">
+                    className="w-full py-2.5 rounded-full text-sm font-extrabold text-[#111315] disabled:opacity-40 flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] transition-all shadow-md active:scale-[0.99] cursor-pointer">
               <Check className="w-4 h-4" /> Save Grahak
             </button>
           </div>
@@ -592,23 +658,23 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
           <Backdrop onClose={resetOcrModal} sizeClass="max-w-lg md:max-w-3xl">
             <div className="p-4 sm:p-5 space-y-4">
               {/* Modal Header */}
-              <div className="flex items-start justify-between gap-3 pb-2 border-b border-[#E2D9C8] dark:border-[#2A3644]">
+              <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200 dark:border-white/10">
                 <div>
                   <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-[#1B7A43] dark:text-emerald-400 shrink-0" />
+                    <Camera className="w-5 h-5 text-[#111315] dark:text-[#C8F53B] shrink-0" />
                     Bahi-Khata Photo OCR
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    1. Upload photo → 2. Clean shadows &amp; read text → 3. Review rows &amp; import
+                    1. Upload photo → 2. Read text → 3. Review rows &amp; import
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={resetOcrModal}
-                  className="p-1 rounded-lg hover:bg-stone-100 dark:hover:bg-[#1E293B] transition-colors"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                   title="Close OCR"
                 >
-                  <X className="w-5 h-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -618,7 +684,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 {/* ── LEFT COLUMN: Photo Dropzone / Preview + How It Works ── */}
                 <div className={`md:col-span-5 space-y-2.5 ${ocrStage === 'review' && !showPhotoPanelInReview ? 'hidden md:block' : 'block'}`}>
                   {ocrPreviewUrl ? (
-                    <div className="rounded-xl overflow-hidden border border-[#E2D9C8] dark:border-[#2A3644] bg-stone-100 dark:bg-[#11181F]">
+                    <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25]">
                       <div className="relative">
                         <img
                           src={ocrPreviewUrl}
@@ -627,14 +693,14 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         />
                         {ocrStage === 'scanning' && <div className="scan-line" />}
                       </div>
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-white dark:bg-[#16202A] border-t border-[#E2D9C8] dark:border-[#2A3644] text-xs">
+                      <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 bg-white dark:bg-[#12151C] border-t border-slate-200 dark:border-white/10 text-xs">
                         <span className="truncate font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5 min-w-0">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-[#C8F53B] shrink-0" />
                           <span className="truncate">{ocrImageFile?.name || 'Photo ready'}</span>
                         </span>
                         {ocrStage !== 'scanning' && (
                           <div className="flex items-center gap-2 shrink-0">
-                            <label className="text-[#1B7A43] dark:text-emerald-400 font-semibold hover:underline cursor-pointer">
+                            <label className="text-[#111315] dark:text-[#C8F53B] font-bold hover:underline cursor-pointer">
                               Change
                               <input
                                 type="file"
@@ -655,7 +721,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                                 setOcrNotice('');
                                 setOcrStage('idle');
                               }}
-                              className="text-slate-500 hover:text-red-500 font-semibold"
+                              className="text-slate-400 hover:text-rose-500 font-semibold cursor-pointer"
                             >
                               Remove
                             </button>
@@ -665,8 +731,8 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <label className="border-2 border-dashed border-[#E2D9C8] dark:border-[#2A3644] hover:border-[#1B7A43] rounded-xl p-5 text-center cursor-pointer transition-colors block bg-[#FAF6F0]/60 dark:bg-[#11181F]/60">
-                        <Upload className="w-7 h-7 mx-auto mb-2 text-[#1B7A43] dark:text-emerald-400" />
+                      <label className="border-2 border-dashed border-slate-200 dark:border-white/15 hover:border-[#C8F53B] rounded-2xl p-5 text-center cursor-pointer transition-colors block bg-slate-50 dark:bg-[#181C25]">
+                        <Upload className="w-7 h-7 mx-auto mb-2 text-[#111315] dark:text-[#C8F53B]" />
                         <p className="text-sm font-bold text-slate-900 dark:text-white">
                           Upload Photo from Gallery or Camera
                         </p>
@@ -687,7 +753,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       <button
                         type="button"
                         onClick={handleLoadSamplePhoto}
-                        className="w-full py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#1B7A43] dark:hover:text-emerald-400 transition-colors"
+                        className="w-full py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                       >
                         No photo handy? Load a Sample Notebook Photo →
                       </button>
@@ -695,7 +761,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                   )}
 
                   {/* Compact transparent "How parsing works" accordion */}
-                  <div className="rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] bg-stone-50/80 dark:bg-[#11181F]/80 px-3 py-2 text-[11px]">
+                  <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] px-3.5 py-2.5 text-[11px]">
                     <button
                       type="button"
                       onClick={() => setShowHowItWorks((v) => !v)}
@@ -708,7 +774,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       <ul className="mt-2 space-y-1 text-slate-600 dark:text-slate-400 leading-relaxed list-disc pl-4">
                         <li>Finds lines matching <strong className="text-slate-800 dark:text-slate-200">Name - Note - ₹Amount</strong> (e.g. <code>1. Ramesh - Gali 4 - ₹450</code>).</li>
                         <li>Ignores serial numbers, dates, and address numbers like <code>Makan 8</code>; extracts 10-digit phone numbers automatically.</li>
-                        <li><strong className="text-slate-800 dark:text-slate-200">Built-in OCR</strong> runs offline in your browser (best for clear print/block writing). <strong className="text-slate-800 dark:text-slate-200">Gemini AI</strong> reads cursive handwriting &amp; shadows accurately.</li>
+                        <li><strong className="text-slate-800 dark:text-slate-200">Built-in OCR</strong> runs offline in your browser. <strong className="text-slate-800 dark:text-slate-200">Gemini AI</strong> reads cursive handwriting &amp; shadows accurately.</li>
                       </ul>
                     )}
                   </div>
@@ -729,19 +795,19 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                           <button
                             type="button"
                             onClick={() => setOcrEngineMode('offline')}
-                            className={`p-2.5 rounded-xl border text-left transition-all ${
+                            className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                               ocrEngineMode === 'offline'
-                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-[#1B7A43] ring-1 ring-[#1B7A43]'
-                                : 'bg-white dark:bg-[#11181F] border-[#E2D9C8] dark:border-[#2A3644] hover:border-slate-400'
+                                ? 'bg-[#111315] text-[#C8F53B] dark:bg-[#181C25] border-black/20 dark:border-[#C8F53B]/50'
+                                : 'bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white border-slate-200 dark:border-white/10 hover:border-slate-300'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-xs font-bold text-slate-900 dark:text-white">Built-in OCR</span>
-                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                              <span className="text-xs font-bold">Built-in OCR</span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/10">
                                 No Key
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">
                               Offline · Clear print or block letters
                             </p>
                           </button>
@@ -749,22 +815,22 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                           <button
                             type="button"
                             onClick={() => setOcrEngineMode('gemini')}
-                            className={`p-2.5 rounded-xl border text-left transition-all ${
+                            className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                               ocrEngineMode === 'gemini'
-                                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-600 ring-1 ring-indigo-600'
-                                : 'bg-white dark:bg-[#11181F] border-[#E2D9C8] dark:border-[#2A3644] hover:border-slate-400'
+                                ? 'bg-[#111315] text-[#C8F53B] dark:bg-[#181C25] border-black/20 dark:border-[#C8F53B]/50'
+                                : 'bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white border-slate-200 dark:border-white/10 hover:border-slate-300'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                                <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                              <span className="text-xs font-bold flex items-center gap-1">
+                                <Sparkles className="w-3.5 h-3.5" />
                                 Gemini AI
                               </span>
-                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/10">
                                 {hasSavedKey ? 'Ready ✓' : 'Free Key'}
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                            <p className="text-[10px] text-slate-400 mt-1 leading-snug">
                               Best for cursive handwriting &amp; shadows
                             </p>
                           </button>
@@ -773,7 +839,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
                       {/* Contextual Options for Built-in OCR */}
                       {ocrEngineMode === 'offline' && (
-                        <div className="flex items-center justify-between gap-2 flex-wrap p-2.5 rounded-xl bg-stone-50 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] text-xs">
+                        <div className="flex items-center justify-between gap-2 flex-wrap p-2.5 rounded-xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-white/10 text-xs">
                           <span className="text-slate-600 dark:text-slate-400 font-medium">Script language:</span>
                           <div className="flex items-center gap-1.5">
                             {[
@@ -784,10 +850,10 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                                 key={opt.id}
                                 type="button"
                                 onClick={() => setOcrLang(opt.id)}
-                                className={`px-2.5 py-1 rounded-lg font-semibold border transition-colors ${
+                                className={`px-2.5 py-1 rounded-full font-semibold border transition-colors cursor-pointer ${
                                   ocrLang === opt.id
-                                    ? 'bg-[#1B7A43] text-white border-[#1B7A43]'
-                                    : 'bg-white dark:bg-[#16202A] text-slate-600 dark:text-slate-300 border-[#E2D9C8] dark:border-[#2A3644]'
+                                    ? 'bg-[#111315] text-[#C8F53B] dark:bg-[#C8F53B] dark:text-[#111315] border-transparent shadow-xs'
+                                    : 'bg-white dark:bg-[#12151C] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10'
                                 }`}
                               >
                                 {opt.label}
@@ -800,8 +866,8 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       {/* Single Contextual Config for Gemini AI */}
                       {ocrEngineMode === 'gemini' && (
                         hasSavedKey && !editingGeminiKey ? (
-                          <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/70">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100/90 dark:bg-emerald-900/50 text-[#1B7A43] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300">
                               ✨ Gemini Vision AI Active
                             </span>
                             {!hasBuiltInGeminiKey() && (
@@ -815,14 +881,14 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                             )}
                           </div>
                         ) : (
-                          <div className="p-3 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 space-y-2">
-                            <p className="text-[11px] text-indigo-900 dark:text-indigo-200 leading-relaxed">
+                          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-white/10 space-y-2">
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
                               Get a free key (no credit card) at{' '}
                               <a
                                 href="https://aistudio.google.com/apikey"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="underline font-bold"
+                                className="underline font-bold text-[#111315] dark:text-[#C8F53B]"
                               >
                                 aistudio.google.com/apikey
                               </a>
@@ -834,12 +900,12 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                                 value={geminiKeyDraft}
                                 onChange={(e) => setGeminiKeyDraft(e.target.value)}
                                 placeholder="Paste Gemini API Key (AIza…)"
-                                className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#12151C] text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
                               />
                               <button
                                 type="button"
                                 onClick={handleSaveGeminiKeyInline}
-                                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0"
+                                className="px-3.5 py-2 rounded-xl bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] text-xs font-bold shrink-0 cursor-pointer"
                               >
                                 {geminiKeyDraft.trim() ? 'Save' : 'Clear'}
                               </button>
@@ -849,7 +915,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       )}
 
                       {ocrNotice && (
-                        <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
                           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>{ocrNotice}</span>
                         </div>
@@ -859,7 +925,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         type="button"
                         onClick={() => startOCRScan()}
                         disabled={!ocrImageFile || (ocrEngineMode === 'gemini' && !hasSavedKey)}
-                        className="w-full py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                        className="w-full py-3 rounded-full text-sm font-extrabold text-[#111315] flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md active:scale-[0.99] cursor-pointer"
                       >
                         <Eye className="w-4 h-4" />
                         {ocrEngineMode === 'gemini'
@@ -871,14 +937,14 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
                   {/* SCANNING STAGE */}
                   {ocrStage === 'scanning' && (
-                    <div className="text-center py-6 px-3 rounded-xl bg-stone-50 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] space-y-3">
-                      <div className="w-full h-2.5 rounded-full bg-stone-200 dark:bg-[#1E293B] overflow-hidden">
+                    <div className="text-center py-6 px-3 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-white/10 space-y-3">
+                      <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
                         <div
-                          className="h-full bg-[#1B7A43] transition-all duration-200"
+                          className="h-full bg-[#C8F53B] transition-all duration-200"
                           style={{ width: `${Math.max(8, ocrProgress.progress)}%` }}
                         />
                       </div>
-                      <p className="text-sm font-semibold text-[#1B7A43] dark:text-emerald-400">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">
                         {ocrProgress.status || 'Reading your Bahi-Khata image...'}
                       </p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -892,10 +958,10 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                   {/* REVIEW STAGE */}
                   {ocrStage === 'review' && (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60">
+                      <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 truncate">
+                          <Check className="w-4 h-4 text-emerald-600 dark:text-[#C8F53B] shrink-0" />
+                          <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 truncate">
                             {ocrData.length} {ocrData.length === 1 ? 'entry' : 'entries'} extracted
                             {ocrEngineUsed === 'gemini' ? ' · Gemini AI' : ' · Built-in OCR'}
                           </span>
@@ -905,7 +971,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                             <button
                               type="button"
                               onClick={() => setShowPhotoZoom((v) => !v)}
-                              className="md:hidden text-[11px] font-semibold text-[#1B7A43] dark:text-emerald-400 hover:underline"
+                              className="md:hidden text-[11px] font-semibold text-slate-800 dark:text-slate-200 hover:underline cursor-pointer"
                             >
                               {showPhotoZoom ? 'Hide Photo' : 'View Photo'}
                             </button>
@@ -913,7 +979,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                           <button
                             type="button"
                             onClick={() => setShowRawText((v) => !v)}
-                            className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:underline flex items-center gap-0.5"
+                            className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:underline flex items-center gap-0.5 cursor-pointer"
                           >
                             <FileText className="w-3 h-3" /> Raw Text
                           </button>
@@ -921,7 +987,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       </div>
 
                       {ocrNotice && (
-                        <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 flex items-start justify-between gap-2 flex-wrap">
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start justify-between gap-2 flex-wrap">
                           <div className="flex items-start gap-2 min-w-0 flex-1">
                             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                             <span>{ocrNotice}</span>
@@ -933,7 +999,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                                 setOcrStage('idle');
                                 setOcrEngineMode('gemini');
                               }}
-                              className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:underline whitespace-nowrap"
+                              className="text-[11px] font-bold text-slate-900 dark:text-[#C8F53B] hover:underline whitespace-nowrap cursor-pointer"
                             >
                               Switch to ✨ Gemini AI →
                             </button>
@@ -942,7 +1008,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       )}
 
                       {showRawText && (
-                        <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644] space-y-2">
+                        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200 dark:border-white/10 space-y-2">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                               Raw Text Read (edit typos &amp; tap Re-parse):
@@ -950,7 +1016,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                             <button
                               type="button"
                               onClick={handleReparseRawText}
-                              className="px-2.5 py-1 rounded-lg bg-[#1B7A43] text-white text-[11px] font-semibold flex items-center gap-1 shrink-0"
+                              className="px-2.5 py-1 rounded-full bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer"
                             >
                               <RefreshCw className="w-3 h-3" /> Re-parse
                             </button>
@@ -960,7 +1026,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                             value={ocrRawText}
                             onChange={(e) => setOcrRawText(e.target.value)}
                             placeholder="1. Ramesh - Gali 4 - 450"
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#1B7A43]"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#12151C] text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
                           />
                         </div>
                       )}
@@ -973,15 +1039,15 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         <button
                           type="button"
                           onClick={() => setOcrData([...ocrData, { name: '', pehchan: '', phone: '', balance: 0 }])}
-                          className="text-xs font-semibold text-[#1B7A43] dark:text-emerald-400 hover:underline flex items-center gap-1"
+                          className="text-xs font-semibold text-slate-800 dark:text-[#C8F53B] hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" /> Add Row
                         </button>
                       </div>
 
-                      {/* Responsive single-DOM row editor: compact 2-line grid on mobile, single row on sm+ */}
-                      <div className="rounded-xl border border-[#E2D9C8] dark:border-[#2A3644] overflow-hidden">
-                        <div className="hidden sm:grid sm:grid-cols-12 gap-2 px-2.5 py-2 bg-slate-50 dark:bg-[#11181F] text-[11px] font-semibold text-slate-600 dark:text-slate-400 border-b border-[#E2D9C8] dark:border-[#2A3644]">
+                      {/* Responsive single-DOM row editor */}
+                      <div className="rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
+                        <div className="hidden sm:grid sm:grid-cols-12 gap-2 px-3 py-2 bg-slate-50 dark:bg-[#181C25] text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-white/10">
                           <div className="col-span-4">Name *</div>
                           <div className="col-span-4">Pehchan</div>
                           <div className="col-span-3 text-right">Balance ₹</div>
@@ -989,13 +1055,13 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         </div>
 
                         {ocrData.length === 0 ? (
-                          <div className="px-3 py-5 text-center text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-[#16202A]">
+                          <div className="px-3 py-5 text-center text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-[#12151C]">
                             No rows matched automatically. Tap <strong>+ Add Row</strong> above or edit <strong>Raw Text</strong>.
                           </div>
                         ) : (
-                          <div className="ocr-rows-list divide-y divide-[#E2D9C8] dark:divide-[#2A3644] bg-white dark:bg-[#16202A]">
+                          <div className="ocr-rows-list divide-y divide-slate-100 dark:divide-white/10 bg-white dark:bg-[#12151C]">
                             {ocrData.map((row, idx) => (
-                              <div key={idx} className="grid grid-cols-12 gap-2 p-2 items-start">
+                              <div key={idx} className="grid grid-cols-12 gap-2 p-2.5 items-start">
                                 <div className="col-span-7 sm:col-span-4 order-1">
                                   <input
                                     value={row.name}
@@ -1005,7 +1071,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                                       copy[idx] = { ...copy[idx], name: e.target.value };
                                       setOcrData(copy);
                                     }}
-                                    className="w-full px-2 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
                                   />
                                 </div>
 
@@ -1018,7 +1084,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                                       copy[idx] = { ...copy[idx], pehchan: e.target.value };
                                       setOcrData(copy);
                                     }}
-                                    className="w-full px-2 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
                                   />
                                   {row.phone && (
                                     <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
@@ -1036,7 +1102,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                                       copy[idx] = { ...copy[idx], balance: Number(e.target.value) || 0 };
                                       setOcrData(copy);
                                     }}
-                                    className="w-full px-2 py-1.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-xs font-semibold text-right focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white text-xs font-bold tabular-nums text-right focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
                                   />
                                 </div>
 
@@ -1044,7 +1110,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                                   <button
                                     type="button"
                                     onClick={() => setOcrData(ocrData.filter((_, i) => i !== idx))}
-                                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                    className="p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                                     title="Remove Row"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -1060,7 +1126,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         <button
                           type="button"
                           onClick={() => setOcrStage('idle')}
-                          className="px-3.5 py-2.5 rounded-xl text-xs font-bold border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-700 dark:text-slate-200 hover:bg-stone-50 dark:hover:bg-[#1E293B]"
+                          className="px-4 py-2.5 rounded-full text-xs font-bold border border-slate-200 dark:border-white/10 bg-white dark:bg-[#181C25] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#222733] transition-colors cursor-pointer"
                         >
                           Scan Another
                         </button>
@@ -1068,7 +1134,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                           type="button"
                           onClick={handleOCRImport}
                           disabled={!ocrData.some((d) => (d.name || '').trim())}
-                          className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex-1 py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-[#111315] flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md active:scale-[0.99] cursor-pointer"
                         >
                           <Check className="w-4 h-4" /> Approve &amp; Import to Ledger
                         </button>
@@ -1098,11 +1164,11 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
           numAmt === v &&
           (wasooliPreset === v || (wasooliPreset === null && !isFullSelected));
         const presetBaseClass =
-          'px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all active:scale-95';
+          'px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all active:scale-95 cursor-pointer';
         const presetInactiveClass =
-          'border-[#E2D9C8] dark:border-[#2A3644] bg-[#FAF6F0] dark:bg-[#11181F] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white';
+          'border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#181C25] text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-white/20';
         const presetActiveClass =
-          'border-[#1B7A43] dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 text-[#1B7A43] dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs';
+          'border-[#111315] dark:border-white/20 bg-[#111315] text-[#C8F53B] dark:bg-[#C8F53B] dark:text-[#111315] shadow-sm';
         const closeWasooli = () => {
           setShowWasooli(null);
           setWasooliPreset(null);
@@ -1111,22 +1177,24 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
         return (
           <Backdrop onClose={closeWasooli}>
             <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                  ₹ Wasooli Darj Karein
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#C8F53B]" /> ₹ Wasooli Darj Karein
                 </h3>
-                <button type="button" onClick={closeWasooli}>
-                  <X className="w-5 h-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" />
+                <button type="button" onClick={closeWasooli} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-stone-100 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644]">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 bg-[#1B7A43]">
-                  {(cust.name || 'G').charAt(0)}
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200/80 dark:border-white/10">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs text-[#111315] bg-[#C8F53B] shrink-0 shadow-sm">
+                  {getInitials(cust.name)}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{cust.name}</p>
-                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">Baaki: {fmt(cust.balance)}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{cust.name}</p>
+                  <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 tabular-nums">
+                    Baki Udhaar: {fmt(cust.balance)}
+                  </p>
                 </div>
               </div>
 
@@ -1135,19 +1203,21 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 <label className="block text-xs font-semibold mb-1.5 text-slate-600 dark:text-slate-400">
                   Wasooli Amount (₹)
                 </label>
-                <input
-                  type="number"
-                  value={wasooliAmt}
-                  onChange={e => {
-                    setWasooliAmt(e.target.value);
-                    setWasooliPreset(null);
-                  }}
-                  placeholder="Enter amount"
-                  className="w-full px-3 py-2.5 rounded-lg border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#11181F] text-slate-900 dark:text-white text-base font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={wasooliAmt}
+                    onChange={e => {
+                      setWasooliAmt(e.target.value);
+                      setWasooliPreset(null);
+                    }}
+                    placeholder="Enter amount"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white text-lg font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-[#C8F53B]"
+                  />
+                </div>
 
                 {/* Quick presets */}
-                <div className="flex gap-2 mt-2 flex-wrap">
+                <div className="flex gap-2 mt-2.5 flex-wrap">
                   {[100, 200, 500].map(v => {
                     const selected = isPresetSelected(v);
                     return (
@@ -1174,7 +1244,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                     }}
                     className={`${presetBaseClass} ${isFullSelected ? presetActiveClass : presetInactiveClass}`}
                   >
-                    Full ₹{cust.balance}
+                    Full {fmt(cust.balance)}
                   </button>
                 </div>
               </div>
@@ -1184,37 +1254,40 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 <label className="block text-xs font-semibold mb-1.5 text-slate-600 dark:text-slate-400">
                   Payment Mode
                 </label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     {
                       key: 'CASH',
-                      label: '💵 Cash',
-                      inactive: 'bg-[#FAF6F0] dark:bg-[#11181F] text-slate-600 dark:text-slate-300 border border-[#E2D9C8] dark:border-[#2A3644] hover:border-slate-300 dark:hover:border-slate-600',
-                      active: 'bg-[#1B7A43] text-white border border-[#1B7A43] shadow-xs ring-2 ring-emerald-500/20',
+                      label: 'Cash (Rokad)',
                     },
                     {
                       key: 'UPI',
-                      label: '📱 UPI',
-                      inactive: 'bg-[#FAF6F0] dark:bg-[#11181F] text-slate-600 dark:text-slate-300 border border-[#E2D9C8] dark:border-[#2A3644] hover:border-slate-300 dark:hover:border-slate-600',
-                      active: 'bg-indigo-600 text-white border border-indigo-600 shadow-xs ring-2 ring-indigo-500/20',
+                      label: 'UPI / Online',
                     },
-                  ].map(m => (
-                    <button
-                      key={m.key}
-                      type="button"
-                      aria-pressed={wasooliMode === m.key}
-                      onClick={() => setWasooliMode(m.key)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all active:scale-[0.99] ${wasooliMode === m.key ? m.active : m.inactive}`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
+                  ].map(m => {
+                    const active = wasooliMode === m.key;
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setWasooliMode(m.key)}
+                        className={`py-2.5 rounded-full text-xs font-bold transition-all active:scale-[0.99] cursor-pointer ${
+                          active
+                            ? 'bg-[#111315] text-[#C8F53B] dark:bg-[#C8F53B] dark:text-[#111315] shadow-sm'
+                            : 'bg-slate-100 dark:bg-[#181C25] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 hover:border-slate-300'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <button onClick={handleWasooli}
                       disabled={!Number(wasooliAmt) || Number(wasooliAmt) <= 0}
-                      className="w-full py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 flex items-center justify-center gap-1.5 bg-[#1B7A43] hover:bg-[#145E33] transition-colors shadow-sm">
+                      className="w-full py-3 rounded-full text-sm font-extrabold text-[#111315] disabled:opacity-40 flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] transition-all shadow-md active:scale-[0.99] cursor-pointer">
                 <Check className="w-4 h-4" /> Confirm Wasooli {wasooliAmt ? fmt(wasooliAmt) : ''}
               </button>
             </div>
@@ -1226,48 +1299,55 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
       {showWhatsApp && (
         <Backdrop onClose={() => setShowWhatsApp(null)}>
           <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
               <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-[#25D366]" />
                 WhatsApp Udhaar Reminder
               </h3>
-              <button onClick={() => setShowWhatsApp(null)}>
-                <X className="w-5 h-5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" />
+              <button onClick={() => setShowWhatsApp(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Customer info */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-stone-100 dark:bg-[#11181F] border border-[#E2D9C8] dark:border-[#2A3644]">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 bg-[#1B7A43]">
-                {(showWhatsApp.name || 'G').charAt(0)}
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200/80 dark:border-white/10">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs text-[#111315] bg-[#C8F53B] shrink-0 shadow-sm">
+                {getInitials(showWhatsApp.name)}
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{showWhatsApp.name}</p>
-                <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">Baaki: {fmt(showWhatsApp.balance)}</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{showWhatsApp.name}</p>
+                <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 tabular-nums">
+                  Baki Udhaar: {fmt(showWhatsApp.balance)}
+                </p>
               </div>
             </div>
 
             {/* Tone pills */}
             <div className="flex gap-1.5">
               {[
-                { key: 'polite',   label: '🙏 Polite (Vinamra)' },
-                { key: 'standard', label: '📋 Standard (Hisab Slip)' },
-                { key: 'urgent',   label: '🔴 Month-End Urgent' },
-              ].map(t => (
-                <button key={t.key}
-                        onClick={() => setWhatsappTone(t.key)}
-                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all border ${whatsappTone === t.key
-                          ? 'bg-[#1B7A43] text-white border-[#1B7A43]'
-                          : 'bg-white dark:bg-[#16202A] text-slate-600 dark:text-slate-400 border-[#E2D9C8] dark:border-[#2A3644]'}`}>
-                  {t.label}
-                </button>
-              ))}
+                { key: 'polite',   label: 'Vinamra (Polite)' },
+                { key: 'standard', label: 'Hisab Slip' },
+                { key: 'urgent',   label: 'Month-End Urgent' },
+              ].map(t => {
+                const active = whatsappTone === t.key;
+                return (
+                  <button key={t.key}
+                          onClick={() => setWhatsappTone(t.key)}
+                          className={`flex-1 py-1.5 rounded-full text-[11px] font-bold transition-all border cursor-pointer ${
+                            active
+                              ? 'bg-[#111315] text-[#C8F53B] dark:bg-[#C8F53B] dark:text-[#111315] border-transparent shadow-sm'
+                              : 'bg-white dark:bg-[#181C25] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:border-slate-300'
+                          }`}>
+                    {t.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Message preview */}
-            <div className="rounded-lg p-3 border border-[#E2D9C8] dark:border-[#2A3644] bg-[#FAFAF8] dark:bg-[#11181F]">
-              <p className="text-xs font-semibold mb-1.5 text-slate-600 dark:text-slate-400">Preview:</p>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed text-slate-900 dark:text-white font-mono text-xs">
+            <div className="rounded-2xl p-3.5 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#181C25]">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Message Preview:</p>
+              <p className="text-xs whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200 font-mono">
                 {getWhatsAppMsg(showWhatsApp, whatsappTone)}
               </p>
             </div>
@@ -1283,12 +1363,12 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
             <div className="flex gap-2">
               <a href={waLink(showWhatsApp.phone, getWhatsAppMsg(showWhatsApp, whatsappTone))}
                  target="_blank" rel="noopener noreferrer"
-                 className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 no-underline bg-[#25D366] hover:bg-[#20ba59] transition-colors">
-                <ExternalLink className="w-4 h-4" /> Send on WhatsApp
+                 className="flex-1 py-2.5 rounded-full text-xs font-bold text-white flex items-center justify-center gap-1.5 no-underline bg-[#25D366] hover:bg-[#20ba59] transition-all shadow-md cursor-pointer">
+                <ExternalLink className="w-3.5 h-3.5" /> Send on WhatsApp
               </a>
               <button onClick={() => copyToClipboard(getWhatsAppMsg(showWhatsApp, whatsappTone))}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-[#E2D9C8] dark:border-[#2A3644] bg-white dark:bg-[#16202A] text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center justify-center gap-1.5">
-                <Copy className="w-4 h-4" /> Copy Reminder
+                      className="flex-1 py-2.5 rounded-full text-xs font-bold border border-slate-200 dark:border-white/10 bg-white dark:bg-[#181C25] text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-[#222733] flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+                <Copy className="w-3.5 h-3.5" /> Copy Reminder
               </button>
             </div>
           </div>
