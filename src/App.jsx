@@ -194,7 +194,7 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════
   if (!currentMerchant) {
     return (
-      <div className={`min-h-screen relative overflow-hidden bg-[#FAF6F0] dark:bg-[#0B1116] bg-ledger-dots flex items-center justify-center p-4 sm:p-6 text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
+      <div className={`w-full min-h-screen relative overflow-hidden bg-[#FAF6F0] dark:bg-[#0B1116] bg-ledger-dots flex items-center justify-center p-4 sm:p-6 text-[#1E242B] dark:text-[#F3F4F6] transition-colors ${isDarkMode ? 'dark' : ''}`}>
         {/* Ambient Blurred Orbs */}
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#1B7A43]/10 dark:bg-[#1B7A43]/15 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-[#E68A00]/10 dark:bg-[#E68A00]/10 blur-3xl pointer-events-none" />
@@ -211,9 +211,9 @@ export default function App() {
         </div>
 
         {/* Responsive Grid */}
-        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10 py-6">
+        <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-12 items-center relative z-10 py-6">
           {/* LEFT COLUMN: Desktop Minimal Brand Showcase */}
-          <div className="hidden lg:flex lg:col-span-6 flex-col gap-6">
+          <div className="hidden md:flex md:col-span-6 flex-col gap-6">
             {/* Trust Eyebrow Pill */}
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1B7A43]/10 text-[#1B7A43] dark:text-emerald-400 text-xs font-semibold w-fit border border-[#1B7A43]/20 dark:border-emerald-800/30">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -222,10 +222,10 @@ export default function App() {
 
             {/* Crisp Headline */}
             <div className="space-y-1">
-              <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+              <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
                 Bol Kar Likhein.
               </h1>
-              <h2 className="text-4xl font-extrabold tracking-tight text-[#1B7A43] dark:text-emerald-400 leading-tight">
+              <h2 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-[#1B7A43] dark:text-emerald-400 leading-tight">
                 Confirm Karein. Trust Karein.
               </h2>
             </div>
@@ -379,10 +379,10 @@ export default function App() {
           </div>
 
           {/* RIGHT COLUMN: Polished Login / Sign Up Card */}
-          <div className="lg:col-span-6 w-full max-w-md mx-auto">
+          <div className="md:col-span-6 w-full max-w-md mx-auto">
             <div className="bg-white/95 dark:bg-[#151F28]/95 backdrop-blur-md border border-[#E6DFD3] dark:border-[#2A3644] rounded-3xl shadow-xl p-6 sm:p-8 animate-fade-up space-y-6">
               {/* Mobile-Only Animated Voice Ticker */}
-              <div className="lg:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1B7A43]/10 dark:bg-emerald-950/40 border border-[#1B7A43]/20 dark:border-emerald-800/40 text-xs text-[#1B7A43] dark:text-emerald-300 w-full justify-center">
+              <div className="md:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1B7A43]/10 dark:bg-emerald-950/40 border border-[#1B7A43]/20 dark:border-emerald-800/40 text-xs text-[#1B7A43] dark:text-emerald-300 w-full justify-center">
                 <div className="flex items-center gap-0.5 h-3 shrink-0">
                   <span className="w-0.5 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
                   <span className="w-0.5 bg-[#1B7A43] dark:bg-emerald-400 rounded-full soundwave-bar" />
