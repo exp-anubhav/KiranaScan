@@ -109,7 +109,7 @@ export default function App() {
   const [authTab, setAuthTab] = useState('login'); // 'login' | 'signup'
   const [loginPhone, setLoginPhone] = useState('');
   const [loginPin, setLoginPin] = useState('');
-  const [authError, setAuthError] = useState('');
+  const [authError, setAuthError] = useState({ field: '', message: '' });
 
   // Sign up state
   const [signupShopName, setSignupShopName] = useState('');
@@ -137,29 +137,81 @@ export default function App() {
 
   const handleLogin = (e) => {
     e?.preventDefault();
-    setAuthError('');
-    const res = store.loginMerchant(loginPhone, loginPin);
+    setAuthError({ field: '', message: '' });
+
+    const cleanPhone = String(loginPhone || '').trim().replace(/\D/g, '');
+    const cleanPin = String(loginPin || '').trim();
+
+    if (cleanPhone.length !== 10) {
+      setAuthError({ field: 'phone', message: 'Enter a valid 10-digit mobile number' });
+      return;
+    }
+
+    if (cleanPin.length !== 4) {
+      setAuthError({ field: 'pin', message: 'Enter all 4 digits of your PIN' });
+      return;
+    }
+
+    const merchants = store.registeredMerchants || [];
+    const phoneExists = merchants.some(m => String(m.phone).replace(/\D/g, '') === cleanPhone);
+
+    if (!phoneExists) {
+      setAuthError({ field: 'phone', message: 'No shop registered on this number. Tap New Shop to create one.' });
+      return;
+    }
+
+    const res = store.loginMerchant(cleanPhone, cleanPin);
     if (!res.success) {
-      setAuthError(res.error);
+      setAuthError({ field: 'pin', message: 'Incorrect PIN. Check your digits or try Instant Demo.' });
     } else {
       setLoginPhone('');
       setLoginPin('');
+      setAuthError({ field: '', message: '' });
     }
   };
 
   const handleSignup = (e) => {
     e?.preventDefault();
-    setAuthError('');
+    setAuthError({ field: '', message: '' });
+
+    const cleanShop = String(signupShopName || '').trim();
+    const cleanOwner = String(signupOwnerName || '').trim();
+    const cleanPhone = String(signupPhone || '').trim().replace(/\D/g, '');
+    const cleanPin = String(signupPin || '').trim();
+
+    if (!cleanShop) {
+      setAuthError({ field: 'shopName', message: 'Enter your shop name' });
+      return;
+    }
+    if (!cleanOwner) {
+      setAuthError({ field: 'ownerName', message: 'Enter the owner name' });
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      setAuthError({ field: 'phone', message: 'Enter a valid 10-digit mobile number' });
+      return;
+    }
+    const merchants = store.registeredMerchants || [];
+    const phoneExists = merchants.some(m => String(m.phone).replace(/\D/g, '') === cleanPhone);
+    if (phoneExists) {
+      setAuthError({ field: 'phone', message: 'A shop is already registered with this number. Please log in.' });
+      return;
+    }
+    if (cleanPin.length !== 4) {
+      setAuthError({ field: 'pin', message: 'Create a 4-digit security PIN' });
+      return;
+    }
+
     const res = store.registerMerchant({
-      shopName: signupShopName,
-      ownerName: signupOwnerName,
-      phone: signupPhone,
-      pin: signupPin,
+      shopName: cleanShop,
+      ownerName: cleanOwner,
+      phone: cleanPhone,
+      pin: cleanPin,
       area: signupArea,
       openingCash: signupOpeningCash
     });
     if (!res.success) {
-      setAuthError(res.error);
+      setAuthError({ field: 'form', message: res.error?.replace(/!/g, '') || 'Unable to register shop. Please try again.' });
     } else {
       setSignupShopName('');
       setSignupOwnerName('');
@@ -167,6 +219,7 @@ export default function App() {
       setSignupPin('');
       setSignupArea('');
       setSignupOpeningCash('1000');
+      setAuthError({ field: '', message: '' });
     }
   };
 

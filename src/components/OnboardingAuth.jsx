@@ -25,7 +25,7 @@ const SLIDES = [
 ];
 
 // ─── Tactile 4-Circle PIN Input (High Contrast Light + Dark) ──
-function PinCircles({ value, onChange, id }) {
+function PinCircles({ value, onChange, id, isError = false }) {
   const digits = value.padEnd(4, ' ').split('').slice(0, 4);
   const refs = [useRef(null), useRef(null), useRef(null), useRef(null)];
 
@@ -68,7 +68,7 @@ function PinCircles({ value, onChange, id }) {
   };
 
   return (
-    <div className="flex items-center justify-center gap-3" id={id}>
+    <div className={`flex items-center justify-center gap-3 ${isError ? 'animate-field-shake' : ''}`} id={id}>
       {digits.map((d, i) => {
         const filled = d.trim() !== '';
         return (
@@ -84,7 +84,9 @@ function PinCircles({ value, onChange, id }) {
             onPaste={handlePaste}
             onFocus={(e) => e.target.select()}
             className={`w-12 h-12 rounded-full text-center text-lg font-bold transition-all outline-none cursor-pointer placeholder:text-slate-400/60 dark:placeholder:text-white/25 ${
-              filled
+              isError
+                ? 'border-rose-500/80 dark:border-rose-400/80 bg-rose-500/[0.06] text-rose-600 dark:text-rose-300 ring-2 ring-rose-500/20'
+                : filled
                 ? 'bg-[#C8F53B]/20 border border-[#111315]/40 dark:border-[#C8F53B]/60 text-[#111315] dark:text-white shadow-sm ring-2 ring-[#C8F53B]/30'
                 : 'bg-slate-100/90 dark:bg-white/[0.06] border border-slate-300/80 dark:border-white/20 text-slate-400'
             } focus:border-[#111315] dark:focus:border-[#C8F53B] focus:ring-4 focus:ring-[#C8F53B]/20 focus:bg-white dark:focus:bg-[#141821]`}
@@ -330,6 +332,16 @@ export default function OnboardingAuth({
     setPhase('onboarding');
   };
 
+  // ─── ERROR HANDLING & INSTANT AUTO-CLEAR ──────────────────
+  const errorField = typeof authError === 'object' && authError !== null ? (authError.field || '') : (authError ? 'form' : '');
+  const errorMessage = typeof authError === 'object' && authError !== null ? (authError.message || '') : (authError || '');
+
+  const clearErrors = () => {
+    if (errorField || errorMessage) {
+      setAuthError({ field: '', message: '' });
+    }
+  };
+
   // ─── THEME TOGGLE BUTTON (no ugly browser tooltip popup) ────
   const themeToggle = (
     <button
@@ -369,7 +381,7 @@ export default function OnboardingAuth({
       <div className="relative z-10 flex p-1 rounded-full bg-slate-100 dark:bg-[#141821] border border-slate-200/70 dark:border-white/10">
         <button
           type="button"
-          onClick={() => { setAuthTab('login'); setAuthError(''); }}
+          onClick={() => { setAuthTab('login'); clearErrors(); }}
           className={`flex-1 py-2 text-xs font-bold rounded-full transition-all flex items-center justify-center cursor-pointer ${
             authTab === 'login'
               ? 'bg-[#C8F53B] text-[#111315] shadow-sm'
@@ -380,7 +392,7 @@ export default function OnboardingAuth({
         </button>
         <button
           type="button"
-          onClick={() => { setAuthTab('signup'); setAuthError(''); }}
+          onClick={() => { setAuthTab('signup'); clearErrors(); }}
           className={`flex-1 py-2 text-xs font-bold rounded-full transition-all flex items-center justify-center cursor-pointer ${
             authTab === 'signup'
               ? 'bg-[#C8F53B] text-[#111315] shadow-sm'
@@ -391,14 +403,6 @@ export default function OnboardingAuth({
         </button>
       </div>
 
-      {/* Error Banner */}
-      {authError && (
-        <div className="relative z-10 p-3 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-300 flex items-center gap-2">
-          <AlertCircle size={15} className="shrink-0 text-red-500" />
-          <span>{authError}</span>
-        </div>
-      )}
-
       {/* ── Login Form ── */}
       {authTab === 'login' && (
         <form onSubmit={handleLogin} className="relative z-10 space-y-4">
@@ -406,7 +410,11 @@ export default function OnboardingAuth({
             <label className="block text-xs font-semibold mb-1.5 text-slate-500 dark:text-slate-400">
               Mobile Number
             </label>
-            <div className="h-12 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all flex items-center px-3.5 relative">
+            <div className={`h-12 rounded-2xl bg-slate-50 dark:bg-[#141821] border transition-all flex items-center px-3.5 relative ${
+              errorField === 'phone'
+                ? 'animate-field-shake border-rose-500 dark:border-rose-400 ring-4 ring-rose-500/10'
+                : 'border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B]'
+            } focus-within:bg-white dark:focus-within:bg-[#141821]`}>
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 mr-2.5 select-none">
                 +91
               </span>
@@ -414,24 +422,55 @@ export default function OnboardingAuth({
                 type="tel"
                 maxLength={10}
                 value={loginPhone}
-                onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => {
+                  clearErrors();
+                  setLoginPhone(e.target.value.replace(/\D/g, ''));
+                }}
                 placeholder="98765 43210"
                 className="w-full bg-transparent text-sm text-[#111315] dark:text-white font-medium outline-none tabular-nums placeholder:text-slate-400"
                 required
               />
               <Phone size={15} className="text-slate-400 dark:text-slate-500 shrink-0 ml-2" />
             </div>
+            {errorField === 'phone' && (
+              <div className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
           </div>
 
           <div>
             <label className="block text-xs font-semibold mb-2 text-slate-500 dark:text-slate-400">
               4-Digit PIN
             </label>
-            <PinCircles value={loginPin} onChange={setLoginPin} id="login-pin" />
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2 text-center">
-              Demo: 9876543210 / PIN: 1234
-            </p>
+            <PinCircles
+              value={loginPin}
+              onChange={(val) => {
+                clearErrors();
+                setLoginPin(val);
+              }}
+              id="login-pin"
+              isError={errorField === 'pin'}
+            />
+            {errorField === 'pin' ? (
+              <div className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1.5 mt-2 text-center">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            ) : (
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2 text-center">
+                Demo: 9876543210 / PIN: 1234
+              </p>
+            )}
           </div>
+
+          {errorField === 'form' && (
+            <div className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1.5 text-center">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           {/* Primary CTA: Jet Ink Black */}
           <button
@@ -450,16 +489,29 @@ export default function OnboardingAuth({
             <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
               Shop Name *
             </label>
-            <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all px-3.5 flex items-center">
+            <div className={`h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border transition-all px-3.5 flex items-center ${
+              errorField === 'shopName'
+                ? 'animate-field-shake border-rose-500 dark:border-rose-400 ring-4 ring-rose-500/10'
+                : 'border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B]'
+            } focus-within:bg-white dark:focus-within:bg-[#141821]`}>
               <input
                 type="text"
                 value={signupShopName}
-                onChange={(e) => setSignupShopName(e.target.value)}
+                onChange={(e) => {
+                  clearErrors();
+                  setSignupShopName(e.target.value);
+                }}
                 placeholder="Sharma Grocery Store"
                 className="w-full bg-transparent text-sm text-[#111315] dark:text-white outline-none placeholder:text-slate-400"
                 required
               />
             </div>
+            {errorField === 'shopName' && (
+              <div className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -467,16 +519,29 @@ export default function OnboardingAuth({
               <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
                 Owner Name *
               </label>
-              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all px-3.5 flex items-center">
+              <div className={`h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border transition-all px-3.5 flex items-center ${
+                errorField === 'ownerName'
+                  ? 'animate-field-shake border-rose-500 dark:border-rose-400 ring-4 ring-rose-500/10'
+                  : 'border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B]'
+              } focus-within:bg-white dark:focus-within:bg-[#141821]`}>
                 <input
                   type="text"
                   value={signupOwnerName}
-                  onChange={(e) => setSignupOwnerName(e.target.value)}
+                  onChange={(e) => {
+                    clearErrors();
+                    setSignupOwnerName(e.target.value);
+                  }}
                   placeholder="Ramesh Sharma"
                   className="w-full bg-transparent text-sm text-[#111315] dark:text-white outline-none placeholder:text-slate-400"
                   required
                 />
               </div>
+              {errorField === 'ownerName' && (
+                <div className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
@@ -486,7 +551,10 @@ export default function OnboardingAuth({
                 <input
                   type="text"
                   value={signupArea}
-                  onChange={(e) => setSignupArea(e.target.value)}
+                  onChange={(e) => {
+                    clearErrors();
+                    setSignupArea(e.target.value);
+                  }}
                   placeholder="Jaipur"
                   className="w-full bg-transparent text-sm text-[#111315] dark:text-white outline-none placeholder:text-slate-400"
                 />
@@ -499,18 +567,31 @@ export default function OnboardingAuth({
               <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
                 Mobile *
               </label>
-              <div className="h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B] focus-within:bg-white dark:focus-within:bg-[#141821] transition-all px-3 flex items-center">
+              <div className={`h-11 rounded-2xl bg-slate-50 dark:bg-[#141821] border transition-all px-3 flex items-center ${
+                errorField === 'phone'
+                  ? 'animate-field-shake border-rose-500 dark:border-rose-400 ring-4 ring-rose-500/10'
+                  : 'border-slate-200 dark:border-white/12 focus-within:border-[#111315] dark:focus-within:border-[#C8F53B]'
+              } focus-within:bg-white dark:focus-within:bg-[#141821]`}>
                 <span className="text-[11px] font-bold text-slate-400 mr-1.5 select-none">+91</span>
                 <input
                   type="tel"
                   maxLength={10}
                   value={signupPhone}
-                  onChange={(e) => setSignupPhone(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => {
+                    clearErrors();
+                    setSignupPhone(e.target.value.replace(/\D/g, ''));
+                  }}
                   placeholder="9811122233"
                   className="w-full bg-transparent text-sm text-[#111315] dark:text-white outline-none tabular-nums placeholder:text-slate-400"
                   required
                 />
               </div>
+              {errorField === 'phone' && (
+                <div className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">
@@ -521,7 +602,10 @@ export default function OnboardingAuth({
                 <input
                   type="number"
                   value={signupOpeningCash}
-                  onChange={(e) => setSignupOpeningCash(e.target.value)}
+                  onChange={(e) => {
+                    clearErrors();
+                    setSignupOpeningCash(e.target.value);
+                  }}
                   placeholder="1000"
                   className="w-full bg-transparent text-sm text-[#111315] dark:text-white font-semibold outline-none tabular-nums placeholder:text-slate-400"
                 />
@@ -533,8 +617,29 @@ export default function OnboardingAuth({
             <label className="block text-xs font-semibold mb-2 text-slate-500 dark:text-slate-400">
               4-Digit PIN *
             </label>
-            <PinCircles value={signupPin} onChange={setSignupPin} id="signup-pin" />
+            <PinCircles
+              value={signupPin}
+              onChange={(val) => {
+                clearErrors();
+                setSignupPin(val);
+              }}
+              id="signup-pin"
+              isError={errorField === 'pin'}
+            />
+            {errorField === 'pin' && (
+              <div className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1.5 mt-2 text-center">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
           </div>
+
+          {errorField === 'form' && (
+            <div className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1.5 text-center">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           <button
             type="submit"
