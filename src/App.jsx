@@ -16,8 +16,12 @@ import {
 import './index.css';
 
 const TAB_ORDER = ['voice', 'ledger', 'hisab', 'catalogue'];
-const TAB_ICONS = [Mic, BookOpen, BarChart3, StoreIcon];
-const TAB_SHORT_LABELS = ['Bol Kar', 'Khata', 'Hisab', 'Bhaav'];
+const TABS = [
+  { id: 'voice', shortLabel: 'Bol Kar', icon: Mic },
+  { id: 'ledger', shortLabel: 'Khata', icon: BookOpen },
+  { id: 'hisab', shortLabel: 'Hisab', icon: BarChart3 },
+  { id: 'catalogue', shortLabel: 'Bhaav', icon: StoreIcon },
+];
 
 function getShopMonogram(name) {
   if (!name) return 'KS';
@@ -44,10 +48,8 @@ function detectMobileDevice() {
 
 export default function App() {
   const store = useStore();
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState('voice');
   const [tabDirection, setTabDirection] = useState('right');
-  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
-  const tabButtonRefs = useRef([]);
   const [isOnline, setIsOnline] = useState(true);
   const [soundboxEnabled, setSoundboxEnabled] = useState(true);
   const [lang, setLang] = useState('hinglish');
@@ -56,37 +58,18 @@ export default function App() {
 
   // Tab switching with directional enter transitions
   const handleTabChange = (nextTab) => {
-    const nextIdx = typeof nextTab === 'number' ? nextTab : TAB_ORDER.indexOf(nextTab);
-    const prevIdx = typeof activeTab === 'number' ? activeTab : TAB_ORDER.indexOf(activeTab);
-    if (nextIdx === prevIdx || nextIdx === -1) return;
+    const nextId = typeof nextTab === 'number' ? TAB_ORDER[nextTab] : nextTab;
+    const prevId = typeof activeTab === 'number' ? TAB_ORDER[activeTab] : activeTab;
+    if (nextId === prevId) return;
+    const nextIdx = TAB_ORDER.indexOf(nextId);
+    const prevIdx = TAB_ORDER.indexOf(prevId);
+    if (nextIdx === -1) return;
     setTabDirection(nextIdx > prevIdx ? 'right' : 'left');
-    setActiveTab(nextIdx);
+    setActiveTab(nextId);
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
   };
-
-  // Measure active button's position for gliding Volt-Lime pill
-  useLayoutEffect(() => {
-    const measureActiveTab = () => {
-      const activeEl = tabButtonRefs.current[activeTab];
-      if (activeEl) {
-        setIndicator({
-          left: activeEl.offsetLeft,
-          width: activeEl.offsetWidth,
-        });
-      }
-    };
-    measureActiveTab();
-    const rafId = requestAnimationFrame(measureActiveTab);
-    window.addEventListener('resize', measureActiveTab);
-    window.addEventListener('orientationchange', measureActiveTab);
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', measureActiveTab);
-      window.removeEventListener('orientationchange', measureActiveTab);
-    };
-  }, [activeTab, isMobileFrame]);
 
   // Auto-detect device & adapt layout automatically unless user manually toggled on desktop
   useEffect(() => {
@@ -378,11 +361,20 @@ export default function App() {
   // ══════════════════════════════════════════════════════════════
   const renderTabContent = () => {
     switch (activeTab) {
-      case 0: return <VoiceTab store={store} isOnline={isOnline} soundboxEnabled={soundboxEnabled} lang={lang} labels={labels} isMobileFrame={isMobileFrame} />;
-      case 1: return <LedgerTab store={store} isOnline={isOnline} lang={lang} labels={labels} />;
-      case 2: return <DailyHisabTab store={store} lang={lang} labels={labels} />;
-      case 3: return <CatalogueTab store={store} isOnline={isOnline} lang={lang} labels={labels} />;
-      default: return null;
+      case 'voice':
+      case 0:
+        return <VoiceTab store={store} isOnline={isOnline} soundboxEnabled={soundboxEnabled} lang={lang} labels={labels} isMobileFrame={isMobileFrame} />;
+      case 'ledger':
+      case 1:
+        return <LedgerTab store={store} isOnline={isOnline} lang={lang} labels={labels} />;
+      case 'hisab':
+      case 2:
+        return <DailyHisabTab store={store} lang={lang} labels={labels} />;
+      case 'catalogue':
+      case 3:
+        return <CatalogueTab store={store} isOnline={isOnline} lang={lang} labels={labels} />;
+      default:
+        return <VoiceTab store={store} isOnline={isOnline} soundboxEnabled={soundboxEnabled} lang={lang} labels={labels} isMobileFrame={isMobileFrame} />;
     }
   };
 
@@ -586,47 +578,6 @@ export default function App() {
           {renderTabContent()}
         </div>
       </main>
-
-      {/* Floating Glassmorphic Pill Bottom Dock */}
-      <nav
-        aria-label="Bottom Navigation"
-        className="fixed bottom-3.5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-[404px] rounded-full bg-[#111315]/95 dark:bg-[#161A22]/95 backdrop-blur-2xl border border-white/12 shadow-[0_16px_40px_rgba(0,0,0,0.28)] p-1.5 relative grid grid-cols-4 items-center"
-      >
-        {/* Physically Gliding Volt-Lime Pill */}
-        <div
-          aria-hidden="true"
-          className="absolute top-1.5 bottom-1.5 rounded-full bg-[#C8F53B] shadow-[0_4px_16px_rgba(200,245,59,0.28)] pointer-events-none z-0"
-          style={{
-            transform: `translate3d(${indicator.left}px, 0, 0)`,
-            width: `${indicator.width}px`,
-            opacity: indicator.width > 0 ? 1 : 0,
-            transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1), width 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms ease',
-          }}
-        />
-
-        {TAB_ICONS.map((Icon, i) => {
-          const isActive = i === activeTab;
-          return (
-            <button
-              key={TAB_ORDER[i] || i}
-              ref={(el) => {
-                tabButtonRefs.current[i] = el;
-              }}
-              type="button"
-              onClick={() => handleTabChange(i)}
-              aria-current={isActive ? 'page' : undefined}
-              className={`relative z-10 flex items-center justify-center gap-1.5 py-2.5 px-1 sm:px-2 rounded-full text-xs transition-colors duration-200 active:scale-95 cursor-pointer ${
-                isActive
-                  ? 'text-[#111315] font-bold'
-                  : 'text-slate-400 hover:text-white font-medium'
-              }`}
-            >
-              <Icon size={16} strokeWidth={isActive ? 2.4 : 2} className="shrink-0 transition-transform" />
-              <span className="whitespace-nowrap text-xs">{TAB_SHORT_LABELS[i]}</span>
-            </button>
-          );
-        })}
-      </nav>
     </div>
   );
 
@@ -641,6 +592,45 @@ export default function App() {
       ) : (
         appContent
       )}
+
+      {/* OUTER LAYER: Permanently pinned to the bottom of the browser viewport */}
+      <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center px-3 pointer-events-none">
+        <nav
+          aria-label="Primary Navigation"
+          className="pointer-events-auto w-full max-w-[404px] rounded-full bg-[#111315]/95 dark:bg-[#161A22]/95 backdrop-blur-2xl border border-white/12 shadow-[0_16px_40px_rgba(0,0,0,0.45)] p-1.5"
+        >
+          {/* INNER LAYER: `relative` grid track so the Volt-Lime pill glides smoothly without breaking `fixed` */}
+          <div className="relative grid grid-cols-4 items-center w-full">
+            <div
+              aria-hidden="true"
+              className="absolute inset-y-0 left-0 w-1/4 rounded-full bg-[#C8F53B] shadow-[0_4px_16px_rgba(200,245,59,0.28)] pointer-events-none z-0"
+              style={{
+                transform: `translate3d(${Math.max(0, TAB_ORDER.indexOf(activeTab)) * 100}%, 0, 0)`,
+                transition: 'transform 340ms cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
+            />
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`relative z-10 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-full text-xs transition-colors duration-200 active:scale-95 cursor-pointer ${
+                    isActive
+                      ? 'text-[#111315] font-bold'
+                      : 'text-slate-400 hover:text-white font-medium'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{tab.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }
