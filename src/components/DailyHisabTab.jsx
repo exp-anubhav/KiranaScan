@@ -71,20 +71,21 @@ export default function DailyHisabTab({ store, lang, labels }) {
   const sessionCollectionDelta = sessionStats?.collectionsReceivedDelta ?? 0;
   const sessionOutstandingDelta = sessionStats?.outstandingDelta ?? 0;
 
-  // Galla reconciliation
-  const shortGallaAmount = Math.max(0, expectedGalla - 250);
+  // Galla reconciliation: Expected Drawer Cash = Opening Drawer + Today's Cash Sales + Cash Wasooli
+  const expectedDrawerCash = expectedGalla || ((openingGalla || 0) + (cashSales || 0) + (collectionsReceived || 0));
+  const shortGallaAmount = Math.max(0, expectedDrawerCash - 250);
   const gallaActualVal = gallaActual != null ? Number(gallaActual) : null;
-  const gallaDiff = gallaActualVal != null ? gallaActualVal - expectedGalla : null;
+  const gallaDiff = gallaActualVal != null ? gallaActualVal - expectedDrawerCash : null;
   const effectiveGallaInput = gallaInput.trim() !== '' ? Number(gallaInput) : gallaActualVal;
   const hasGallaValue = effectiveGallaInput != null && !isNaN(effectiveGallaInput) && (gallaSubmitted || gallaInput.trim() !== '');
   const isExactSelected =
     hasGallaValue &&
-    effectiveGallaInput === expectedGalla &&
+    effectiveGallaInput === expectedDrawerCash &&
     (gallaPresetChoice === 'exact' || gallaPresetChoice === null);
   const isShortSelected =
     hasGallaValue &&
     effectiveGallaInput === shortGallaAmount &&
-    (gallaPresetChoice === 'short' || (gallaPresetChoice === null && expectedGalla > 0));
+    (gallaPresetChoice === 'short' || (gallaPresetChoice === null && expectedDrawerCash > 0));
 
   const handleGallaSubmit = (amount, presetChoice = null) => {
     const val = Number(amount);
@@ -323,7 +324,7 @@ export default function DailyHisabTab({ store, lang, labels }) {
             <div className="flex justify-between items-center pt-2.5 mt-1 border-t border-slate-200 dark:border-white/10 font-bold text-sm text-[#111315] dark:text-white tabular-nums">
               <span>{lang === 'hi' ? 'Expected गल्ला (हिसाब से)' : 'Expected Drawer Cash'}</span>
               <span className="text-base text-[#111315] dark:text-[#C8F53B] font-extrabold">
-                {fmt(expectedGalla)}
+                {fmt(expectedDrawerCash)}
               </span>
             </div>
           </div>
@@ -375,10 +376,10 @@ export default function DailyHisabTab({ store, lang, labels }) {
                   ? 'bg-[#111315] text-[#C8F53B] dark:bg-[#C8F53B] dark:text-[#111315] border-transparent shadow-xs'
                   : 'bg-slate-50 dark:bg-[#181C25] border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-slate-300'
               }`}
-              onClick={() => handleGallaSubmit(expectedGalla, 'exact')}
+              onClick={() => handleGallaSubmit(expectedDrawerCash, 'exact')}
             >
               <CheckCircle2 size={13} className="shrink-0" />
-              <span>Exact Match ({fmt(expectedGalla)})</span>
+              <span>Exact Match ({fmt(expectedDrawerCash)})</span>
             </button>
             <button
               type="button"

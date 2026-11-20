@@ -157,14 +157,19 @@ function parseBillTextToDraft(rawText, catalogue = [], customers = []) {
   if (lines.length === 0) return null;
 
   const fullParsed = parseHinglishTransaction(cleanedRaw, catalogue, customers);
-  let mode = fullParsed.needsModeConfirmation ? 'CASH' : fullParsed.mode;
+  let mode = fullParsed.mode;
   let customer = fullParsed.customer;
 
-  // Also check explicit mode/customer keywords on first header line
-  const firstLineLower = hindiToHinglish(lines[0]).toLowerCase();
-  if (/\b(?:upi|gpay|phonepe|paytm)\b/.test(firstLineLower)) mode = 'UPI';
-  else if (/\b(?:udhaar|udhar|khata|baaki)\b/.test(firstLineLower)) mode = 'UDHAAR';
-  else if (/\b(?:cash|nagad|nakad)\b/.test(firstLineLower)) mode = 'CASH';
+  // Check explicit mode keywords across cleanedRaw (gives UPI/Udhaar top priority)
+  if (/\b(?:upi|gpay|g-pay|phonepe|phone-pe|phone pe|paytm|online|qr|scanner|bhim|google pay)\b/i.test(cleanedRaw)) {
+    mode = 'UPI';
+  } else if (/\b(?:udhaar|udhar|khata|baaki)\b/i.test(cleanedRaw)) {
+    mode = 'UDHAAR';
+  } else if (/\b(?:cash|nagad|nakad)\b/i.test(cleanedRaw)) {
+    mode = 'CASH';
+  } else if (fullParsed.needsModeConfirmation) {
+    mode = 'CASH';
+  }
 
   const items = [];
   for (const rawLine of lines) {
@@ -1846,7 +1851,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                 {canConfirm ? (
                   <>
                     <Check size={16} strokeWidth={2.6} />
-                    <span>{labels?.confirm || 'Confirm Karein (Ledger Mein Save)'}</span>
+                    <span>{(labels?.confirm || 'Confirm Karein (Ledger Mein Save)').replace(/^[✓\s]+/, '')}</span>
                   </>
                 ) : !hasMissingPrices && requiresNamedCustomer && !draft.customer && !draft.isNewCustomer ? (
                   <>
@@ -1861,7 +1866,7 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
                 ) : (
                   <>
                     <AlertTriangle className="w-4 h-4 text-amber-500" />
-                    <span>{labels?.pendingConfirm || 'Select Missing Price Above to Confirm'}</span>
+                    <span>{(labels?.pendingConfirm || 'Select Missing Price Above to Confirm').replace(/^[⚠️\s]+/, '')}</span>
                   </>
                 )}
               </button>

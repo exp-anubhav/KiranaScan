@@ -38,39 +38,58 @@ class RootErrorBoundary extends Component {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '24px',
-          background: '#FAF6F0',
-          color: '#1E242B',
-          fontFamily: 'system-ui, sans-serif',
+          background: '#090B0F',
+          color: '#FFFFFF',
+          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
         }}>
           <div style={{
             maxWidth: '380px',
             width: '100%',
-            background: '#FFFFFF',
-            borderRadius: '16px',
-            padding: '24px',
-            border: '1px solid #E2D9C8',
+            background: '#12151C',
+            borderRadius: '24px',
+            padding: '28px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
             textAlign: 'center',
           }}>
-            <h2 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 700 }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: 'rgba(200, 245, 59, 0.12)',
+              border: '1px solid rgba(200, 245, 59, 0.25)',
+              color: '#C8F53B',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+              fontWeight: 800,
+              fontSize: '18px'
+            }}>
+              ⚡
+            </div>
+            <h2 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
               KiranaScan Update Needed
             </h2>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#4B5563' }}>
+            <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#94A3B8', lineHeight: 1.5 }}>
               {this.state.message}
             </p>
             <button
               onClick={this.handleRecover}
               style={{
                 width: '100%',
-                padding: '10px 16px',
-                borderRadius: '12px',
+                padding: '12px 18px',
+                borderRadius: '9999px',
                 border: 'none',
-                background: '#1B7A43',
-                color: '#FFFFFF',
-                fontWeight: 700,
+                background: '#C8F53B',
+                color: '#111315',
+                fontWeight: 800,
+                fontSize: '13px',
                 cursor: 'pointer',
+                transition: 'opacity 0.2s',
               }}
             >
-              Refresh & Load Latest App
+              Refresh &amp; Load Latest App
             </button>
           </div>
         </div>

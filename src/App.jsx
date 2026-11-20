@@ -476,7 +476,7 @@ export default function App() {
       </header>
 
       {/* Tab Content */}
-      <main className={`flex-1 flex flex-col min-h-0 pb-28 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-2.5 sm:p-3' : 'max-w-5xl w-full mx-auto p-6 pb-28'}`}>
+      <main className={`flex-1 flex flex-col min-h-0 pb-32 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-2.5 sm:p-3' : 'max-w-5xl w-full mx-auto p-6 pb-32'}`}>
         {renderTabContent()}
       </main>
 

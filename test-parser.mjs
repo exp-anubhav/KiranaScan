@@ -219,6 +219,27 @@ const checks = [
       assert.equal(r.total, 130);
     },
   },
+  {
+    name: 'Explicit UPI se diya parses as UPI without falling back to cash',
+    input: 'Sunita ji ko dhai kilo chini aur aadha liter sarson tel UPI se diya',
+    verify: (r) => {
+      assert.equal(r.type, 'SALE');
+      assert.equal(r.mode, 'UPI');
+      assert.equal(r.needsModeConfirmation, false);
+      assert.equal(r.customer?.name, 'Sunita Devi');
+      assert.equal(r.total, 190);
+    },
+  },
+  {
+    name: 'PhonePe and G-Pay keywords reliably detect UPI',
+    input: 'Mohan ko 2 packet bread phonepe se diya',
+    verify: (r) => {
+      assert.equal(r.type, 'SALE');
+      assert.equal(r.mode, 'UPI');
+      assert.equal(r.needsModeConfirmation, false);
+      assert.equal(r.total, 80);
+    },
+  },
 ];
 
 for (const tc of checks) {

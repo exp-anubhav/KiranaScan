@@ -306,7 +306,7 @@ function MobileSlideVoice() {
           ))}
         </div>
         <p className="text-[11px] font-semibold text-white/95 truncate flex-1">
-          “Raju ne 5kg aata, 2 biscuit liya”
+          “Raju ne 5kg aata, 2 biscuit, 5 Maggi”
         </p>
       </div>
 
@@ -458,20 +458,36 @@ export default function OnboardingAuth({
 }) {
   const [slide, setSlide] = useState(0);
   const [phase, setPhase] = useState('onboarding'); // 'onboarding' | 'auth'
+  const [userInteractedMobile, setUserInteractedMobile] = useState(false);
 
-  // Auto-advance showcase slides every 4.5s
+  // Auto-advance showcase slides:
+  // On mobile (<768px): advance 0 -> 1 -> 2 and STOP permanently at slide 2 without looping.
+  // Stop timer completely if user touched/swiped or tapped pagination.
+  // On desktop (>=768px): loop indefinitely.
   useEffect(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile && (userInteractedMobile || slide >= 2)) {
+      return;
+    }
     const timer = setInterval(() => {
-      setSlide((prev) => (prev + 1) % 3);
+      setSlide((prev) => {
+        const isMob = typeof window !== 'undefined' && window.innerWidth < 768;
+        if (isMob) {
+          if (prev >= 2) return 2;
+          return prev + 1;
+        }
+        return (prev + 1) % 3;
+      });
     }, 4500);
     return () => clearInterval(timer);
-  }, []);
+  }, [userInteractedMobile, slide]);
 
   const goToAuth = () => {
     setPhase('auth');
   };
 
   const replayTour = () => {
+    setUserInteractedMobile(false);
     setSlide(0);
     setPhase('onboarding');
   };
@@ -490,6 +506,7 @@ export default function OnboardingAuth({
     const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
     const diffY = e.changedTouches[0].clientY - touchStartYRef.current;
     if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY)) {
+      setUserInteractedMobile(true);
       if (diffX < 0) {
         setSlide((prev) => (prev < 2 ? prev + 1 : prev));
       } else {
@@ -1083,7 +1100,10 @@ export default function OnboardingAuth({
               <button
                 key={i}
                 type="button"
-                onClick={() => setSlide(i)}
+                onClick={() => {
+                  setUserInteractedMobile(true);
+                  setSlide(i);
+                }}
                 aria-label={`Slide ${i + 1}`}
                 className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                   slide === i
@@ -1098,7 +1118,10 @@ export default function OnboardingAuth({
           {slide < 2 ? (
             <button
               type="button"
-              onClick={() => setSlide((s) => s + 1)}
+              onClick={() => {
+                setUserInteractedMobile(true);
+                setSlide((s) => s + 1);
+              }}
               className="w-full h-12 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer bg-[#111315] dark:bg-white text-white dark:text-[#111315]"
             >
               <span>Next</span>

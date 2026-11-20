@@ -582,6 +582,7 @@ export function useStore() {
   const pendingSyncCount = (shopState.syncQueue || []).filter(q => q.syncStatus === 'QUEUED_OFFLINE').length;
 
   const expectedGalla = (shopState.dailyHisab?.openingGalla || 0) + (shopState.dailyHisab?.cashSales || 0) +
+    (shopState.dailyHisab?.collectionsReceived || 0) +
     (shopState.syncQueue || []).filter(q => q.type === 'WASOOLI' && q.mode === 'CASH').reduce((s, q) => s + q.total, 0);
 
   const avgEntrySpeed = shopState.sessionStats?.totalParsed > 0

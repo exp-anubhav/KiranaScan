@@ -49,7 +49,9 @@ const PRICE_MARKERS = ['wala', 'wali', 'wale', 'ka', 'ke', 'ki', 'rupaye', 'rupa
 
 const UDHAAR_WORDS = ['udhaar', 'udhar', 'udhari', 'khate', 'khata', 'baaki', 'baki', 'credit'];
 const CASH_WORDS = ['cash', 'nagad', 'naqad', 'nakad'];
-const UPI_WORDS = ['upi', 'online', 'gpay', 'phonepe', 'paytm', 'bhim', 'google pay'];
+const UPI_WORDS = ['upi', 'online', 'gpay', 'g-pay', 'phonepe', 'phone-pe', 'phone pe', 'paytm', 'bhim', 'google pay', 'qr', 'scanner', 'scan'];
+const UPI_REGEX = /\b(upi|gpay|g-pay|phonepe|phone-pe|phone pe|paytm|online|qr|scanner|bhim|google pay)\b/i;
+const UDHAAR_REGEX = /\b(udhaar|udhar|udhari|khate|khata|baaki|baki|credit)\b/i;
 
 const STRONG_WASOOLI_WORDS = ['wasooli', 'wasuli', 'vasooli', 'vasuli', 'jama', 'bharpai', 'chukaya', 'chuka'];
 const STRONG_WASOOLI_PHRASES = [
@@ -484,20 +486,30 @@ function detectPaymentMode(tokens, { allowWasooli = false } = {}) {
   if (allowWasooli) {
     return { mode: 'WASOOLI', needsModeConfirmation: false };
   }
-  for (const w of CASH_WORDS) {
-    if (tokenSet.has(w)) return { mode: 'CASH', needsModeConfirmation: false };
+  const joined = ` ${tokens.join(' ')} `;
+  // 1. Explicit UPI takes top precedence
+  if (UPI_REGEX.test(joined)) {
+    return { mode: 'UPI', needsModeConfirmation: false };
   }
   for (const w of UPI_WORDS) {
     if (w.includes(' ')) {
-      if (` ${tokens.join(' ')} `.includes(` ${w} `)) {
+      if (joined.includes(` ${w} `)) {
         return { mode: 'UPI', needsModeConfirmation: false };
       }
     } else if (tokenSet.has(w)) {
       return { mode: 'UPI', needsModeConfirmation: false };
     }
   }
+  // 2. Explicit Udhaar takes precedence over cash
+  if (UDHAAR_REGEX.test(joined)) {
+    return { mode: 'UDHAAR', needsModeConfirmation: false };
+  }
   for (const w of UDHAAR_WORDS) {
     if (tokenSet.has(w)) return { mode: 'UDHAAR', needsModeConfirmation: false };
+  }
+  // 3. Explicit Cash
+  for (const w of CASH_WORDS) {
+    if (tokenSet.has(w)) return { mode: 'CASH', needsModeConfirmation: false };
   }
   return { mode: 'CASH', needsModeConfirmation: true };
 }

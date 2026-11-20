@@ -3,7 +3,8 @@ import {
   Search, Plus, Camera, User, Phone, MapPin,
   ChevronRight, ChevronDown, Clock, Hash,
   ArrowDownCircle, MessageCircle, Trash2, RefreshCw, Sparkles, FileText,
-  ExternalLink, X, Check, Edit3, Eye, Copy, Upload, AlertCircle
+  ExternalLink, X, Check, Edit3, Eye, Copy, Upload, AlertCircle,
+  Mic, Info, AlertTriangle, ShieldCheck
 } from 'lucide-react';
 import {
   scanBahiKhataImage,
@@ -366,7 +367,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
               className="bg-[#C8F53B] hover:bg-[#b8e62b] text-[#111315] rounded-full px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ Naya Grahak</span>
+              <span>Naya Grahak</span>
             </button>
           </div>
         </div>
@@ -643,7 +644,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
             <button onClick={handleSaveCustomer}
                     disabled={!newName.trim()}
-                    className="w-full py-2.5 rounded-full text-sm font-extrabold text-[#111315] disabled:opacity-40 flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] transition-all shadow-md active:scale-[0.99] cursor-pointer">
+                    className="w-full py-2.5 rounded-full text-sm font-extrabold text-[#111315] disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-white/[0.08] dark:disabled:text-slate-500 disabled:border disabled:border-slate-300/60 dark:disabled:border-white/10 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] transition-all shadow-md active:scale-[0.99] cursor-pointer">
               <Check className="w-4 h-4" /> Save Grahak
             </button>
           </div>
@@ -755,7 +756,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         onClick={handleLoadSamplePhoto}
                         className="w-full py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                       >
-                        No photo handy? Load a Sample Notebook Photo →
+                        <span className="whitespace-nowrap">No photo? Load Sample Notebook →</span>
                       </button>
                     </div>
                   )}
@@ -767,7 +768,10 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       onClick={() => setShowHowItWorks((v) => !v)}
                       className="w-full flex items-center justify-between font-semibold text-slate-700 dark:text-slate-300"
                     >
-                      <span>ℹ️ How KiranaScan reads your page</span>
+                      <span className="flex items-center gap-1.5">
+                        <Info className="w-4 h-4 text-sky-400 shrink-0" />
+                        <span>How KiranaScan reads your page</span>
+                      </span>
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showHowItWorks ? 'rotate-180' : ''}`} />
                     </button>
                     {showHowItWorks && (
@@ -868,7 +872,8 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                         hasSavedKey && !editingGeminiKey ? (
                           <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                             <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300">
-                              ✨ Gemini Vision AI Active
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Gemini Vision AI Active</span>
                             </span>
                             {!hasBuiltInGeminiKey() && (
                               <button
@@ -1134,7 +1139,7 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                           type="button"
                           onClick={handleOCRImport}
                           disabled={!ocrData.some((d) => (d.name || '').trim())}
-                          className="flex-1 py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-[#111315] flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md active:scale-[0.99] cursor-pointer"
+                          className="flex-1 py-2.5 rounded-full text-xs sm:text-sm font-extrabold text-[#111315] flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-white/[0.08] dark:disabled:text-slate-500 disabled:border disabled:border-slate-300/60 dark:disabled:border-white/10 disabled:cursor-not-allowed disabled:shadow-none transition-all shadow-md active:scale-[0.99] cursor-pointer"
                         >
                           <Check className="w-4 h-4" /> Approve &amp; Import to Ledger
                         </button>
