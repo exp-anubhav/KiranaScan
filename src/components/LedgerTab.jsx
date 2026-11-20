@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search, Plus, Camera, User, Phone, MapPin,
   ChevronRight, ChevronDown, Clock, Hash,
@@ -14,14 +15,93 @@ import {
   hasBuiltInGeminiKey,
 } from '../utils/bahiKhataOcr.js';
 
-function Backdrop({ children, onClose, sizeClass = 'max-w-lg' }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-md" onClick={onClose}>
-      <div className={`w-full ${sizeClass} max-h-[92vh] overflow-y-auto bg-white dark:bg-[#12151C] text-slate-900 dark:text-white rounded-[1.75rem] shadow-2xl border border-slate-200/90 dark:border-white/10`}
-           onClick={e => e.stopPropagation()}>
-        {children}
+function Backdrop({
+  children,
+  onClose,
+  sizeClass = 'sm:max-w-lg',
+  title,
+  subtitle,
+  badge,
+  icon: Icon,
+  headerRight,
+  closeDisabled = false,
+  bodyClassName = 'px-5 py-4 space-y-4'
+}) {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+      onClick={() => { if (!closeDisabled && onClose) onClose(); }}
+    >
+      <div
+        className={`w-full ${sizeClass} max-h-[90dvh] rounded-t-[1.75rem] sm:rounded-[1.75rem] bg-white dark:bg-[#12151C] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden fade-in`}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Pinned Modal Header (shrink-0) */}
+        <div className="shrink-0 px-5 pt-3.5 pb-3.5 border-b border-slate-200/80 dark:border-white/[0.08]">
+          {/* Mobile drag handle */}
+          <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20 mx-auto mb-3" />
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {Icon && (
+                <span className="w-8 h-8 rounded-xl bg-[#C8F53B]/15 text-[#111315] dark:text-[#C8F53B] flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-[#111315] dark:text-[#C8F53B]" />
+                </span>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                    {title}
+                  </h3>
+                  {badge && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 shrink-0">
+                      {badge}
+                    </span>
+                  )}
+                </div>
+                {subtitle && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {headerRight}
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={closeDisabled}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+                  title="Close"
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Independently Scrollable Body */}
+        <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] ${bodyClassName}`}>
+          {children}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -596,16 +676,12 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
 
       {/* ── New Customer Modal ── */}
       {showNewCust && (
-        <Backdrop onClose={() => setShowNewCust(false)}>
-          <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-[#111315] dark:text-[#C8F53B]" /> Naya Grahak Jodein
-              </h3>
-              <button onClick={() => setShowNewCust(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <Backdrop
+          title="Naya Grahak Jodein"
+          subtitle="Customer name, pehchan landmark & opening balance"
+          icon={Plus}
+          onClose={() => setShowNewCust(false)}
+        >
 
             <div className="space-y-3">
               <div>
@@ -647,7 +723,6 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                     className="w-full py-2.5 rounded-full text-sm font-extrabold text-[#111315] disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-white/[0.08] dark:disabled:text-slate-500 disabled:border disabled:border-slate-300/60 dark:disabled:border-white/10 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] transition-all shadow-md active:scale-[0.99] cursor-pointer">
               <Check className="w-4 h-4" /> Save Grahak
             </button>
-          </div>
         </Backdrop>
       )}
 
@@ -656,31 +731,17 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
         const hasSavedKey = Boolean(getActiveGeminiKey() || geminiKeyDraft.trim());
         const showPhotoPanelInReview = showPhotoZoom;
         return (
-          <Backdrop onClose={resetOcrModal} sizeClass="max-w-lg md:max-w-3xl">
-            <div className="p-4 sm:p-5 space-y-4">
-              {/* Modal Header */}
-              <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200 dark:border-white/10">
-                <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-[#111315] dark:text-[#C8F53B] shrink-0" />
-                    Bahi-Khata Photo OCR
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    1. Upload photo → 2. Read text → 3. Review rows &amp; import
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={resetOcrModal}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                  title="Close OCR"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Responsive 2-column workspace on web/tablet (md+), clean vertical flow on mobile */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          <Backdrop
+            onClose={resetOcrModal}
+            closeDisabled={ocrStage === 'scanning'}
+            title="Bahi-Khata Photo OCR"
+            subtitle="1. Upload photo → 2. Read text → 3. Review rows & import"
+            icon={Camera}
+            sizeClass="sm:max-w-2xl md:max-w-4xl"
+            bodyClassName="px-5 py-4 space-y-4"
+          >
+            {/* Responsive 2-column workspace on web/tablet (md+), clean vertical flow on mobile */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
 
                 {/* ── LEFT COLUMN: Photo Dropzone / Preview + How It Works ── */}
                 <div className={`md:col-span-5 space-y-2.5 ${ocrStage === 'review' && !showPhotoPanelInReview ? 'hidden md:block' : 'block'}`}>
@@ -1148,7 +1209,6 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                   )}
                 </div>
               </div>
-            </div>
           </Backdrop>
         );
       })()}
@@ -1180,17 +1240,14 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
         };
 
         return (
-          <Backdrop onClose={closeWasooli}>
-            <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
-                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#C8F53B]" /> ₹ Wasooli Darj Karein
-                </h3>
-                <button type="button" onClick={closeWasooli} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
+          <Backdrop
+            onClose={closeWasooli}
+            title="₹ Wasooli Darj Karein"
+            subtitle={`Customer: ${cust.name} · Baki Udhaar: ${fmt(cust.balance)}`}
+            icon={ArrowDownCircle}
+            sizeClass="sm:max-w-lg"
+            bodyClassName="px-5 py-4 space-y-4"
+          >
               <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200/80 dark:border-white/10">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs text-[#111315] bg-[#C8F53B] shrink-0 shadow-sm">
                   {getInitials(cust.name)}
@@ -1295,25 +1352,20 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                       className="w-full py-3 rounded-full text-sm font-extrabold text-[#111315] disabled:opacity-40 flex items-center justify-center gap-1.5 bg-[#C8F53B] hover:bg-[#b8e62b] transition-all shadow-md active:scale-[0.99] cursor-pointer">
                 <Check className="w-4 h-4" /> Confirm Wasooli {wasooliAmt ? fmt(wasooliAmt) : ''}
               </button>
-            </div>
           </Backdrop>
         );
       })()}
 
       {/* ── WhatsApp Reminder Modal ── */}
       {showWhatsApp && (
-        <Backdrop onClose={() => setShowWhatsApp(null)}>
-          <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-[#25D366]" />
-                WhatsApp Udhaar Reminder
-              </h3>
-              <button onClick={() => setShowWhatsApp(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
+        <Backdrop
+          onClose={() => setShowWhatsApp(null)}
+          title="WhatsApp Udhaar Reminder"
+          subtitle={`Reminder to ${showWhatsApp.name} · ${fmt(showWhatsApp.balance)}`}
+          icon={MessageCircle}
+          sizeClass="sm:max-w-lg"
+          bodyClassName="px-5 py-4 space-y-4"
+        >
             {/* Customer info */}
             <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-[#181C25] border border-slate-200/80 dark:border-white/10">
               <div className="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs text-[#111315] bg-[#C8F53B] shrink-0 shadow-sm">
@@ -1376,7 +1428,6 @@ export default function LedgerTab({ store, isOnline, lang, labels }) {
                 <Copy className="w-3.5 h-3.5" /> Copy Reminder
               </button>
             </div>
-          </div>
         </Backdrop>
       )}
     </div>

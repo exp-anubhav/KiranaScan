@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search, Plus, Edit3, Save, Trash2, Package, RefreshCw, Shield,
   Download, Database, Key, Globe, X, Check, ChevronDown, ChevronRight,
@@ -38,6 +39,17 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
     const envKey = import.meta.env?.VITE_GEMINI_API_KEY?.trim() || '';
     return active && active !== envKey ? active : '';
   });
+
+  // Body scroll lock for modals
+  useEffect(() => {
+    if (showResetConfirm || showDeleteConfirm) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [showResetConfirm, showDeleteConfirm]);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [geminiSaved, setGeminiSaved] = useState(() => {
     const active = getActiveGeminiKey();
@@ -854,72 +866,131 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
       </section>
 
       {/* ===== RESET CONFIRMATION MODAL ===== */}
-      {showResetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4">
-          <div className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200 dark:border-white/10 p-6 max-w-sm w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Restore Default Sample Data?</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              This will restore default sample customers, catalogue items, and hisab entries. Your current data will be reset.
-            </p>
-            <div className="flex gap-2 justify-end pt-2">
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 rounded-full text-[#111315] text-xs font-extrabold bg-[#C8F53B] hover:bg-[#b8e62b] shadow-sm cursor-pointer"
-              >
-                Yes, Reset
-              </button>
+      {showResetConfirm && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+          onClick={() => setShowResetConfirm(false)}
+        >
+          <div
+            className="w-full sm:max-w-sm max-h-[90dvh] rounded-t-[1.75rem] sm:rounded-[1.75rem] bg-white dark:bg-[#12151C] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden fade-in"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Pinned Modal Header */}
+            <div className="shrink-0 px-5 pt-3.5 pb-3.5 border-b border-slate-200/80 dark:border-white/[0.08]">
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20 mx-auto mb-3" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <RefreshCw className="w-4 h-4" />
+                  </span>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Restore Sample Data?
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirm(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                This will restore default sample customers, catalogue items, and hisab entries. Your current data will be reset.
+              </p>
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-2 rounded-full text-[#111315] text-xs font-extrabold bg-[#C8F53B] hover:bg-[#b8e62b] shadow-sm cursor-pointer"
+                >
+                  Yes, Reset
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ===== DELETE CONFIRMATION MODAL ===== */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4">
-          <div className="bg-white dark:bg-[#12151C] rounded-3xl border border-rose-500/50 p-6 max-w-sm w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-2 text-rose-600">
-              <Trash2 size={20} />
-              <h3 className="text-base font-bold">Delete All Data?</h3>
+      {showDeleteConfirm && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+          onClick={() => { setShowDeleteConfirm(false); setDeleteText(''); }}
+        >
+          <div
+            className="w-full sm:max-w-sm max-h-[90dvh] rounded-t-[1.75rem] sm:rounded-[1.75rem] bg-white dark:bg-[#12151C] text-slate-900 dark:text-white border border-rose-500/40 shadow-2xl flex flex-col overflow-hidden fade-in"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Pinned Modal Header */}
+            <div className="shrink-0 px-5 pt-3.5 pb-3.5 border-b border-slate-200/80 dark:border-white/[0.08]">
+              <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20 mx-auto mb-3" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                  <span className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <Trash2 size={16} />
+                  </span>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Delete All Data?
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteText(''); }}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              This will <strong>permanently delete</strong> all your shop data including customers, transactions, and catalogue.
-              This action cannot be undone.
-            </p>
-            <div>
-              <p className="text-xs font-medium mb-1.5 text-slate-900 dark:text-white">
-                Type <span className="font-mono font-bold text-rose-600">DELETE</span> to confirm:
+
+            {/* Scrollable Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                This will <strong className="text-rose-600 dark:text-rose-400">permanently delete</strong> all your shop data including customers, transactions, and catalogue.
+                This action cannot be undone.
               </p>
-              <input
-                type="text"
-                value={deleteText}
-                onChange={e => setDeleteText(e.target.value)}
-                placeholder="DELETE"
-                className="w-full px-3 py-2 text-sm font-mono border-2 border-rose-300 dark:border-rose-900/60 rounded-xl focus:outline-none bg-slate-50 dark:bg-[#181C25] text-rose-600 font-bold"
-              />
-            </div>
-            <div className="flex gap-2 justify-end pt-2">
-              <button
-                onClick={() => { setShowDeleteConfirm(false); setDeleteText(''); }}
-                className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAll}
-                disabled={deleteText !== 'DELETE'}
-                className="px-4 py-2 rounded-full text-white text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-30 shadow-sm cursor-pointer"
-              >
-                Delete Everything
-              </button>
+              <div>
+                <p className="text-xs font-medium mb-1.5 text-slate-900 dark:text-white">
+                  Type <span className="font-mono font-bold text-rose-600 dark:text-rose-400">DELETE</span> to confirm:
+                </p>
+                <input
+                  type="text"
+                  value={deleteText}
+                  onChange={e => setDeleteText(e.target.value)}
+                  placeholder="DELETE"
+                  className="w-full px-3.5 py-2.5 text-sm font-mono border border-rose-300 dark:border-rose-900/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 bg-slate-50 dark:bg-[#181C25] text-rose-600 dark:text-rose-400 font-bold"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteText(''); }}
+                  className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAll}
+                  disabled={deleteText !== 'DELETE'}
+                  className="px-4 py-2 rounded-full text-white text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-30 shadow-sm cursor-pointer"
+                >
+                  Delete Everything
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

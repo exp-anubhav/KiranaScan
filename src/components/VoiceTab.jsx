@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { parseHinglishTransaction } from '../utils/hinglishParser.js';
 import { hindiToHinglish } from '../utils/devanagariTransliterator.js';
 import { prepareLedgerImageForOcr, compressImageForGemini, callGeminiWithFallback, getActiveGeminiKey } from '../utils/bahiKhataOcr.js';
@@ -8,6 +9,96 @@ import {
   AlertTriangle, AlertCircle, MessageCircle, Copy, Undo2, User, Phone, Zap,
   Camera, Upload, Sparkles, ArrowRight, ShieldCheck, MapPin, Receipt, Lock
 } from 'lucide-react';
+
+function ModalSheet({
+  onClose,
+  title,
+  subtitle,
+  badge,
+  icon: Icon,
+  headerRight,
+  children,
+  maxWidth = 'sm:max-w-lg',
+  closeDisabled = false,
+  bodyClassName = 'px-5 py-4 space-y-4',
+}) {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
+      onClick={() => { if (!closeDisabled && onClose) onClose(); }}
+    >
+      <div
+        className={`w-full ${maxWidth} max-h-[90dvh] rounded-t-[1.75rem] sm:rounded-[1.75rem] bg-white dark:bg-[#12151C] text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden fade-in`}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Pinned Modal Header (shrink-0) */}
+        <div className="shrink-0 px-5 pt-3.5 pb-3.5 border-b border-slate-200/80 dark:border-white/[0.08]">
+          {/* Mobile drag handle */}
+          <div className="sm:hidden w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20 mx-auto mb-3" />
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {Icon && (
+                <span className="w-8 h-8 rounded-xl bg-[#C8F53B]/15 text-[#111315] dark:text-[#C8F53B] flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-[#111315] dark:text-[#C8F53B]" />
+                </span>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-sm sm:text-base text-[#111315] dark:text-white truncate">
+                    {title}
+                  </h3>
+                  {badge && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 shrink-0">
+                      {badge}
+                    </span>
+                  )}
+                </div>
+                {subtitle && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {headerRight}
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={closeDisabled}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/[0.08] flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+                  title="Close"
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Independently Scrollable Body */}
+        <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] ${bodyClassName}`}>
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 function getInitials(name) {
   if (!name) return 'C';
@@ -1910,411 +2001,341 @@ export default function VoiceTab({ store, isOnline, soundboxEnabled, lang, label
 
       {/* ── 5. WHATSAPP RECEIPT MODAL ─────────────────── */}
       {showReceipt && confirmedTxn && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4" onClick={() => { setShowReceipt(false); resetAll(); }}>
-          <div className="bg-white dark:bg-[#12151C] text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-white/10 rounded-[1.75rem] p-5 sm:p-6 shadow-2xl w-full max-w-sm overflow-hidden fade-in space-y-4" onClick={e => e.stopPropagation()}>
-            {/* Receipt header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
-              <span className="text-sm font-bold text-[#111315] dark:text-[#C8F53B] flex items-center gap-1.5 uppercase tracking-wide text-xs">
-                <Receipt className="w-4 h-4 text-[#111315] dark:text-[#C8F53B]" />
-                <span>Receipt / Raseed</span>
-              </span>
-              <button onClick={() => { setShowReceipt(false); resetAll(); }} className="text-slate-400 hover:text-slate-800 dark:hover:text-white p-1 rounded-full cursor-pointer">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="text-center space-y-0.5">
-              <p className="text-base font-extrabold text-[#111315] dark:text-white">{shopName}</p>
-              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
-                {new Date(confirmedTxn.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })} · {confirmedTxn.txnId}
-              </p>
-            </div>
-
-            <div className="border-t border-dashed border-slate-200 dark:border-white/10" />
-
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 dark:text-slate-400">Grahak:</span>
-              <span className="text-sm font-bold text-[#111315] dark:text-white">
-                {confirmedTxn.draft.customer?.name || 'Walk-in Customer'}
-              </span>
-            </div>
-
-            {/* Items */}
-            {confirmedTxn.draft.items.length > 0 ? (
-              <div className="space-y-1.5 py-1 text-xs">
-                {confirmedTxn.draft.items.map((it, i) => (
-                  <div key={i} className="flex justify-between items-center text-slate-700 dark:text-slate-300">
-                    <span className="truncate pr-2">{it.name} ({it.qty} {it.unit} × {fmt(it.unitPrice)})</span>
-                    <span className="font-bold text-[#111315] dark:text-white tabular-nums shrink-0">{fmt(it.total)}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 py-1">
-                Wasooli (Jama) — {fmt(confirmedTxn.draft.total)}
-              </p>
-            )}
-
-            <div className="border-t border-dashed border-slate-200 dark:border-white/10" />
-
-            <div className="flex justify-between text-sm font-extrabold text-[#111315] dark:text-white tabular-nums">
-              <span>Total ({confirmedTxn.draft.mode})</span>
-              <span>{fmt(confirmedTxn.draft.total)}</span>
-            </div>
-
-            {confirmedTxn.oldBal !== undefined && (
-              <div className="bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl p-3 text-slate-800 dark:text-slate-200 space-y-1 text-xs tabular-nums">
-                <div className="flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Old Balance</span>
-                  <span className="font-medium">{fmt(confirmedTxn.oldBal)}</span>
-                </div>
-                <div className="flex justify-between font-bold text-sm text-[#111315] dark:text-white border-t border-slate-200 dark:border-white/10 pt-1">
-                  <span>New Balance</span>
-                  <span className="text-emerald-600 dark:text-[#C8F53B]">{fmt(confirmedTxn.newBal)}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Buttons */}
-            <div className="flex gap-2 pt-1">
-              <a
-                href={`https://wa.me/91${confirmedTxn.draft.customer?.phone || ''}?text=${encodeURIComponent(
-                  buildReceiptText(shopName, confirmedTxn.txnId, confirmedTxn.timestamp, confirmedTxn.draft.items, confirmedTxn.draft.total, confirmedTxn.oldBal, confirmedTxn.newBal, confirmedTxn.draft.customer, confirmedTxn.draft.mode)
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 h-11 rounded-full bg-[#25D366] hover:bg-[#1EBE5B] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98 cursor-pointer"
-              >
-                <MessageCircle size={16} />
-                <span>{labels?.sendWhatsApp || 'WhatsApp'}</span>
-              </a>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    buildReceiptText(shopName, confirmedTxn.txnId, confirmedTxn.timestamp, confirmedTxn.draft.items, confirmedTxn.draft.total, confirmedTxn.oldBal, confirmedTxn.newBal, confirmedTxn.draft.customer, confirmedTxn.draft.mode)
-                  );
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="h-11 px-4 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.14] text-slate-800 dark:text-slate-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                {copied ? <><Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Copied!</> : <><Copy size={14} /> Copy</>}
-              </button>
-            </div>
+        <ModalSheet
+          onClose={() => { setShowReceipt(false); resetAll(); }}
+          title="Receipt / Raseed"
+          subtitle="WhatsApp hisab slip & payment summary"
+          icon={Receipt}
+          maxWidth="sm:max-w-md"
+          bodyClassName="px-5 py-4 space-y-4"
+        >
+          <div className="text-center space-y-0.5">
+            <p className="text-base font-extrabold text-[#111315] dark:text-white">{shopName}</p>
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
+              {new Date(confirmedTxn.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })} · {confirmedTxn.txnId}
+            </p>
           </div>
-        </div>
+
+          <div className="border-t border-dashed border-slate-200 dark:border-white/10" />
+
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-500 dark:text-slate-400">Grahak:</span>
+            <span className="text-sm font-bold text-[#111315] dark:text-white">
+              {confirmedTxn.draft.customer?.name || 'Walk-in Customer'}
+            </span>
+          </div>
+
+          {/* Items */}
+          {confirmedTxn.draft.items.length > 0 ? (
+            <div className="space-y-1.5 py-1 text-xs">
+              {confirmedTxn.draft.items.map((it, i) => (
+                <div key={i} className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                  <span className="truncate pr-2">{it.name} ({it.qty} {it.unit} × {fmt(it.unitPrice)})</span>
+                  <span className="font-bold text-[#111315] dark:text-white tabular-nums shrink-0">{fmt(it.total)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 py-1">
+              Wasooli (Jama) — {fmt(confirmedTxn.draft.total)}
+            </p>
+          )}
+
+          <div className="border-t border-dashed border-slate-200 dark:border-white/10" />
+
+          <div className="flex justify-between text-sm font-extrabold text-[#111315] dark:text-white tabular-nums">
+            <span>Total ({confirmedTxn.draft.mode})</span>
+            <span>{fmt(confirmedTxn.draft.total)}</span>
+          </div>
+
+          {confirmedTxn.oldBal !== undefined && (
+            <div className="bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl p-3 text-slate-800 dark:text-slate-200 space-y-1 text-xs tabular-nums">
+              <div className="flex justify-between">
+                <span className="text-slate-500 dark:text-slate-400">Old Balance</span>
+                <span className="font-medium">{fmt(confirmedTxn.oldBal)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-sm text-[#111315] dark:text-white border-t border-slate-200 dark:border-white/10 pt-1">
+                <span>New Balance</span>
+                <span className="text-emerald-600 dark:text-[#C8F53B]">{fmt(confirmedTxn.newBal)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex gap-2 pt-1">
+            <a
+              href={`https://wa.me/91${confirmedTxn.draft.customer?.phone || ''}?text=${encodeURIComponent(
+                buildReceiptText(shopName, confirmedTxn.txnId, confirmedTxn.timestamp, confirmedTxn.draft.items, confirmedTxn.draft.total, confirmedTxn.oldBal, confirmedTxn.newBal, confirmedTxn.draft.customer, confirmedTxn.draft.mode)
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 h-11 rounded-full bg-[#25D366] hover:bg-[#1EBE5B] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98 cursor-pointer"
+            >
+              <MessageCircle size={16} />
+              <span>{labels?.sendWhatsApp || 'WhatsApp'}</span>
+            </a>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  buildReceiptText(shopName, confirmedTxn.txnId, confirmedTxn.timestamp, confirmedTxn.draft.items, confirmedTxn.draft.total, confirmedTxn.oldBal, confirmedTxn.newBal, confirmedTxn.draft.customer, confirmedTxn.draft.mode)
+                );
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="h-11 px-4 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.14] text-slate-800 dark:text-slate-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              {copied ? <><Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Copied!</> : <><Copy size={14} /> Copy</>}
+            </button>
+          </div>
+        </ModalSheet>
       )}
 
       {/* ── 6. HANDWRITTEN BILL / PARCHI SCANNER MODAL ─── */}
       {showBillModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
-          onClick={() => { if (!isScanningBill) closeBillModal(); }}
+        <ModalSheet
+          onClose={closeBillModal}
+          closeDisabled={isScanningBill}
+          title="Scan Handwritten Bill / Parchi"
+          subtitle="Customer name, items, qty & prices seedha Approval Card mein load karein"
+          icon={Camera}
+          headerRight={
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+              savedGeminiKey
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                : 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
+            }`}>
+              <Sparkles className="w-3 h-3 text-emerald-500 shrink-0" />
+              <span className="hidden sm:inline">{savedGeminiKey ? 'Gemini Vision AI Active' : 'Built-in Bill OCR'}</span>
+              <span className="sm:hidden">{savedGeminiKey ? 'Gemini AI' : 'OCR'}</span>
+            </span>
+          }
+          maxWidth="sm:max-w-xl md:max-w-2xl"
+          bodyClassName="px-5 py-4 space-y-6"
         >
-          <div
-            className="bg-white dark:bg-[#12151C] text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-white/10 rounded-[1.75rem] shadow-2xl w-full max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="sticky top-0 z-10 bg-white/95 dark:bg-[#12151C]/95 backdrop-blur-md px-5 py-4 border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-base text-[#111315] dark:text-white flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-[#111315] dark:text-[#C8F53B] shrink-0" />
-                  <span>Scan Handwritten Bill / Parchi</span>
-                </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Customer name, items, qty &amp; prices seedha Approval Card mein load karein
-                </p>
+          {/* Active Scanning Progress Bar */}
+          {isScanningBill && (
+            <div className="rounded-2xl p-4 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                <span>Extracting handwriting: Customer, Items, Qty &amp; Prices...</span>
+                <span className="tabular-nums">{billScanProgress}%</span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full border ${
-                  savedGeminiKey
-                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-                    : 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
-                }`}>
-                  <Sparkles className="w-3 h-3 text-emerald-500" />
-                  <span>{savedGeminiKey ? 'Gemini Vision AI Active' : 'Built-in Bill OCR'}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={closeBillModal}
-                  disabled={isScanningBill}
-                  className="p-1.5 rounded-full text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
-                  title="Close"
-                >
-                  <X size={18} />
-                </button>
+              <div className="w-full h-2 rounded-full bg-emerald-100 dark:bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-[#111315] dark:bg-[#C8F53B] transition-all duration-200"
+                  style={{ width: `${Math.max(12, billScanProgress)}%` }}
+                />
               </div>
             </div>
+          )}
 
-            <div className="p-4 sm:p-6 space-y-6">
-              {/* Active Scanning Progress Bar */}
-              {isScanningBill && (
-                <div className="rounded-2xl p-4 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                    <span>Extracting handwriting: Customer, Items, Qty &amp; Prices...</span>
-                    <span className="tabular-nums">{billScanProgress}%</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-emerald-100 dark:bg-white/10 overflow-hidden">
-                    <div
-                      className="h-full bg-[#111315] dark:bg-[#C8F53B] transition-all duration-200"
-                      style={{ width: `${Math.max(12, billScanProgress)}%` }}
-                    />
-                  </div>
+          {/* ── SECTION A: Upload Custom Bill Photo ── */}
+          <div className="space-y-2.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Section A · Upload Custom Bill Photo
+            </p>
+
+            {billPreviewUrl ? (
+              <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] overflow-hidden">
+                <div className="relative bg-slate-100 dark:bg-[#090B0F]">
+                  <img
+                    src={billPreviewUrl}
+                    alt="Uploaded bill preview"
+                    className="w-full max-h-56 object-contain mx-auto block"
+                  />
+                  {isScanningBill && billScanTarget === 'photo' && <div className="parchi-scan-laser" />}
                 </div>
-              )}
-
-              {/* ── SECTION A: Upload Custom Bill Photo ── */}
-              <div className="space-y-2.5">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Section A · Upload Custom Bill Photo
-                </p>
-
-                {billPreviewUrl ? (
-                  <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] overflow-hidden">
-                    <div className="relative bg-slate-100 dark:bg-[#090B0F]">
-                      <img
-                        src={billPreviewUrl}
-                        alt="Uploaded bill preview"
-                        className="w-full max-h-56 object-contain mx-auto block"
-                      />
-                      {isScanningBill && billScanTarget === 'photo' && <div className="parchi-scan-laser" />}
-                    </div>
-                    <div className="p-3.5 bg-white dark:bg-[#12151C] border-t border-slate-200 dark:border-white/10 space-y-3">
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="truncate font-medium text-slate-700 dark:text-slate-300">
-                          {billFile?.name || 'Custom bill photo'}
-                        </span>
-                        {!isScanningBill && (
-                          <div className="flex items-center gap-3 shrink-0">
-                            <label className="text-[#111315] dark:text-[#C8F53B] font-semibold hover:underline cursor-pointer">
-                              Change
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const picked = e.target.files?.[0];
-                                  if (picked) handleSelectBillFile(picked);
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setBillFile(null);
-                                setBillPreviewUrl('');
-                              }}
-                              className="text-slate-400 hover:text-rose-500 font-semibold cursor-pointer"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={scanUploadedBillPhoto}
-                        disabled={isScanningBill}
-                        className="w-full h-11 rounded-full bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] font-bold text-sm shadow-md disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <Sparkles size={16} />
-                        <span>Scan &amp; Convert to Draft</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <label
-                    onDragOver={(e) => { e.preventDefault(); setIsDraggingBill(true); }}
-                    onDragLeave={() => setIsDraggingBill(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setIsDraggingBill(false);
-                      const dropped = e.dataTransfer?.files?.[0];
-                      if (dropped && dropped.type.startsWith('image/')) {
-                        handleSelectBillFile(dropped);
-                      }
-                    }}
-                    className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors block ${
-                      isDraggingBill
-                        ? 'border-[#C8F53B] bg-[#C8F53B]/5'
-                        : 'border-slate-300 dark:border-white/15 hover:border-slate-500 dark:hover:border-white/30 bg-slate-50/60 dark:bg-white/[0.02]'
-                    }`}
-                  >
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400 dark:text-slate-500" />
-                    <p className="text-sm font-bold text-[#111315] dark:text-white">
-                      Drop bill photo here or tap to choose from Gallery / Camera
-                    </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                      Supports Hinglish &amp; Hindi handwritten parchi · JPG, PNG, WEBP
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const picked = e.target.files?.[0];
-                        if (picked) handleSelectBillFile(picked);
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-
-              {/* ── SECTION B: 3 Realistic Handwritten Parchi Previews ── */}
-              <div className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Section B · Tap Any Sample Handwritten Parchi to Test
-                </p>
-
-                <div className="grid grid-cols-1 gap-3">
-                  {SAMPLE_HANDWRITTEN_BILLS.map((sample) => {
-                    const isThisScanning = isScanningBill && billScanTarget === sample.id;
-                    return (
-                      <div
-                        key={sample.id}
-                        className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] p-4 space-y-3"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-xs sm:text-sm font-bold text-[#111315] dark:text-white">
-                            {sample.title}
-                          </h4>
-                          <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-white/10 shrink-0">
-                            {sample.badge}
-                          </span>
-                        </div>
-
-                        {/* Lined notebook paper card */}
-                        <div
-                          className="relative bg-[#FFFDF5] text-slate-800 border border-amber-300/80 font-mono text-xs p-3.5 rounded-xl shadow-inner pl-8 overflow-hidden"
-                          style={{
-                            backgroundImage: 'repeating-linear-gradient(transparent, transparent 21px, rgba(147, 197, 253, 0.35) 21px, rgba(147, 197, 253, 0.35) 22px)',
-                          }}
-                        >
-                          {/* Notebook left red margin line */}
-                          <span
-                            aria-hidden="true"
-                            className="absolute left-6 top-0 bottom-0 w-px bg-rose-300/80"
+                <div className="p-3.5 bg-white dark:bg-[#12151C] border-t border-slate-200 dark:border-white/10 space-y-3">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate font-medium text-slate-700 dark:text-slate-300">
+                      {billFile?.name || 'Custom bill photo'}
+                    </span>
+                    {!isScanningBill && (
+                      <div className="flex items-center gap-3 shrink-0">
+                        <label className="text-[#111315] dark:text-[#C8F53B] font-semibold hover:underline cursor-pointer">
+                          Change
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const picked = e.target.files?.[0];
+                              if (picked) handleSelectBillFile(picked);
+                              e.target.value = '';
+                            }}
                           />
-                          {isThisScanning && <div className="parchi-scan-laser" />}
-                          <div
-                            className="space-y-1 italic leading-5"
-                            style={{ fontFamily: "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', ui-monospace, monospace" }}
-                          >
-                            {sample.lines.map((line, li) => (
-                              <p
-                                key={li}
-                                className={li === 0 ? 'font-bold text-slate-900 underline decoration-amber-400/70' : 'text-slate-800'}
-                              >
-                                {line}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-
+                        </label>
                         <button
                           type="button"
-                          onClick={() => scanSampleBill(sample)}
-                          disabled={isScanningBill}
-                          className="w-full h-10 rounded-full bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] text-xs font-bold shadow-sm disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          onClick={() => {
+                            setBillFile(null);
+                            setBillPreviewUrl('');
+                          }}
+                          className="text-slate-400 hover:text-rose-500 font-semibold cursor-pointer"
                         >
-                          <Sparkles size={14} />
-                          <span>Scan &amp; Convert to Draft</span>
+                          Remove
                         </button>
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={scanUploadedBillPhoto}
+                    disabled={isScanningBill}
+                    className="w-full h-11 rounded-full bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] font-bold text-sm shadow-md disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={16} />
+                    <span>Scan &amp; Convert to Draft</span>
+                  </button>
                 </div>
               </div>
+            ) : (
+              <label
+                onDragOver={(e) => { e.preventDefault(); setIsDraggingBill(true); }}
+                onDragLeave={() => setIsDraggingBill(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDraggingBill(false);
+                  const dropped = e.dataTransfer?.files?.[0];
+                  if (dropped && dropped.type.startsWith('image/')) {
+                    handleSelectBillFile(dropped);
+                  }
+                }}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors block ${
+                  isDraggingBill
+                    ? 'border-[#C8F53B] bg-[#C8F53B]/5'
+                    : 'border-slate-300 dark:border-white/15 hover:border-slate-500 dark:hover:border-white/30 bg-slate-50/60 dark:bg-white/[0.02]'
+                }`}
+              >
+                <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400 dark:text-slate-500" />
+                <p className="text-sm font-bold text-[#111315] dark:text-white">
+                  Drop bill photo here or tap to choose from Gallery / Camera
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  Supports Hinglish &amp; Hindi handwritten parchi · JPG, PNG, WEBP
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const picked = e.target.files?.[0];
+                    if (picked) handleSelectBillFile(picked);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
+          {/* ── SECTION B: 3 Realistic Handwritten Parchi Previews ── */}
+          <div className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Section B · Tap Any Sample Handwritten Parchi to Test
+            </p>
+
+            <div className="grid grid-cols-1 gap-3">
+              {SAMPLE_HANDWRITTEN_BILLS.map((sample) => {
+                const isThisScanning = isScanningBill && billScanTarget === sample.id;
+                return (
+                  <div
+                    key={sample.id}
+                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-[#111315] dark:text-white">
+                        {sample.title}
+                      </h4>
+                      <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-white/10 shrink-0">
+                        {sample.badge}
+                      </span>
+                    </div>
+
+                    {/* Lined notebook paper card */}
+                    <div
+                      className="relative bg-[#FFFDF5] text-slate-800 border border-amber-300/80 font-mono text-xs p-3.5 rounded-xl shadow-inner pl-8 overflow-hidden"
+                      style={{
+                        backgroundImage: 'repeating-linear-gradient(transparent, transparent 21px, rgba(147, 197, 253, 0.35) 21px, rgba(147, 197, 253, 0.35) 22px)',
+                      }}
+                    >
+                      {/* Notebook left red margin line */}
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-6 top-0 bottom-0 w-px bg-rose-300/80"
+                      />
+                      {isThisScanning && <div className="parchi-scan-laser" />}
+                      <div
+                        className="space-y-1 italic leading-5"
+                        style={{ fontFamily: "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', ui-monospace, monospace" }}
+                      >
+                        {sample.lines.map((line, li) => (
+                          <p
+                            key={li}
+                            className={li === 0 ? 'font-bold text-slate-900 underline decoration-amber-400/70' : 'text-slate-800'}
+                          >
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => scanSampleBill(sample)}
+                      disabled={isScanningBill}
+                      className="w-full h-10 rounded-full bg-[#111315] dark:bg-[#C8F53B] text-[#C8F53B] dark:text-[#111315] text-xs font-bold shadow-sm disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles size={14} />
+                      <span>Scan &amp; Convert to Draft</span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
+        </ModalSheet>
       )}
 
       {/* ── 7. VOICE TEST CASES SHEET / MODAL ───────────── */}
       {showChips && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={() => setShowChips(false)}
+        <ModalSheet
+          onClose={() => setShowChips(false)}
+          title="Quick Test Presets"
+          badge={`${DEMO_CHIPS.length} Cases`}
+          subtitle="Tap any preset scenario below to load into Draft"
+          icon={Zap}
+          maxWidth="sm:max-w-lg"
+          bodyClassName="px-5 py-4 space-y-2.5"
         >
-          <div
-            className="bg-white dark:bg-[#12151C] text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-white/10 rounded-t-[2rem] sm:rounded-[1.75rem] shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Mobile drag handle */}
-            <div className="sm:hidden pt-3 pb-1 flex justify-center shrink-0">
-              <span className="w-10 h-1 rounded-full bg-slate-300 dark:bg-white/20" />
-            </div>
-
-            {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-8 h-8 rounded-xl bg-[#C8F53B]/15 text-[#111315] dark:text-[#C8F53B] flex items-center justify-center shrink-0">
-                  <Zap className="w-4 h-4" />
+          {DEMO_CHIPS.map((chip, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                setShowChips(false);
+                onChipClick(chip);
+              }}
+              className="w-full text-left p-3.5 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02] hover:bg-[#C8F53B]/5 hover:border-[#111315] dark:hover:border-[#C8F53B] transition-all group active:scale-[0.99] flex items-center justify-between gap-3 cursor-pointer"
+            >
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/[0.07] text-[11px] font-bold text-slate-700 dark:text-slate-300 tabular-nums flex items-center justify-center shrink-0 mt-0.5">
+                  {String(i + 1).padStart(2, '0')}
                 </span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm sm:text-base text-[#111315] dark:text-white truncate">
-                      Quick Test Presets
-                    </h3>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 shrink-0">
-                      {DEMO_CHIPS.length} Cases
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                    Tap any preset scenario below to load into Draft
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="text-xs sm:text-sm font-bold text-[#111315] dark:text-white truncate">
+                    {chip.label}
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    &ldquo;{chip.text}&rdquo;
                   </p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowChips(false)}
-                className="p-1.5 rounded-full text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
-                title="Close"
-                aria-label="Close Test Cases"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Formatted Test Case List */}
-            <div className="p-4 overflow-y-auto space-y-2">
-              {DEMO_CHIPS.map((chip, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    setShowChips(false);
-                    onChipClick(chip);
-                  }}
-                  className="w-full text-left p-3.5 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02] hover:bg-[#C8F53B]/5 hover:border-[#111315] dark:hover:border-[#C8F53B] transition-all group active:scale-[0.99] flex items-center justify-between gap-3 cursor-pointer"
-                >
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tabular-nums shrink-0">
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <span className="text-sm leading-none shrink-0" aria-hidden="true">{chip.emoji}</span>
-                      <span className="text-xs sm:text-sm font-bold text-[#111315] dark:text-white truncate">
-                        {chip.label}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-5">
-                      “{chip.text}”
-                    </p>
-                  </div>
-
-                  <span className="w-8 h-8 rounded-full bg-white dark:bg-[#181C25] border border-slate-200 dark:border-white/10 group-hover:border-[#111315] dark:group-hover:border-[#C8F53B] group-hover:bg-[#111315] dark:group-hover:bg-[#C8F53B] group-hover:text-[#C8F53B] dark:group-hover:text-[#111315] text-slate-400 flex items-center justify-center shrink-0 transition-colors">
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+              <span className="w-8 h-8 rounded-full bg-white dark:bg-[#181C25] border border-slate-200 dark:border-white/10 group-hover:border-[#111315] dark:group-hover:border-[#C8F53B] group-hover:bg-[#111315] dark:group-hover:bg-[#C8F53B] group-hover:text-[#C8F53B] dark:group-hover:text-[#111315] text-slate-400 flex items-center justify-center shrink-0 transition-colors">
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </button>
+          ))}
+        </ModalSheet>
       )}
     </div>
   );
