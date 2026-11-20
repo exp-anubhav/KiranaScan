@@ -127,7 +127,7 @@ export default function DailyHisabTab({ store, lang, labels }) {
   todayVisits.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-4">
 
       {/* ═══════════ 1. HERO TOTAL SALES BENTO CARD (OBSIDIAN + VOLT LIME) ═══════════ */}
       <div className="bg-[#111315] dark:bg-[#161A22] rounded-3xl p-5 text-white border border-white/10 shadow-lg space-y-4">

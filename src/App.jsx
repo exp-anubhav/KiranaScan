@@ -419,7 +419,7 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 group">
+                  <div className="inline-flex items-center gap-1.5 min-w-0 max-w-full group">
                     <h1 className="font-bold text-sm tracking-tight text-[#111315] dark:text-white truncate leading-tight">
                       {currentShopName}
                     </h1>
@@ -549,7 +549,7 @@ export default function App() {
               {/* View-Mode Pill */}
               <button
                 onClick={handleToggleViewMode}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
+                className="hidden lg:inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer"
                 title={isMobileFrame ? 'Switch to Full Screen Desktop Mode' : 'Preview 430px Mobile Frame'}
               >
                 {isMobileFrame ? (
@@ -570,7 +570,7 @@ export default function App() {
       </header>
 
       {/* Tab Content */}
-      <main className={`flex-1 flex flex-col min-h-0 pb-32 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-2.5 sm:p-3' : 'max-w-5xl w-full mx-auto p-6 pb-32'}`}>
+      <main className={`flex-1 flex flex-col min-h-0 pb-24 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-2.5 sm:p-3' : 'max-w-5xl w-full mx-auto p-6 pb-24'}`}>
         <div
           key={activeTab}
           className={tabDirection === 'right' ? 'animate-tab-right' : 'animate-tab-left'}

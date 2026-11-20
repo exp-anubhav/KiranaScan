@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Search, Plus, Edit3, Save, Trash2, Package, RefreshCw, Shield,
   Download, Database, Key, Globe, X, Check, ChevronDown, ChevronRight,
-  ArrowUpDown, Wifi, WifiOff, Tag, Store
+  ArrowUpDown, Wifi, WifiOff, Tag, Store, Sparkles
 } from 'lucide-react';
 import { getActiveGeminiKey, hasBuiltInGeminiKey } from '../utils/bahiKhataOcr.js';
 
@@ -259,7 +259,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
   const queuedCount = syncQueue.filter(e => e.status === 'QUEUED_OFFLINE').length;
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="space-y-4">
 
       {/* ===== SECTION 0: SHOP NAME / DUKAN PROFILE ===== */}
       <section className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-sm">
@@ -750,22 +750,20 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
 
       {/* ===== SECTION 3: GEMINI AI KEY ===== */}
       <section className="bg-white dark:bg-[#12151C] rounded-3xl border border-slate-200/80 dark:border-white/[0.08] p-5 shadow-sm space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#111315] dark:bg-[#C8F53B]" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-            Gemini Vision AI Settings
-          </h2>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#111315] dark:bg-[#C8F53B]" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              Gemini Vision AI Settings
+            </h2>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold">
+            <Sparkles className="w-3 h-3" /> Cloud Key Active
+          </span>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-          The built-in <strong>Position-Independent Hinglish NLP Engine</strong> works 100% offline with zero API keys.
-          Gemini Vision powers handwritten bill &amp; Bahi-Khata photo scanning automatically.
+          Offline Hinglish voice billing runs locally. Gemini Vision powers handwritten bill &amp; ledger scanning.
         </p>
-
-        {builtInGeminiActive && !geminiKey.trim() && (
-          <div className="px-3.5 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-            ✨ Built-in Cloud Vision Key Active (Optional: enter a custom key below to override)
-          </div>
-        )}
 
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -774,7 +772,7 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
               type={showGeminiKey ? 'text' : 'password'}
               value={geminiKey}
               onChange={e => { setGeminiKey(e.target.value); setGeminiSaved(false); }}
-              placeholder={builtInGeminiActive ? 'Optional custom Gemini API Key to override…' : 'Gemini API Key'}
+              placeholder="Custom Gemini API key (optional)"
               className="w-full pl-8 pr-16 py-2.5 text-xs border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#C8F53B]"
             />
             <button
@@ -792,21 +790,11 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-          {geminiSaved && geminiKey.trim() ? (
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-              <Check size={14} /> Custom Gemini Key Connected
-            </span>
-          ) : builtInGeminiActive ? (
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-              <Check size={14} /> ✨ Gemini Vision AI Active
-            </span>
-          ) : (
-            <span className="flex items-center gap-1">
-              <Globe size={14} /> Not configured (optional)
-            </span>
-          )}
-        </div>
+        {geminiSaved && geminiKey.trim() && (
+          <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-bold">
+            <Check size={14} /> Custom Gemini Key Connected
+          </div>
+        )}
       </section>
 
       {/* ===== SECTION 4: DATA PRIVACY & PORTABILITY ===== */}
@@ -818,42 +806,46 @@ export default function CatalogueTab({ store, isOnline, lang, labels }) {
           </h2>
         </div>
 
-        <div className="grid gap-2">
-          {/* Export JSON */}
-          <button
-            onClick={handleExportJSON}
-            className="flex items-center gap-2.5 w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-left transition-colors bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white hover:border-slate-300 cursor-pointer"
-          >
-            <Download size={15} className="text-[#111315] dark:text-[#C8F53B]" />
-            <span>Export Full Shop Ledger (JSON)</span>
-          </button>
+        <div className="space-y-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Export JSON */}
+            <button
+              onClick={handleExportJSON}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-center transition-colors bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white hover:border-slate-300 cursor-pointer"
+            >
+              <Download size={14} className="text-[#111315] dark:text-[#C8F53B] shrink-0" />
+              <span className="truncate">Export JSON</span>
+            </button>
 
-          {/* Export CSV */}
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2.5 w-full px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-left transition-colors bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white hover:border-slate-300 cursor-pointer"
-          >
-            <Download size={15} className="text-[#111315] dark:text-[#C8F53B]" />
-            <span>Export Customer Balances as CSV</span>
-          </button>
+            {/* Export CSV */}
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-semibold text-center transition-colors bg-slate-50 dark:bg-[#181C25] text-slate-900 dark:text-white hover:border-slate-300 cursor-pointer"
+            >
+              <Download size={14} className="text-[#111315] dark:text-[#C8F53B] shrink-0" />
+              <span className="truncate">Export CSV</span>
+            </button>
+          </div>
 
-          {/* Reset Demo */}
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className="flex items-center gap-2.5 w-full px-4 py-2.5 rounded-2xl border border-amber-500/20 text-xs font-semibold text-left transition-colors bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/15 cursor-pointer"
-          >
-            <RefreshCw size={15} className="text-amber-600 dark:text-amber-400" />
-            <span>Restore Default Sample Data</span>
-          </button>
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Reset Demo */}
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl border border-amber-500/20 text-xs font-semibold text-center transition-colors bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/15 cursor-pointer"
+            >
+              <RefreshCw size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="truncate">Restore Sample Data</span>
+            </button>
 
-          {/* Delete All */}
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="flex items-center gap-2.5 w-full px-4 py-2.5 rounded-2xl border border-rose-500/20 text-xs font-semibold text-left transition-colors bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/15 cursor-pointer"
-          >
-            <Trash2 size={15} className="text-rose-600 dark:text-rose-400" />
-            <span>Delete All Shop Data</span>
-          </button>
+            {/* Delete All */}
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl border border-rose-500/20 text-xs font-semibold text-center transition-colors bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/15 cursor-pointer"
+            >
+              <Trash2 size={14} className="text-rose-600 dark:text-rose-400 shrink-0" />
+              <span className="truncate">Delete All Shop Data</span>
+            </button>
+          </div>
         </div>
 
         <p className="text-[10px] text-slate-400 leading-relaxed pt-1">
