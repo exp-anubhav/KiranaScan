@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useStore } from './stores/useStore.js';
 import { LABELS } from './data/seedData.js';
 import VoiceTab from './components/VoiceTab.jsx';
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import './index.css';
 
+const TAB_ORDER = ['voice', 'ledger', 'hisab', 'catalogue'];
 const TAB_ICONS = [Mic, BookOpen, BarChart3, StoreIcon];
 const TAB_SHORT_LABELS = ['Bol Kar', 'Khata', 'Hisab', 'Bhaav'];
 
@@ -43,11 +45,48 @@ function detectMobileDevice() {
 export default function App() {
   const store = useStore();
   const [activeTab, setActiveTab] = useState(0);
+  const [tabDirection, setTabDirection] = useState('right');
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  const tabButtonRefs = useRef([]);
   const [isOnline, setIsOnline] = useState(true);
   const [soundboxEnabled, setSoundboxEnabled] = useState(true);
   const [lang, setLang] = useState('hinglish');
   const [isMobileFrame, setIsMobileFrame] = useState(() => detectMobileDevice());
   const manualViewOverrideRef = useRef(false);
+
+  // Tab switching with directional enter transitions
+  const handleTabChange = (nextTab) => {
+    const nextIdx = typeof nextTab === 'number' ? nextTab : TAB_ORDER.indexOf(nextTab);
+    const prevIdx = typeof activeTab === 'number' ? activeTab : TAB_ORDER.indexOf(activeTab);
+    if (nextIdx === prevIdx || nextIdx === -1) return;
+    setTabDirection(nextIdx > prevIdx ? 'right' : 'left');
+    setActiveTab(nextIdx);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  };
+
+  // Measure active button's position for gliding Volt-Lime pill
+  useLayoutEffect(() => {
+    const measureActiveTab = () => {
+      const activeEl = tabButtonRefs.current[activeTab];
+      if (activeEl) {
+        setIndicator({
+          left: activeEl.offsetLeft,
+          width: activeEl.offsetWidth,
+        });
+      }
+    };
+    measureActiveTab();
+    const rafId = requestAnimationFrame(measureActiveTab);
+    window.addEventListener('resize', measureActiveTab);
+    window.addEventListener('orientationchange', measureActiveTab);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', measureActiveTab);
+      window.removeEventListener('orientationchange', measureActiveTab);
+    };
+  }, [activeTab, isMobileFrame]);
 
   // Auto-detect device & adapt layout automatically unless user manually toggled on desktop
   useEffect(() => {
@@ -77,10 +116,67 @@ export default function App() {
     setIsMobileFrame(nextMobile);
   };
 
-  // Dark mode state
+  // Dark mode state with native circular reveal (View Transitions API)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('kiranascan_theme') === 'dark';
   });
+
+  const toggleTheme = (e) => {
+    const nextDark = !isDarkMode;
+
+    const applyTheme = () => {
+      setIsDarkMode(nextDark);
+      if (nextDark) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('kiranascan_theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('kiranascan_theme', 'light');
+      }
+    };
+
+    if (
+      typeof document !== 'undefined' &&
+      document.startViewTransition &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      const rect = e?.currentTarget?.getBoundingClientRect();
+      const x = rect ? rect.left + rect.width / 2 : window.innerWidth - 36;
+      const y = rect ? rect.top + rect.height / 2 : 36;
+      const endRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      );
+
+      const transition = document.startViewTransition(() => {
+        flushSync(() => {
+          applyTheme();
+        });
+      });
+
+      transition.ready.then(() => {
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${x}px ${y}px)`,
+              `circle(${endRadius}px at ${x}px ${y}px)`,
+            ],
+          },
+          {
+            duration: 480,
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            pseudoElement: '::view-transition-new(root)',
+          }
+        );
+      });
+    } else {
+      document.documentElement.classList.add('theme-transitioning');
+      applyTheme();
+      setTimeout(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+      }, 380);
+    }
+  };
 
   useEffect(() => {
     if (isDarkMode) {
@@ -250,6 +346,7 @@ export default function App() {
         store={store}
         isDarkMode={isDarkMode}
         setIsDarkMode={setIsDarkMode}
+        toggleTheme={toggleTheme}
         authTab={authTab}
         setAuthTab={setAuthTab}
         loginPhone={loginPhone}
@@ -355,11 +452,16 @@ export default function App() {
             {/* Right: Minimal circular icon buttons for Theme, Reset Demo, and compact Switch pill */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
+                onClick={(e) => toggleTheme(e)}
                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
                 title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
-                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+                {isDarkMode ? (
+                  <Sun key="sun" className="w-4 h-4 text-amber-400 animate-icon-pop" />
+                ) : (
+                  <Moon key="moon" className="w-4 h-4 animate-icon-pop" />
+                )}
               </button>
 
               <button
@@ -477,42 +579,50 @@ export default function App() {
 
       {/* Tab Content */}
       <main className={`flex-1 flex flex-col min-h-0 pb-32 ${isMobileFrame ? 'w-full max-w-[440px] mx-auto p-2.5 sm:p-3' : 'max-w-5xl w-full mx-auto p-6 pb-32'}`}>
-        {renderTabContent()}
+        <div
+          key={activeTab}
+          className={tabDirection === 'right' ? 'animate-tab-right' : 'animate-tab-left'}
+        >
+          {renderTabContent()}
+        </div>
       </main>
 
       {/* Floating Glassmorphic Pill Bottom Dock */}
       <nav
         aria-label="Bottom Navigation"
-        className="fixed bottom-3.5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-[404px] rounded-full bg-[#111315]/95 dark:bg-[#161A22]/95 backdrop-blur-2xl border border-white/12 shadow-[0_16px_40px_rgba(0,0,0,0.28)] p-1.5 flex items-center justify-between gap-1"
+        className="fixed bottom-3.5 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-[404px] rounded-full bg-[#111315]/95 dark:bg-[#161A22]/95 backdrop-blur-2xl border border-white/12 shadow-[0_16px_40px_rgba(0,0,0,0.28)] p-1.5 relative grid grid-cols-4 items-center"
       >
+        {/* Physically Gliding Volt-Lime Pill */}
+        <div
+          aria-hidden="true"
+          className="absolute top-1.5 bottom-1.5 rounded-full bg-[#C8F53B] shadow-[0_4px_16px_rgba(200,245,59,0.28)] pointer-events-none z-0"
+          style={{
+            transform: `translate3d(${indicator.left}px, 0, 0)`,
+            width: `${indicator.width}px`,
+            opacity: indicator.width > 0 ? 1 : 0,
+            transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1), width 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 150ms ease',
+          }}
+        />
+
         {TAB_ICONS.map((Icon, i) => {
           const isActive = i === activeTab;
-          return isActive ? (
+          return (
             <button
-              key={i}
-              type="button"
-              onClick={() => {
-                setActiveTab(i);
-                window.scrollTo(0, 0);
+              key={TAB_ORDER[i] || i}
+              ref={(el) => {
+                tabButtonRefs.current[i] = el;
               }}
-              aria-current="page"
-              className="bg-[#C8F53B] text-[#111315] font-bold rounded-full px-3.5 py-2.5 flex items-center gap-1.5 shadow-sm transition-all text-xs shrink-0 cursor-pointer"
-            >
-              <Icon size={16} strokeWidth={2.4} className="shrink-0" />
-              <span className="whitespace-nowrap">{TAB_SHORT_LABELS[i]}</span>
-            </button>
-          ) : (
-            <button
-              key={i}
               type="button"
-              onClick={() => {
-                setActiveTab(i);
-                window.scrollTo(0, 0);
-              }}
-              className="text-slate-400 hover:text-white px-2.5 py-2 rounded-full flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer flex-1"
+              onClick={() => handleTabChange(i)}
+              aria-current={isActive ? 'page' : undefined}
+              className={`relative z-10 flex items-center justify-center gap-1.5 py-2.5 px-1 sm:px-2 rounded-full text-xs transition-colors duration-200 active:scale-95 cursor-pointer ${
+                isActive
+                  ? 'text-[#111315] font-bold'
+                  : 'text-slate-400 hover:text-white font-medium'
+              }`}
             >
-              <Icon size={16} strokeWidth={2} />
-              <span className="text-[10px] font-medium leading-none whitespace-nowrap">{TAB_SHORT_LABELS[i]}</span>
+              <Icon size={16} strokeWidth={isActive ? 2.4 : 2} className="shrink-0 transition-transform" />
+              <span className="whitespace-nowrap text-xs">{TAB_SHORT_LABELS[i]}</span>
             </button>
           );
         })}

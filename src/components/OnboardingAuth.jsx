@@ -433,6 +433,7 @@ export default function OnboardingAuth({
   store,
   isDarkMode,
   setIsDarkMode,
+  toggleTheme,
   authTab,
   setAuthTab,
   loginPhone,
@@ -459,6 +460,14 @@ export default function OnboardingAuth({
   const [slide, setSlide] = useState(0);
   const [phase, setPhase] = useState('onboarding'); // 'onboarding' | 'auth'
   const [userInteractedMobile, setUserInteractedMobile] = useState(false);
+
+  const handleToggleTheme = (e) => {
+    if (typeof toggleTheme === 'function') {
+      toggleTheme(e);
+    } else if (typeof setIsDarkMode === 'function') {
+      setIsDarkMode(!isDarkMode);
+    }
+  };
 
   // Auto-advance showcase slides:
   // On mobile (<768px): advance 0 -> 1 -> 2 and STOP permanently at slide 2 without looping.
@@ -531,11 +540,15 @@ export default function OnboardingAuth({
   const themeToggle = (
     <button
       type="button"
-      onClick={() => setIsDarkMode(!isDarkMode)}
+      onClick={(e) => handleToggleTheme(e)}
       className="w-10 h-10 rounded-full border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-[#141821]/80 backdrop-blur-sm text-slate-600 dark:text-slate-300 hover:text-[#111315] dark:hover:text-white flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
       aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      {isDarkMode ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} />}
+      {isDarkMode ? (
+        <Sun key="sun" size={17} className="text-amber-400 animate-icon-pop" />
+      ) : (
+        <Moon key="moon" size={17} className="animate-icon-pop" />
+      )}
     </button>
   );
 
@@ -1037,11 +1050,15 @@ export default function OnboardingAuth({
             </button>
             <button
               type="button"
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={(e) => handleToggleTheme(e)}
               className="w-8 h-8 rounded-full border border-white/15 bg-black/45 backdrop-blur-md text-white/90 flex items-center justify-center shadow-sm hover:scale-105 transition-all cursor-pointer"
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {isDarkMode ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} />}
+              {isDarkMode ? (
+                <Sun key="sun" size={15} className="text-amber-400 animate-icon-pop" />
+              ) : (
+                <Moon key="moon" size={15} className="animate-icon-pop" />
+              )}
             </button>
           </div>
         </div>
